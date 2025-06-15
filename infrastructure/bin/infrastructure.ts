@@ -1,21 +1,20 @@
 #!/usr/bin/env node
-import * as cdk from 'aws-cdk-lib';
-import { InfrastructureStack } from '../lib/infrastructure-stack';
+import * as cdk from "aws-cdk-lib";
+import { StorageStack } from "../lib/storage-stack";
+import { QueueStack } from "../lib/queue-stack";
+import { DefaultStackSynthesizer } from "aws-cdk-lib";
 
 const app = new cdk.App();
-new InfrastructureStack(app, 'InfrastructureStack', {
-  synthesizer: new cdk.DefaultStackSynthesizer({ qualifier: 'tfm' }),
-  /* If you don't specify 'env', this stack will be environment-agnostic.
-   * Account/Region-dependent features and context lookups will not work,
-   * but a single synthesized template can be deployed anywhere. */
 
-  /* Uncomment the next line to specialize this stack for the AWS Account
-   * and Region that are implied by the current CLI configuration. */
-  // env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+const env = {
+  account: process.env.CDK_DEFAULT_ACCOUNT,
+  region: process.env.CDK_DEFAULT_REGION,
+};
 
-  /* Uncomment the next line if you know exactly what Account and Region you
-   * want to deploy the stack to. */
-  // env: { account: '123456789012', region: 'us-east-1' },
+const synthesizer = new DefaultStackSynthesizer({ qualifier: "tfm" });
 
-  /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
-});
+// 1) Stack de DynamoDB
+new StorageStack(app, "SendeoStorageStack", { env, synthesizer });
+
+// 2) Stack de SQS
+new QueueStack(app, "SendeoQueueStack", { env, synthesizer });
