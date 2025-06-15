@@ -18,6 +18,7 @@ export class QueueStack extends cdk.Stack {
       queueName: "RouteJobsDLQ",
       retentionPeriod: cdk.Duration.days(14),
       encryption: QueueEncryption.SQS_MANAGED,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     this.routeJobsQueue = new Queue(this, "RouteJobsQueue", {
@@ -29,6 +30,7 @@ export class QueueStack extends cdk.Stack {
         queue: routeJobsDlq,
       } as DeadLetterQueue,
       encryption: QueueEncryption.SQS_MANAGED,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     //
@@ -39,6 +41,7 @@ export class QueueStack extends cdk.Stack {
       visibilityTimeout: cdk.Duration.seconds(30),
       retentionPeriod: cdk.Duration.days(1),
       encryption: QueueEncryption.SQS_MANAGED,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
   }
 }
