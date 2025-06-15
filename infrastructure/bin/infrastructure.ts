@@ -4,6 +4,7 @@ import { QueueStack } from "../lib/stacks/queue-stack";
 import { AuthStack } from "../lib/stacks/auth-stack";
 import { ComputeStack } from "../lib/stacks/compute-stack";
 import { DefaultStackSynthesizer } from "aws-cdk-lib";
+import { FrontendStack } from "../lib/stacks/frontend-stack";
 
 const app = new cdk.App();
 
@@ -32,4 +33,15 @@ new ComputeStack(app, "SendeoComputeStack", {
   routeJobsQueue:  queues.routeJobsQueue,
   metricsQueue:    queues.metricsQueue,
   userPool:        auth.userPool,
+});
+
+// 5) Frontend: Amplify App
+new FrontendStack(app, 'FrontendStack', {
+  repoOwner:            'granchetti',
+  repoName:             'sendeo',
+  oauthTokenSecretName: 'my-github-token',
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region:  process.env.CDK_DEFAULT_REGION,
+  },
 });
