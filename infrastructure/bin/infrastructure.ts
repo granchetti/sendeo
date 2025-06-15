@@ -10,13 +10,16 @@ const app = new cdk.App();
 
 const env = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
-  region:  process.env.CDK_DEFAULT_REGION,
+  region: process.env.CDK_DEFAULT_REGION,
 };
 
 const synthesizer = new DefaultStackSynthesizer({ qualifier: "tfm" });
 
 // 1) Tablas Dynamo
-const storage = new StorageStack(app, "SendeoStorageStack", { env, synthesizer });
+const storage = new StorageStack(app, "SendeoStorageStack", {
+  env,
+  synthesizer,
+});
 
 // 2) Colas SQS
 const queues = new QueueStack(app, "SendeoQueuesStack", { env, synthesizer });
@@ -28,20 +31,18 @@ const auth = new AuthStack(app, "SendeoAuthStack", { env, synthesizer });
 new ComputeStack(app, "SendeoComputeStack", {
   env,
   synthesizer,
-  routesTable:     storage.routesTable,
-  userStateTable:  storage.userStateTable,
-  routeJobsQueue:  queues.routeJobsQueue,
-  metricsQueue:    queues.metricsQueue,
-  userPool:        auth.userPool,
+  routesTable: storage.routesTable,
+  userStateTable: storage.userStateTable,
+  routeJobsQueue: queues.routeJobsQueue,
+  metricsQueue: queues.metricsQueue,
+  userPool: auth.userPool,
 });
 
 // 5) Frontend: Amplify App
-new FrontendStack(app, 'FrontendStack', {
-  repoOwner:            'granchetti',
-  repoName:             'sendeo',
-  oauthTokenSecretName: 'my-github-token',
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region:  process.env.CDK_DEFAULT_REGION,
-  },
+new FrontendStack(app, "FrontendStack", {
+  repoOwner: "granchetti",
+  repoName: "sendeo",
+  oauthTokenSecretName: "my-github-token",
+  env,
+  synthesizer,
 });
