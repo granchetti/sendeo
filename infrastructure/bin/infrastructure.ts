@@ -39,7 +39,7 @@ new ComputeStack(app, "SendeoComputeStack", {
 });
 
 // 5) Frontend: Amplify App
-new FrontendStack(app, "FrontendStack", {
+new FrontendStack(app, "SendeoFrontendStack", {
   repoOwner: "granchetti",
   repoName: "sendeo",
   oauthTokenSecretName: "my-github-token",
