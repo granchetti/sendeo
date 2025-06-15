@@ -19,7 +19,7 @@ export class StorageStack extends cdk.Stack {
     // Tabla de rutas con cache TTL y GSI
     this.routesTable = new Table(this, "RoutesTable", {
       tableName: "Routes",
-      partitionKey: { name: "jobId", type: AttributeType.STRING },
+      partitionKey: { name: "routeId", type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
       timeToLiveAttribute: "ttl", // limpia tras 24h (ttl = createdAt/1000 + 86400)
       removalPolicy: cdk.RemovalPolicy.RETAIN,
