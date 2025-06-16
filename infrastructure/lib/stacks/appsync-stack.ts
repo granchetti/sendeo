@@ -22,7 +22,7 @@ export class AppSyncStack extends cdk.Stack {
     this.api = new GraphqlApi(this, "SendeoGraphQL", {
       name: "SendeoGraphQL",
       schema: SchemaFile.fromAsset(
-        path.join(__dirname, "../../infrastructure/graphql/schema.graphql")
+        path.join(__dirname, "../../graphql/schema.graphql")
       ),
       logConfig: {
         fieldLogLevel: FieldLogLevel.ALL,

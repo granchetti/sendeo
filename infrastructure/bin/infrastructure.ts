@@ -51,5 +51,6 @@ new FrontendStack(app, "SendeoFrontendStack", {
 // 5) AppSync
 new AppSyncStack(app, 'SendeoAppSyncStack', {
   env,
+  synthesizer,
   userPool: auth.userPool,
 });
