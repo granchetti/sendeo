@@ -36,7 +36,7 @@ export class AuthStack extends cdk.Stack {
         adminUserPassword: true,
         userSrp: true,
       },
-      // Para Hosted UI (opcional):
+      // For Hosted UI:
       // oAuth: {
       //   flows: { authorizationCodeGrant: true },
       //   callbackUrls: ['https://tu-app.com/callback'],

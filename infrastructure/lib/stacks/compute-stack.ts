@@ -45,7 +45,7 @@ export class ComputeStack extends cdk.Stack {
     });
     props.routeJobsQueue.grantSendMessages(requestRoutes.fn);
 
-    // 2) WorkerRoutes → consumer de routeJobsQueue
+    // 2) WorkerRoutes → routeJobsQueue consumer 
     const workerRoutes = new SqsConsumer(this, "WorkerRoutes", {
       entry: path.join(__dirname, "../../../infrastructure-code/lambda/workerRoutes"),
       handler: "index.handler",
@@ -55,7 +55,6 @@ export class ComputeStack extends cdk.Stack {
         GOOGLE_API_KEY: process.env.GOOGLE_API_KEY!,
       },
     });
-    // Solo PutItem y UpdateItem en la tabla Routes
     workerRoutes.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
@@ -71,7 +70,6 @@ export class ComputeStack extends cdk.Stack {
       api,
       routes: [{ path: "favorites", methods: ["POST"], authorizer }],
     });
-    // Solo PutItem en la tabla UserState
     saveFav.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:PutItem"],
@@ -87,7 +85,6 @@ export class ComputeStack extends cdk.Stack {
       api,
       routes: [{ path: "favorites", methods: ["DELETE"], authorizer }],
     });
-    // Solo DeleteItem en la tabla UserState
     deleteFav.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:DeleteItem"],
@@ -95,7 +92,7 @@ export class ComputeStack extends cdk.Stack {
       })
     );
 
-    // 5) PageRouter → múltiples rutas
+    // 5) PageRouter → multiple routes
     const pageRouter = new HttpLambda(this, "PageRouter", {
       entry: path.join(__dirname, "../../../infrastructure-code/lambda/pageRouter"),
 
@@ -114,25 +111,21 @@ export class ComputeStack extends cdk.Stack {
         { path: "routes/{routeId}/finish", methods: ["POST"], authorizer },
       ],
     });
-    // Permisos precisos para PageRouter:
-    // • Leer en Routes: GetItem + Query
     pageRouter.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:GetItem", "dynamodb:Query"],
         resources: [props.routesTable.tableArn],
       })
     );
-    // • Leer y escribir en UserState: GetItem + PutItem
     pageRouter.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:GetItem", "dynamodb:PutItem"],
         resources: [props.userStateTable.tableArn],
       })
     );
-    // • Enviar mensajes a MetricsQueue
     props.metricsQueue.grantSendMessages(pageRouter.fn);
 
-    // 6) MetricsConsumer → opcional: procesa metricsQueue
+    // 6) MetricsConsumer
     new SqsConsumer(this, "MetricsConsumer", {
       entry: path.join(__dirname, "../../../infrastructure-code/lambda/metricsProcessor"),
 

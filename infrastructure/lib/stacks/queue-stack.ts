@@ -11,16 +11,13 @@ export class QueueStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: QueueStackProps) {
     super(scope, id, props);
 
-    //
-    // 1) Cola de trabajos de rutas (RouteJobs) con DLQ
-    //
+    // 1) Queue for routes with Dead Letter Queue (RouteJobsQueue)
     const routeJobsDlq = new Queue(this, "RouteJobsDLQ", {
       queueName: "RouteJobsDLQ",
       retentionPeriod: cdk.Duration.days(14),
       encryption: QueueEncryption.SQS_MANAGED,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
-
     this.routeJobsQueue = new Queue(this, "RouteJobsQueue", {
       queueName: "RouteJobsQueue",
       visibilityTimeout: cdk.Duration.seconds(60),
@@ -33,9 +30,7 @@ export class QueueStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
-    //
-    // 2) Cola para métricas (Metrics)
-    //
+    // 2) Queue for metrics processing (MetricsQueue)
     this.metricsQueue = new Queue(this, "MetricsQueue", {
       queueName: "MetricsQueue",
       visibilityTimeout: cdk.Duration.seconds(30),

@@ -16,12 +16,11 @@ export class StorageStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: StorageStackProps) {
     super(scope, id, props);
 
-    // Tabla de rutas con cache TTL y GSI
     this.routesTable = new Table(this, "RoutesTable", {
       tableName: "Routes",
       partitionKey: { name: "routeId", type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
-      timeToLiveAttribute: "ttl", // limpia tras 24h (ttl = createdAt/1000 + 86400)
+      timeToLiveAttribute: "ttl",
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
@@ -32,7 +31,6 @@ export class StorageStack extends cdk.Stack {
       projectionType: ProjectionType.ALL,
     });
 
-    // Tabla de estado de usuario
     this.userStateTable = new Table(this, "UserStateTable", {
       tableName: "UserState",
       partitionKey: { name: "PK", type: AttributeType.STRING },
