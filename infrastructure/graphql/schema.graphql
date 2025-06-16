@@ -1,0 +1,61 @@
+type Query {
+  _dummy: String
+}
+
+type Mutation {
+  publishUserSignedUp(email: String!): String
+  publishRoutesGenerated(
+    jobId: ID!
+    routes: [Route]!
+  ): [Route]
+  publishFavouriteSaved(
+    email: String!
+    routeId: ID!
+  ): ID
+  publishFavouriteDeleted(
+    email: String!
+    routeId: ID!
+  ): ID
+  publishRouteStarted(
+    email: String!
+    routeId: ID!
+  ): ID
+  publishRouteFinished(
+    email: String!
+    routeId: ID!
+    summary: String!
+  ): ID
+}
+
+type Subscription {
+  onUserSignedUp: String
+    @aws_subscribe(mutations: ["publishUserSignedUp"])
+
+  onRoutesGenerated(jobId: ID!): [Route]
+    @aws_subscribe(mutations: ["publishRoutesGenerated"])
+
+  onFavouriteSaved(email: String!): ID
+    @aws_subscribe(mutations: ["publishFavouriteSaved"])
+
+  onFavouriteDeleted(email: String!): ID
+    @aws_subscribe(mutations: ["publishFavouriteDeleted"])
+
+  onRouteStarted(email: String!, routeId: ID!): ID
+    @aws_subscribe(mutations: ["publishRouteStarted"])
+
+  onRouteFinished(email: String!, routeId: ID!): ID
+    @aws_subscribe(mutations: ["publishRouteFinished"])
+}
+
+type Route {
+  routeId: ID!
+  distanceKm: Float
+  duration: Int
+  path: String
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}

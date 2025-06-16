@@ -5,6 +5,7 @@ import { AuthStack } from "../lib/stacks/auth-stack";
 import { ComputeStack } from "../lib/stacks/compute-stack";
 import { DefaultStackSynthesizer } from "aws-cdk-lib";
 import { FrontendStack } from "../lib/stacks/frontend-stack";
+import { AppSyncStack } from "../lib/stacks/appsync-stack";
 
 const app = new cdk.App();
 
@@ -45,4 +46,10 @@ new FrontendStack(app, "SendeoFrontendStack", {
   oauthTokenSecretName: "my-github-token",
   env,
   synthesizer,
+});
+
+// 5) AppSync
+new AppSyncStack(app, 'SendeoAppSyncStack', {
+  env,
+  userPool: auth.userPool,
 });
