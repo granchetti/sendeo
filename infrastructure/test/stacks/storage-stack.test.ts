@@ -8,7 +8,7 @@ describe('StorageStack', () => {
   beforeAll(() => {
     const app = new cdk.App();
     const stack = new StorageStack(app, 'TestStorageStack', {
-      env: { account: '000000000000', region: 'us-east-1' },
+      env: { account: '123456789012', region: 'us-east-1' },
     });
     template = Template.fromStack(stack);
   });
