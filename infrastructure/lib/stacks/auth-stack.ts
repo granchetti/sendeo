@@ -17,6 +17,7 @@ export class AuthStack extends cdk.Stack {
       userPoolName: "SendeoUserPool",
       selfSignUpEnabled: true,
       signInAliases: { email: true },
+      autoVerify: { email: true },
       standardAttributes: {
         email: { required: true, mutable: true },
       },
@@ -30,6 +31,7 @@ export class AuthStack extends cdk.Stack {
     // 2) App Client
     this.userPoolClient = new cognito.UserPoolClient(this, "UserPoolClient", {
       userPool: this.userPool,
+      userPoolClientName: "UserPoolClient",
       generateSecret: false,
       authFlows: {
         userPassword: true,

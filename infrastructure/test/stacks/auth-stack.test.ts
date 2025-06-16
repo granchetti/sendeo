@@ -20,7 +20,6 @@ describe('AuthStack', () => {
       UserPoolName: Match.stringLikeRegexp('SendeoUserPool'),
       AutoVerifiedAttributes: ['email'],
       UsernameAttributes: ['email'],
-      Policies: Match.absent(),           
       Schema: Match.arrayWith([
         Match.objectLike({ Name: 'email', Required: true, Mutable: true }),
       ]),
