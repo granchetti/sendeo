@@ -6,14 +6,13 @@ import * as codebuild from "aws-cdk-lib/aws-codebuild";
 export interface FrontendStackProps extends cdk.StackProps {
   readonly repoOwner: string;
   readonly repoName: string;
-  readonly oauthTokenSecretName: string; // Secret en SecretsManager
+  readonly oauthTokenSecretName: string;
 }
 
 export class FrontendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: FrontendStackProps) {
     super(scope, id, props);
 
-    // 1) App de Amplify apuntando a tu repo
     const app = new amplify.App(this, "AmplifyApp", {
       sourceCodeProvider: new amplify.GitHubSourceCodeProvider({
         owner: props.repoOwner,
@@ -23,7 +22,7 @@ export class FrontendStack extends cdk.Stack {
           { jsonField: "GITHUB_TOKEN" }
         ),
       }),
-      // buildSpec de CodeBuild
+      // buildSpec
       buildSpec: codebuild.BuildSpec.fromObjectToYaml({
         version: 1,
         frontend: {
@@ -42,13 +41,10 @@ export class FrontendStack extends cdk.Stack {
       }),
     });
 
-    // 2) Deploy de la rama main
     const main = app.addBranch("main");
 
-    // 3) Construye la URL pública: <branchName>.<defaultDomain>
     const url = `https://${main.branchName}.${app.defaultDomain}`;
 
-    // 4) Salida CloudFormation
     new cdk.CfnOutput(this, "AmplifyURL", {
       value: url,
       description: "URL pública de la rama main en Amplify",
