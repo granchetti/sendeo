@@ -37,7 +37,10 @@ export class ComputeStack extends cdk.Stack {
 
     // 1) RequestRoutes → POST /routes
     const requestRoutes = new HttpLambda(this, "RequestRoutes", {
-      entry: path.join(__dirname, "../../../infrastructure-code/lambda/requestRoutes"),
+      entry: path.join(
+        __dirname,
+        "../../../infrastructure-code/lambda/requestRoutes"
+      ),
       handler: "index.handler",
       environment: { QUEUE_URL: props.routeJobsQueue.queueUrl },
       api,
@@ -45,9 +48,12 @@ export class ComputeStack extends cdk.Stack {
     });
     props.routeJobsQueue.grantSendMessages(requestRoutes.fn);
 
-    // 2) WorkerRoutes → routeJobsQueue consumer 
+    // 2) WorkerRoutes → routeJobsQueue consumer
     const workerRoutes = new SqsConsumer(this, "WorkerRoutes", {
-      entry: path.join(__dirname, "../../../infrastructure-code/lambda/workerRoutes"),
+      entry: path.join(
+        __dirname,
+        "../../../infrastructure-code/lambda/workerRoutes"
+      ),
       handler: "index.handler",
       queue: props.routeJobsQueue,
       environment: {
@@ -62,39 +68,35 @@ export class ComputeStack extends cdk.Stack {
       })
     );
 
-    // 3) SaveFavourite → POST /favorites
-    const saveFav = new HttpLambda(this, "SaveFavourite", {
-      entry: path.join(__dirname, "../../../infrastructure-code/lambda/saveFavourite"),
+    // 3) FavouriteRoutes → POST /favourites & DELETE /favourites/{routeId}
+    const favoriteRoutes = new HttpLambda(this, "FavoriteRoutes", {
+      entry: path.join(
+        __dirname,
+        "../../../infrastructure-code/lambda/favouriteRoutes"
+      ),
       handler: "index.handler",
-      environment: { USER_STATE_TABLE: props.userStateTable.tableName },
+      environment: {
+        USER_STATE_TABLE: props.userStateTable.tableName,
+      },
       api,
-      routes: [{ path: "favorites", methods: ["POST"], authorizer }],
+      routes: [
+        { path: "favourites", methods: ["POST"], authorizer },
+        { path: "favourites/{routeId}", methods: ["DELETE"], authorizer },
+      ],
     });
-    saveFav.fn.addToRolePolicy(
+    favoriteRoutes.fn.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["dynamodb:PutItem"],
+        actions: ["dynamodb:PutItem", "dynamodb:DeleteItem"],
         resources: [props.userStateTable.tableArn],
       })
     );
 
-    // 4) DeleteFavourite → DELETE /favorites
-    const deleteFav = new HttpLambda(this, "DeleteFavourite", {
-      entry: path.join(__dirname, "../../../infrastructure-code/lambda/deleteFavourite"),
-      handler: "index.handler",
-      environment: { USER_STATE_TABLE: props.userStateTable.tableName },
-      api,
-      routes: [{ path: "favorites", methods: ["DELETE"], authorizer }],
-    });
-    deleteFav.fn.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["dynamodb:DeleteItem"],
-        resources: [props.userStateTable.tableArn],
-      })
-    );
-
-    // 5) PageRouter → multiple routes
+    // 4) PageRouter → multiple routes
     const pageRouter = new HttpLambda(this, "PageRouter", {
-      entry: path.join(__dirname, "../../../infrastructure-code/lambda/pageRouter"),
+      entry: path.join(
+        __dirname,
+        "../../../infrastructure-code/lambda/pageRouter"
+      ),
 
       handler: "index.handler",
       environment: {
@@ -105,7 +107,7 @@ export class ComputeStack extends cdk.Stack {
       api,
       routes: [
         { path: "profile", methods: ["GET", "PUT"], authorizer },
-        { path: "favorites", methods: ["GET"], authorizer },
+        { path: "favourites", methods: ["GET"], authorizer },
         { path: "routes/{routeId}", methods: ["GET"], authorizer },
         { path: "telemetry/started", methods: ["POST"], authorizer },
         { path: "routes/{routeId}/finish", methods: ["POST"], authorizer },
@@ -125,9 +127,12 @@ export class ComputeStack extends cdk.Stack {
     );
     props.metricsQueue.grantSendMessages(pageRouter.fn);
 
-    // 6) MetricsConsumer
+    // 5) MetricsConsumer
     new SqsConsumer(this, "MetricsConsumer", {
-      entry: path.join(__dirname, "../../../infrastructure-code/lambda/metricsProcessor"),
+      entry: path.join(
+        __dirname,
+        "../../../infrastructure-code/lambda/metricsProcessor"
+      ),
 
       handler: "index.handler",
       queue: props.metricsQueue,
