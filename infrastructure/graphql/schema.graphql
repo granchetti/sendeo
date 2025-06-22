@@ -23,7 +23,14 @@ type Mutation {
 type Subscription {
   onRoutesGenerated(jobId: ID!): [Route]
     @aws_subscribe(mutations: ["publishRoutesGenerated"])
-  …
+  onFavouriteSaved(email: String!, routeId: ID!): ID
+    @aws_subscribe(mutations: ["publishFavouriteSaved"])
+  onFavouriteDeleted(email: String!, routeId: ID!): ID
+    @aws_subscribe(mutations: ["publishFavouriteDeleted"])
+  onRouteStarted(email: String!, routeId: ID!): ID
+    @aws_subscribe(mutations: ["publishRouteStarted"])
+  onRouteFinished(email: String!, routeId: ID!, summary: String!): ID
+    @aws_subscribe(mutations: ["publishRouteFinished"])
 }
 
 type Query {
@@ -31,7 +38,7 @@ type Query {
 }
 
 schema {
-  query:    Query
+  query: Query
   mutation: Mutation
   subscription: Subscription
 }
