@@ -68,6 +68,9 @@ web_modules/
 
 # Output of 'npm pack'
 *.tgz
+*.js
+!jest.config.js
+*.d.ts
 
 # Yarn Integrity file
 .yarn-integrity
@@ -134,3 +137,10 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# pnpm store
+.DS_Store
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
