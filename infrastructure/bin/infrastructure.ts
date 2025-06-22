@@ -48,7 +48,7 @@ new FrontendStack(app, "SendeoFrontendStack", {
   synthesizer,
 });
 
-// 5) AppSync
+// 6) AppSync
 new AppSyncStack(app, 'SendeoAppSyncStack', {
   env,
   synthesizer,
