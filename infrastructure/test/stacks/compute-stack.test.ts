@@ -14,7 +14,6 @@ describe("ComputeStack", () => {
 
     const deps = new cdk.Stack(app, "Deps", { env: TEST_ENV });
 
-    // 2) Dentro de él, define Tables, Queues y UserPool
     const routesTable = new Table(deps, "Routes", {
       partitionKey: { name: "id", type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
@@ -28,7 +27,6 @@ describe("ComputeStack", () => {
     const metricsQueue = new Queue(deps, "Metrics");
     const userPool = new UserPool(deps, "UserPool");
 
-    // 3) Ahora el ComputeStack, también con el mismo env
     const stack = new ComputeStack(app, "TestComputeStack", {
       env: TEST_ENV,
       routesTable,
