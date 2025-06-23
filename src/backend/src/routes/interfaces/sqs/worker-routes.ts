@@ -1,7 +1,7 @@
 import { SQSHandler } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { request as httpsRequest } from 'node:https';
-import { DynamoRouteRepository } from '../../infrastructure/dynamodb/route-repository';
+import { DynamoRouteRepository } from '../../infrastructure/dynamodb/dynamo-route-repository';
 import { RouteId } from '../../domain/value-objects/route-id-value-object';
 import { DistanceKm } from '../../domain/value-objects/distance-value-object';
 import { Duration } from '../../domain/value-objects/duration-value-object';
