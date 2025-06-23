@@ -3,7 +3,7 @@ backend:
   phases:
     preBuild:
       commands:
-        - cd backend
+        - cd src/backend
         - npm ci
     build:
       commands:
