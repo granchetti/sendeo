@@ -39,7 +39,7 @@ export class ComputeStack extends cdk.Stack {
     const requestRoutes = new HttpLambda(this, "RequestRoutes", {
       entry: path.join(
         __dirname,
-        "../../../infrastructure-code/lambda/requestRoutes"
+        "../../../src/backend/routes/interfaces/http/request-routes.ts"
       ),
       handler: "index.handler",
       environment: { QUEUE_URL: props.routeJobsQueue.queueUrl },
