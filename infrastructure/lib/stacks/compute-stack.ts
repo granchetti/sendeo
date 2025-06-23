@@ -39,9 +39,9 @@ export class ComputeStack extends cdk.Stack {
     const requestRoutes = new HttpLambda(this, "RequestRoutes", {
       entry: path.join(
         __dirname,
-        "../../../src/backend/routes/interfaces/http/request-routes.ts"
+        "../../../src/backend/routes/interfaces/http"
       ),
-      handler: "index.handler",
+      handler: "request-routes.handler",
       environment: { QUEUE_URL: props.routeJobsQueue.queueUrl },
       api,
       routes: [{ path: "routes", methods: ["POST"], authorizer }],
@@ -52,9 +52,9 @@ export class ComputeStack extends cdk.Stack {
     const workerRoutes = new SqsConsumer(this, "WorkerRoutes", {
       entry: path.join(
         __dirname,
-        "../../../infrastructure-code/lambda/workerRoutes"
+        "../../../src/backend/routes/interfaces/sqs"
       ),
-      handler: "index.handler",
+      handler: "worker-routes.handler",
       queue: props.routeJobsQueue,
       environment: {
         ROUTES_TABLE: props.routesTable.tableName,
@@ -72,9 +72,9 @@ export class ComputeStack extends cdk.Stack {
     const favoriteRoutes = new HttpLambda(this, "FavoriteRoutes", {
       entry: path.join(
         __dirname,
-        "../../../infrastructure-code/lambda/favouriteRoutes"
+        "../../../src/backend/routes/interfaces/http"
       ),
-      handler: "index.handler",
+      handler: "favourite-routes.handler",
       environment: {
         USER_STATE_TABLE: props.userStateTable.tableName,
       },
@@ -95,10 +95,10 @@ export class ComputeStack extends cdk.Stack {
     const pageRouter = new HttpLambda(this, "PageRouter", {
       entry: path.join(
         __dirname,
-        "../../../infrastructure-code/lambda/pageRouter"
+        "../../../src/backend/routes/interfaces/http"
       ),
 
-      handler: "index.handler",
+      handler: "page-router.handler",
       environment: {
         ROUTES_TABLE: props.routesTable.tableName,
         USER_STATE_TABLE: props.userStateTable.tableName,
@@ -131,10 +131,10 @@ export class ComputeStack extends cdk.Stack {
     new SqsConsumer(this, "MetricsConsumer", {
       entry: path.join(
         __dirname,
-        "../../../infrastructure-code/lambda/metricsProcessor"
+        "../../../src/backend/routes/interfaces/sqs"
       ),
 
-      handler: "index.handler",
+      handler: "metrics-processor.handler",
       queue: props.metricsQueue,
     });
   }

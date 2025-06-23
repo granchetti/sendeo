@@ -1,6 +1,5 @@
-
-import { Route, RouteProps } from '../../domain/entities/route-entity';
 import { RouteRepository } from '../../domain/repositories/route-repository';
+import { Route, RouteProps } from '../../domain/entities/route-entity';
 
 export interface RequestRoutesInput extends RouteProps {}
 

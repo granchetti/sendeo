@@ -1,4 +1,4 @@
-import { Route } from "../entities/route-entity";
+import { Route } from '../entities/route-entity';
 
 export interface RouteRepository {
   save(route: Route): Promise<void>;
