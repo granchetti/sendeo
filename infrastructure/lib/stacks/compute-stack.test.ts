@@ -1,6 +1,6 @@
 import * as cdk from "aws-cdk-lib";
 import { Template } from "aws-cdk-lib/assertions";
-import { ComputeStack } from "../../lib/stacks/compute-stack";
+import { ComputeStack } from "./compute-stack";
 import { Table, AttributeType, BillingMode } from "aws-cdk-lib/aws-dynamodb";
 import { Queue } from "aws-cdk-lib/aws-sqs";
 import { UserPool } from "aws-cdk-lib/aws-cognito";

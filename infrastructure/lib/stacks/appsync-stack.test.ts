@@ -2,7 +2,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
-import { AppSyncStack } from '../../lib/stacks/appsync-stack';
+import { AppSyncStack } from './appsync-stack';
 
 describe('AppSyncStack', () => {
   let template: Template;

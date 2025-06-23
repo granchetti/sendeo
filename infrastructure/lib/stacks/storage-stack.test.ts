@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { Template, Match } from 'aws-cdk-lib/assertions';
-import { StorageStack } from '../../lib/stacks/storage-stack';
+import { StorageStack } from './storage-stack';
 
 describe('StorageStack', () => {
   let template: Template;

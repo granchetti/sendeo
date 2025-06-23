@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { Template, Match } from 'aws-cdk-lib/assertions';
-import { FrontendStack } from '../../lib/stacks/frontend-stack';
+import { FrontendStack } from './frontend-stack';
 
 describe('FrontendStack', () => {
   let template: Template;

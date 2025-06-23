@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { Template, Match } from 'aws-cdk-lib/assertions';
-import { QueueStack } from '../../lib/stacks/queue-stack';
+import { QueueStack } from './queue-stack';
 
 describe('QueueStack', () => {
   let template: Template;
