@@ -7,7 +7,6 @@ backend:
         - npm ci
     build:
       commands:
-        - cd src/backend
         - amplifyPush --simple
   artifacts:
     baseDirectory: .
