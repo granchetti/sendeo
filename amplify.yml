@@ -13,13 +13,10 @@ backend:
     baseDirectory: .
     files:
       - "**/*"
-
 frontend:
   phases:
-    preBuild:
-      commands: []
-    build:
-      commands: []
+    preBuild: { commands: [] }
+    build: { commands: ['echo "no frontend yet"'] }
   artifacts:
     baseDirectory: .
     files: []

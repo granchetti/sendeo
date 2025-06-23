@@ -22,23 +22,6 @@ export class FrontendStack extends cdk.Stack {
           { jsonField: "GITHUB_TOKEN" }
         ),
       }),
-      // buildSpec
-      buildSpec: codebuild.BuildSpec.fromObjectToYaml({
-        version: 1,
-        frontend: {
-          phases: {
-            install: { commands: ["npm ci"] },
-            build: { commands: ["npm run build"] },
-          },
-          artifacts: {
-            baseDirectory: "dist",
-            files: ["**/*"],
-          },
-          cache: {
-            paths: ["node_modules/**/*"],
-          },
-        },
-      }),
     });
 
     const main = app.addBranch("main");
