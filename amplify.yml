@@ -1,0 +1,27 @@
+version: 1
+backend:
+  phases:
+    preBuild:
+      commands:
+        - cd backend
+        - npm ci
+    build:
+      commands:
+        - cd backend
+        - amplifyPush --simple
+  artifacts:
+    baseDirectory: .
+    files:
+      - "**/*"
+
+frontend:
+  phases:
+    preBuild:
+      commands: []
+    build:
+      commands: []
+  artifacts:
+    baseDirectory: .
+    files: []
+  cache:
+    paths: []
