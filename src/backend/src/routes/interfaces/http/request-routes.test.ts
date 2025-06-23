@@ -38,4 +38,11 @@ describe("request routes handler", () => {
     expect(payload.routeId).toBe(routeId);
     expect(JSON.parse(res.body).routeId).toBe(routeId);
   });
+
+  it("returns 400 when body parsing fails", async () => {
+    const res = await handler({ body: '{"invalid"' } as any);
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body).error).toBeDefined();
+    expect(mockSend).not.toHaveBeenCalled();
+  });
 });

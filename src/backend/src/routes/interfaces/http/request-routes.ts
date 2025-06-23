@@ -1,13 +1,23 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
-import { RouteId } from '../../domain/value-objects/route-id-value-object';
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+import { RouteId } from "../../domain/value-objects/route-id-value-object";
 
 const sqs = new SQSClient({});
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const data = event.body ? JSON.parse(event.body) : {};
+  let data: any = {};
+  if (event.body) {
+    try {
+      data = JSON.parse(event.body);
+    } catch (err) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Invalid JSON body" }),
+      };
+    }
+  }
   if (!data.routeId) {
     data.routeId = RouteId.generate().Value;
   }
