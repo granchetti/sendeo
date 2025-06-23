@@ -10,14 +10,4 @@ backend:
         - npm run build
   artifacts:
     baseDirectory: .
-    files:
-      - "**/*"
-frontend:
-  phases:
-    preBuild: { commands: [] }
-    build: { commands: ['echo "no frontend yet"'] }
-  artifacts:
-    baseDirectory: .
     files: []
-  cache:
-    paths: []
