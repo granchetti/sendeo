@@ -5,7 +5,7 @@ export class InMemoryRouteRepository implements RouteRepository {
   private routes = new Map<string, Route>();
 
   async save(route: Route): Promise<void> {
-    this.routes.set(route.routeId, route);
+    this.routes.set(route.routeId.Value, route);
   }
 
   async findById(id: string): Promise<Route | null> {
