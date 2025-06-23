@@ -1,6 +1,8 @@
 import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import * as path from "path";
 
 export interface HttpLambdaProps {
   readonly entry: string;
@@ -20,10 +22,11 @@ export class HttpLambda extends Construct {
   constructor(scope: Construct, id: string, props: HttpLambdaProps) {
     super(scope, id);
 
-    this.fn = new lambda.Function(this, "Function", {
+    const [file, fnName] = props.handler.split(".");
+    this.fn = new NodejsFunction(this, "Function", {
       runtime: lambda.Runtime.NODEJS_18_X,
-      code: lambda.Code.fromAsset(props.entry),
-      handler: props.handler,
+      entry: path.join(props.entry, `${file}.ts`),
+      handler: fnName,
       environment: props.environment,
     });
 

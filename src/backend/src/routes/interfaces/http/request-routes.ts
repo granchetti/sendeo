@@ -1,18 +1,21 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { RequestRoutesUseCase } from '../../application/use-cases/request-routes';
-import { InMemoryRouteRepository } from '../../infrastructure/in-memory/route-repository';
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 
-const repository = new InMemoryRouteRepository();
-const useCase = new RequestRoutesUseCase(repository);
+const sqs = new SQSClient({});
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const data = event.body ? JSON.parse(event.body) : {};
-  const route = await useCase.execute(data);
+  await sqs.send(
+    new SendMessageCommand({
+      QueueUrl: process.env.QUEUE_URL,
+      MessageBody: JSON.stringify(data),
+    })
+  );
 
   return {
-    statusCode: 201,
-    body: JSON.stringify(route),
+    statusCode: 202,
+    body: JSON.stringify({ enqueued: true }),
   };
 };
