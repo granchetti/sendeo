@@ -39,7 +39,7 @@ export class ComputeStack extends cdk.Stack {
     const requestRoutes = new HttpLambda(this, "RequestRoutes", {
       entry: path.join(
         __dirname,
-        "../../../src/backend/routes/interfaces/http"
+        "../../../src/backend/src/routes/interfaces/http"
       ),
       handler: "request-routes.handler",
       environment: { QUEUE_URL: props.routeJobsQueue.queueUrl },
@@ -52,7 +52,7 @@ export class ComputeStack extends cdk.Stack {
     const workerRoutes = new SqsConsumer(this, "WorkerRoutes", {
       entry: path.join(
         __dirname,
-        "../../../src/backend/routes/interfaces/sqs"
+        "../../../src/backend/src/routes/interfaces/sqs"
       ),
       handler: "worker-routes.handler",
       queue: props.routeJobsQueue,
@@ -72,7 +72,7 @@ export class ComputeStack extends cdk.Stack {
     const favoriteRoutes = new HttpLambda(this, "FavoriteRoutes", {
       entry: path.join(
         __dirname,
-        "../../../src/backend/routes/interfaces/http"
+        "../../../src/backend/src/routes/interfaces/http"
       ),
       handler: "favourite-routes.handler",
       environment: {
@@ -95,7 +95,7 @@ export class ComputeStack extends cdk.Stack {
     const pageRouter = new HttpLambda(this, "PageRouter", {
       entry: path.join(
         __dirname,
-        "../../../src/backend/routes/interfaces/http"
+        "../../../src/backend/src/routes/interfaces/http"
       ),
 
       handler: "page-router.handler",
@@ -131,7 +131,7 @@ export class ComputeStack extends cdk.Stack {
     new SqsConsumer(this, "MetricsConsumer", {
       entry: path.join(
         __dirname,
-        "../../../src/backend/routes/interfaces/sqs"
+        "../../../src/backend/src/routes/interfaces/sqs"
       ),
 
       handler: "metrics-processor.handler",
