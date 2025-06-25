@@ -37,6 +37,7 @@ new ComputeStack(app, "SendeoComputeStack", {
   routeJobsQueue: queues.routeJobsQueue,
   metricsQueue: queues.metricsQueue,
   userPool: auth.userPool,
+  googleApiKeySecretName: 'google-api-key',
 });
 
 // 5) Frontend: Amplify App

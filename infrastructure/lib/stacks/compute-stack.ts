@@ -1,5 +1,6 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
+import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as sqs from "aws-cdk-lib/aws-sqs";
@@ -15,11 +16,18 @@ export interface ComputeStackProps extends cdk.StackProps {
   readonly routeJobsQueue: sqs.IQueue;
   readonly metricsQueue: sqs.IQueue;
   readonly userPool: IUserPool;
+  readonly googleApiKeySecretName: string;
 }
 
 export class ComputeStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ComputeStackProps) {
     super(scope, id, props);
+
+    const googleSecret = Secret.fromSecretNameV2(
+      this,
+      "GoogleSecret",
+      "google-api-key"
+    );
 
     // API Gateway + Cognito Authorizer
     const api = new apigw.RestApi(this, "Api", {
@@ -58,9 +66,9 @@ export class ComputeStack extends cdk.Stack {
       queue: props.routeJobsQueue,
       environment: {
         ROUTES_TABLE: props.routesTable.tableName,
-        GOOGLE_API_KEY: process.env.GOOGLE_API_KEY!,
       },
     });
+    googleSecret.grantRead(workerRoutes.fn);
     workerRoutes.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
