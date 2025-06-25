@@ -18,6 +18,11 @@ const sm = new SecretsManagerClient({});
 
 /** 1️⃣ Obtiene la API key de Secrets Manager */
 async function getGoogleKey(): Promise<string> {
+  const envKey = process.env.GOOGLE_API_KEY;
+  if (envKey) {
+    console.info("🔑 Google API Key from ENV variable");
+    return envKey;
+  }
   const resp = await sm.send(
     new GetSecretValueCommand({ SecretId: "google-api-key" })
   );
@@ -151,7 +156,6 @@ function postJson<T = any>(
   });
 }
 
-
 /** 🎯 Handler principal */
 export const handler: SQSHandler = async (event) => {
   console.info("📥 Received SQS event:", JSON.stringify(event, null, 2));
@@ -175,8 +179,22 @@ export const handler: SQSHandler = async (event) => {
 
     // ⇨ 2) Llamar a computeRoutes con coordenadas
     const requestBody = {
-      origin: { location: { latLng: oCoords } },
-      destination: { location: { latLng: dCoords } },
+      origin: {
+        location: {
+          latLng: {
+            latitude: oCoords.lat,
+            longitude: oCoords.lng,
+          },
+        },
+      },
+      destination: {
+        location: {
+          latLng: {
+            latitude: dCoords.lat,
+            longitude: dCoords.lng,
+          },
+        },
+      },
       travelMode: "WALK",
     };
     console.info("🌐 Calling Routes API with coords…", requestBody);
