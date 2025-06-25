@@ -16,29 +16,59 @@ const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 const sm = new SecretsManagerClient({});
 
+/** 1️⃣ Obtiene la API key de Secrets Manager */
 async function getGoogleKey(): Promise<string> {
   const resp = await sm.send(
     new GetSecretValueCommand({ SecretId: "google-api-key" })
   );
   const json = JSON.parse(resp.SecretString!);
   const key = json.GOOGLE_API_KEY as string;
-  console.info(
-    "🔑 Google API Key retrieved (truncated):",
-    key.slice(0, 8) + "…"
-  );
+  console.info("🔑 Google API Key retrieved (truncated):", key.slice(0, 8) + "…");
   return key;
 }
 
-function decodePolyline(encoded: string): Array<{ lat: number; lng: number }> {
-  let index = 0,
-    lat = 0,
-    lng = 0;
-  const coordinates: Array<{ lat: number; lng: number }> = [];
+/** 2️⃣ Helper para hacer GET JSON (usado en geocoding) */
+function fetchJson<T = any>(url: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const req = httpsRequest(url, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        if (!data) return resolve(null as any);
+        try {
+          resolve(JSON.parse(data));
+        } catch (err) {
+          console.error("❌ JSON.parse error in fetchJson:", data);
+          reject(err);
+        }
+      });
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
 
+/** 3️⃣ Geocodifica una dirección a lat/lng */
+async function geocode(address: string, apiKey: string): Promise<{ lat: number; lng: number }> {
+  const url = `https://maps.googleapis.com/maps/api/geocode/json` +
+              `?address=${encodeURIComponent(address)}` +
+              `&key=${apiKey}`;
+  console.info("🌐 Geocoding address:", address);
+  const res: any = await fetchJson(url);
+  const loc = res?.results?.[0]?.geometry?.location;
+  if (!loc) {
+    console.warn("⚠️ No geocoding result for", address, res);
+    throw new Error(`Geocoding failed for "${address}"`);
+  }
+  return { lat: loc.lat, lng: loc.lng };
+}
+
+/** 4️⃣ Decodifica polyline de Google */
+function decodePolyline(encoded: string): Array<{ lat: number; lng: number }> {
+  let index = 0, lat = 0, lng = 0;
+  const coords: Array<{ lat: number; lng: number }> = [];
   while (index < encoded.length) {
-    let result = 0,
-      shift = 0,
-      b: number;
+    let result = 0, shift = 0, b: number;
     do {
       b = encoded.charCodeAt(index++) - 63;
       result |= (b & 0x1f) << shift;
@@ -46,9 +76,7 @@ function decodePolyline(encoded: string): Array<{ lat: number; lng: number }> {
     } while (b >= 0x20);
     const deltaLat = result & 1 ? ~(result >> 1) : result >> 1;
     lat += deltaLat;
-
-    result = 0;
-    shift = 0;
+    result = 0; shift = 0;
     do {
       b = encoded.charCodeAt(index++) - 63;
       result |= (b & 0x1f) << shift;
@@ -56,12 +84,12 @@ function decodePolyline(encoded: string): Array<{ lat: number; lng: number }> {
     } while (b >= 0x20);
     const deltaLng = result & 1 ? ~(result >> 1) : result >> 1;
     lng += deltaLng;
-
-    coordinates.push({ lat: lat / 1e5, lng: lng / 1e5 });
+    coords.push({ lat: lat / 1e5, lng: lng / 1e5 });
   }
-  return coordinates;
+  return coords;
 }
 
+/** 5️⃣ POST JSON helper para Routes API */
 function postJson<T = any>(
   host: string,
   path: string,
@@ -94,21 +122,20 @@ function postJson<T = any>(
           resolve(JSON.parse(data));
         } catch (err) {
           console.error("❌ JSON.parse error, raw body:", data);
-          return reject(err);
+          reject(err);
         }
       });
     });
-
     req.on("error", (err) => {
       console.error("❌ HTTPS request error:", err);
       reject(err);
     });
-
     req.write(payload);
     req.end();
   });
 }
 
+/** 🎯 Handler principal */
 export const handler: SQSHandler = async (event) => {
   console.info("📥 Received SQS event:", JSON.stringify(event, null, 2));
   const googleKey = await getGoogleKey();
@@ -117,19 +144,31 @@ export const handler: SQSHandler = async (event) => {
     const { origin, destination, routeId } = JSON.parse(record.body);
     console.info("➡️ Processing record:", { origin, destination, routeId });
 
-    const requestBody = {
-      origin: { location: { address: origin } },
-      destination: { location: { address: destination } },
-      travelMode: "WALK",
-      routingPreference: "TRAFFIC_AWARE",
-    };
+    // ⇨ 1) Geocodificar origen y destino
+    let oCoords, dCoords;
+    try {
+      [oCoords, dCoords] = await Promise.all([
+        geocode(origin,      googleKey),
+        geocode(destination, googleKey),
+      ]);
+    } catch (err) {
+      console.error("❌ Geocoding error:", err);
+      continue;
+    }
 
-    console.info("🌐 Calling new Routes API…", requestBody);
+    // ⇨ 2) Llamar a computeRoutes con coordenadas
+    const requestBody = {
+      origin:      { location: { latLng: oCoords } },
+      destination: { location: { latLng: dCoords } },
+      travelMode:  "WALK",
+    };
+    console.info("🌐 Calling Routes API with coords…", requestBody);
+
     let resp: any;
     try {
       resp = await postJson(
         "routes.googleapis.com",
-        "/v1/routes:computeRoutes",
+        "/v1:computeRoutes",
         googleKey,
         requestBody
       );
@@ -137,19 +176,20 @@ export const handler: SQSHandler = async (event) => {
       console.error("❌ Failed calling Routes API:", err);
       continue;
     }
-
     console.info("📊 Routes API returned:", JSON.stringify(resp, null, 2));
+
     const leg = resp?.routes?.[0]?.legs?.[0];
     if (!leg) {
       console.warn("⚠️ No legs returned in response:", resp);
       continue;
     }
 
+    // ⇨ 3) Construir entidad y guardar en Dynamo
     const route = new Route({
-      routeId: RouteId.fromString(routeId),
+      routeId:    RouteId.fromString(routeId),
       distanceKm: new DistanceKm((leg.distanceMeters || 0) / 1000),
-      duration: new Duration(leg.duration?.seconds || 0),
-      path: new Path(
+      duration:   new Duration(leg.duration?.seconds || 0),
+      path:       new Path(
         leg.polyline?.encodedPolyline
           ? decodePolyline(leg.polyline.encodedPolyline)
           : []
