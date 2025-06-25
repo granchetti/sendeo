@@ -22,16 +22,23 @@ async function getGoogleKey(): Promise<string> {
   );
   const json = JSON.parse(resp.SecretString!);
   const key = json.GOOGLE_API_KEY as string;
-  console.info("🔑 Google API Key retrieved (truncated):", key.slice(0, 8) + "…");
+  console.info(
+    "🔑 Google API Key retrieved (truncated):",
+    key.slice(0, 8) + "…"
+  );
   return key;
 }
 
 function decodePolyline(encoded: string): Array<{ lat: number; lng: number }> {
-  let index = 0, lat = 0, lng = 0;
+  let index = 0,
+    lat = 0,
+    lng = 0;
   const coordinates: Array<{ lat: number; lng: number }> = [];
 
   while (index < encoded.length) {
-    let result = 0, shift = 0, b: number;
+    let result = 0,
+      shift = 0,
+      b: number;
     do {
       b = encoded.charCodeAt(index++) - 63;
       result |= (b & 0x1f) << shift;
@@ -40,7 +47,8 @@ function decodePolyline(encoded: string): Array<{ lat: number; lng: number }> {
     const deltaLat = result & 1 ? ~(result >> 1) : result >> 1;
     lat += deltaLat;
 
-    result = 0; shift = 0;
+    result = 0;
+    shift = 0;
     do {
       b = encoded.charCodeAt(index++) - 63;
       result |= (b & 0x1f) << shift;
@@ -74,6 +82,7 @@ function postJson<T = any>(
     };
 
     const req = httpsRequest(opts, (res) => {
+      console.info(`📡 Routes API → ${res.statusCode} ${res.statusMessage}`);
       let data = "";
       res.on("data", (chunk) => (data += chunk));
       res.on("end", () => {
@@ -109,9 +118,9 @@ export const handler: SQSHandler = async (event) => {
     console.info("➡️ Processing record:", { origin, destination, routeId });
 
     const requestBody = {
-      origin:      { location: { address: origin } },
+      origin: { location: { address: origin } },
       destination: { location: { address: destination } },
-      travelMode:  "WALK",
+      travelMode: "WALK",
       routingPreference: "TRAFFIC_AWARE",
     };
 
@@ -120,7 +129,7 @@ export const handler: SQSHandler = async (event) => {
     try {
       resp = await postJson(
         "routes.googleapis.com",
-        "/v1:computeRoutes",
+        "/v1/routes:computeRoutes",
         googleKey,
         requestBody
       );
@@ -137,10 +146,10 @@ export const handler: SQSHandler = async (event) => {
     }
 
     const route = new Route({
-      routeId:    RouteId.fromString(routeId),
+      routeId: RouteId.fromString(routeId),
       distanceKm: new DistanceKm((leg.distanceMeters || 0) / 1000),
-      duration:   new Duration(leg.duration?.seconds || 0),
-      path:       new Path(
+      duration: new Duration(leg.duration?.seconds || 0),
+      path: new Path(
         leg.polyline?.encodedPolyline
           ? decodePolyline(leg.polyline.encodedPolyline)
           : []
