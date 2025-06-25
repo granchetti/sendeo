@@ -219,11 +219,15 @@ export const handler: SQSHandler = async (event) => {
       continue;
     }
 
-    // ⇨ 3) Construir entidad y guardar en Dynamo
+    const durationSeconds =
+      typeof leg.duration === "string"
+        ? parseInt(leg.duration.replace(/[^0-9]/g, ""), 10)
+        : leg.duration?.seconds ?? 0;
+
     const route = new Route({
       routeId: RouteId.fromString(routeId),
       distanceKm: new DistanceKm((leg.distanceMeters || 0) / 1000),
-      duration: new Duration(leg.duration?.seconds || 0),
+      duration: new Duration(durationSeconds),
       path: new Path(
         leg.polyline?.encodedPolyline
           ? decodePolyline(leg.polyline.encodedPolyline)
