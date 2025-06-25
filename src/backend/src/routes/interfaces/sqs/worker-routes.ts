@@ -78,18 +78,44 @@ async function getGoogleKey() {
 }
 
 export const handler: SQSHandler = async (event) => {
+  console.log("📥 Evento SQS completo:", JSON.stringify(event, null, 2));
+
   const googleKey = await getGoogleKey();
+  console.log("🔑 Google API Key recuperada (truncada):", googleKey.slice(0,4), "…");
+
   for (const record of event.Records) {
-    const payload = JSON.parse(record.body);
+    console.log("📦 Nuevo record:", record);
+
+    let payload;
+    try {
+      payload = JSON.parse(record.body);
+    } catch (e) {
+      console.error("❌ No pude parsear record.body:", record.body, e);
+      continue;
+    }
+    console.log("➡️ Payload:", payload);
+
     const origin = encodeURIComponent(payload.origin);
     const destination = encodeURIComponent(payload.destination);
+    console.log(`🌐 Llamando a Google Maps API: origin=${payload.origin}, destination=${payload.destination}`);
+
     const url =
       `https://maps.googleapis.com/maps/api/directions/json` +
       `?origin=${origin}&destination=${destination}&key=${googleKey}`;
+    let directions;
+    try {
+      directions = await fetchJson(url);
+    } catch (e) {
+      console.error("❌ Error al llamar a Google Maps:", e);
+      continue;
+    }
+    console.log("📊 Respuesta de Google:", JSON.stringify(directions, null, 2));
 
-    const directions = await fetchJson(url);
     const leg = directions.routes?.[0]?.legs?.[0];
-    if (!leg) continue;
+    if (!leg) {
+      console.warn("⚠️ No vino ningún leg en la respuesta de Google:", directions);
+      continue;
+    }
 
     const route = new Route({
       routeId: RouteId.fromString(payload.routeId),
@@ -99,6 +125,13 @@ export const handler: SQSHandler = async (event) => {
         decodePolyline(directions.routes[0].overview_polyline?.points ?? "")
       ),
     });
-    await repository.save(route);
+    console.log("💾 Guardando ruta:", JSON.stringify(route, null, 2));
+    try {
+      await repository.save(route);
+      console.log("✅ Ruta guardada con éxito:", route.routeId.toString());
+    } catch (e) {
+      console.error("❌ Error al guardar en DynamoDB:", e);
+    }
   }
 };
+
