@@ -23,7 +23,10 @@ async function getGoogleKey(): Promise<string> {
   );
   const json = JSON.parse(resp.SecretString!);
   const key = json.GOOGLE_API_KEY as string;
-  console.info("🔑 Google API Key retrieved (truncated):", key.slice(0, 8) + "…");
+  console.info(
+    "🔑 Google API Key retrieved (truncated):",
+    key.slice(0, 8) + "…"
+  );
   return key;
 }
 
@@ -49,10 +52,14 @@ function fetchJson<T = any>(url: string): Promise<T> {
 }
 
 /** 3️⃣ Geocodifica una dirección a lat/lng */
-async function geocode(address: string, apiKey: string): Promise<{ lat: number; lng: number }> {
-  const url = `https://maps.googleapis.com/maps/api/geocode/json` +
-              `?address=${encodeURIComponent(address)}` +
-              `&key=${apiKey}`;
+async function geocode(
+  address: string,
+  apiKey: string
+): Promise<{ lat: number; lng: number }> {
+  const url =
+    `https://maps.googleapis.com/maps/api/geocode/json` +
+    `?address=${encodeURIComponent(address)}` +
+    `&key=${apiKey}`;
   console.info("🌐 Geocoding address:", address);
   const res: any = await fetchJson(url);
   const loc = res?.results?.[0]?.geometry?.location;
@@ -65,10 +72,14 @@ async function geocode(address: string, apiKey: string): Promise<{ lat: number; 
 
 /** 4️⃣ Decodifica polyline de Google */
 function decodePolyline(encoded: string): Array<{ lat: number; lng: number }> {
-  let index = 0, lat = 0, lng = 0;
+  let index = 0,
+    lat = 0,
+    lng = 0;
   const coords: Array<{ lat: number; lng: number }> = [];
   while (index < encoded.length) {
-    let result = 0, shift = 0, b: number;
+    let result = 0,
+      shift = 0,
+      b: number;
     do {
       b = encoded.charCodeAt(index++) - 63;
       result |= (b & 0x1f) << shift;
@@ -76,7 +87,8 @@ function decodePolyline(encoded: string): Array<{ lat: number; lng: number }> {
     } while (b >= 0x20);
     const deltaLat = result & 1 ? ~(result >> 1) : result >> 1;
     lat += deltaLat;
-    result = 0; shift = 0;
+    result = 0;
+    shift = 0;
     do {
       b = encoded.charCodeAt(index++) - 63;
       result |= (b & 0x1f) << shift;
@@ -119,21 +131,24 @@ function postJson<T = any>(
           return resolve(null as any);
         }
         try {
-          resolve(JSON.parse(data));
+          return resolve(JSON.parse(data));
         } catch (err) {
           console.error("❌ JSON.parse error, raw body:", data);
-          reject(err);
+          return reject(err);
         }
       });
     });
+
     req.on("error", (err) => {
       console.error("❌ HTTPS request error:", err);
       reject(err);
     });
+
     req.write(payload);
     req.end();
   });
 }
+
 
 /** 🎯 Handler principal */
 export const handler: SQSHandler = async (event) => {
@@ -148,7 +163,7 @@ export const handler: SQSHandler = async (event) => {
     let oCoords, dCoords;
     try {
       [oCoords, dCoords] = await Promise.all([
-        geocode(origin,      googleKey),
+        geocode(origin, googleKey),
         geocode(destination, googleKey),
       ]);
     } catch (err) {
@@ -158,9 +173,9 @@ export const handler: SQSHandler = async (event) => {
 
     // ⇨ 2) Llamar a computeRoutes con coordenadas
     const requestBody = {
-      origin:      { location: { latLng: oCoords } },
+      origin: { location: { latLng: oCoords } },
       destination: { location: { latLng: dCoords } },
-      travelMode:  "WALK",
+      travelMode: "WALK",
     };
     console.info("🌐 Calling Routes API with coords…", requestBody);
 
@@ -186,10 +201,10 @@ export const handler: SQSHandler = async (event) => {
 
     // ⇨ 3) Construir entidad y guardar en Dynamo
     const route = new Route({
-      routeId:    RouteId.fromString(routeId),
+      routeId: RouteId.fromString(routeId),
       distanceKm: new DistanceKm((leg.distanceMeters || 0) / 1000),
-      duration:   new Duration(leg.duration?.seconds || 0),
-      path:       new Path(
+      duration: new Duration(leg.duration?.seconds || 0),
+      path: new Path(
         leg.polyline?.encodedPolyline
           ? decodePolyline(leg.polyline.encodedPolyline)
           : []
