@@ -118,6 +118,8 @@ function postJson<T = any>(
         "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(payload),
         "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask":
+          "routes.legs.duration,routes.legs.distanceMeters,routes.legs.polyline.encodedPolyline",
       },
     };
 
@@ -183,7 +185,7 @@ export const handler: SQSHandler = async (event) => {
     try {
       resp = await postJson(
         "routes.googleapis.com",
-        "/v1:computeRoutes",
+        "/directions/v2:computeRoutes",
         googleKey,
         requestBody
       );
