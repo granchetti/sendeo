@@ -43,11 +43,13 @@ describe('worker routes handler', () => {
     responseDataHolder.data = JSON.stringify({
       routes: [
         {
-          overview_polyline: { points: '_p~iF~ps|U_ulLnnqC_mqNvxq`@' },
           legs: [
             {
-              distance: { value: 1500 },
-              duration: { value: 600 }
+              distanceMeters: 1500,
+              duration: { seconds: 600 },
+              polyline: {
+                encodedPolyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@'
+              }
             }
           ]
         }
