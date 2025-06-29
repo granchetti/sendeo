@@ -1,15 +1,17 @@
-type LatLng = { lat: number; lng: number };
+export type LatLng = { lat: number; lng: number };
 
 export class Path {
-  private readonly coordinates: LatLng[];
+  private readonly encoded: string;
 
-  constructor(coordinates: LatLng[]) {
-    if (!coordinates || coordinates.length < 2)
-      throw new Error("The path must have at least two coordinates");
-    this.coordinates = [...coordinates];
+  constructor(encoded: string) {
+    if (!encoded) {
+      throw new Error("Encoded polyline string is required");
+    }
+    this.encoded = encoded;
   }
 
-  get Coordinates(): LatLng[] {
-    return [...this.coordinates];
+  get Encoded(): string {
+    return this.encoded;
   }
+
 }

@@ -56,7 +56,6 @@ function fetchJson<T = any>(url: string): Promise<T> {
   });
 }
 
-/** 3️⃣ Geocodifica una dirección a lat/lng */
 async function geocode(
   address: string,
   apiKey: string
@@ -75,7 +74,6 @@ async function geocode(
   return { lat: loc.lat, lng: loc.lng };
 }
 
-/** 4️⃣ Decodifica polyline de Google */
 function decodePolyline(encoded: string): Array<{ lat: number; lng: number }> {
   let index = 0,
     lat = 0,
@@ -106,7 +104,6 @@ function decodePolyline(encoded: string): Array<{ lat: number; lng: number }> {
   return coords;
 }
 
-/** 5️⃣ POST JSON helper para Routes API */
 function postJson<T = any>(
   host: string,
   path: string,
@@ -156,7 +153,6 @@ function postJson<T = any>(
   });
 }
 
-/** 🎯 Handler principal */
 export const handler: SQSHandler = async (event) => {
   console.info("📥 Received SQS event:", JSON.stringify(event, null, 2));
   const googleKey = await getGoogleKey();
@@ -165,7 +161,6 @@ export const handler: SQSHandler = async (event) => {
     const { origin, destination, routeId } = JSON.parse(record.body);
     console.info("➡️ Processing record:", { origin, destination, routeId });
 
-    // ⇨ 1) Geocodificar origen y destino
     let oCoords, dCoords;
     try {
       [oCoords, dCoords] = await Promise.all([
@@ -177,7 +172,6 @@ export const handler: SQSHandler = async (event) => {
       continue;
     }
 
-    // ⇨ 2) Llamar a computeRoutes con coordenadas
     const requestBody = {
       origin: {
         location: {
@@ -228,11 +222,7 @@ export const handler: SQSHandler = async (event) => {
       routeId: RouteId.fromString(routeId),
       distanceKm: new DistanceKm((leg.distanceMeters || 0) / 1000),
       duration: new Duration(durationSeconds),
-      path: new Path(
-        leg.polyline?.encodedPolyline
-          ? decodePolyline(leg.polyline.encodedPolyline)
-          : []
-      ),
+      path: new Path( leg.polyline?.encodedPolyline ?? "" ),
     });
 
     console.info("💾 Saving route to DynamoDB:", route);
