@@ -88,7 +88,7 @@ export class ComputeStack extends cdk.Stack {
       },
       api,
       routes: [
-        { path: "favourites", methods: ["POST"], authorizer },
+        { path: "favourites", methods: ["POST, GET"], authorizer },
         { path: "favourites/{routeId}", methods: ["DELETE"], authorizer },
       ],
     });

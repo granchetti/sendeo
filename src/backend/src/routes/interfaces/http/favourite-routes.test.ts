@@ -2,16 +2,13 @@ const mockPut = jest.fn();
 const mockDelete = jest.fn();
 const mockGet = jest.fn();
 
-jest.mock(
-  "../../infrastructure/dynamodb/dynamo-user-state-repository",
-  () => ({
-    DynamoUserStateRepository: jest.fn().mockImplementation(() => ({
-      putFavourite: mockPut,
-      deleteFavourite: mockDelete,
-      getFavourites: mockGet,
-    })),
-  })
-);
+jest.mock("../../infrastructure/dynamodb/dynamo-user-state-repository", () => ({
+  DynamoUserStateRepository: jest.fn().mockImplementation(() => ({
+    putFavourite: mockPut,
+    deleteFavourite: mockDelete,
+    getFavourites: mockGet,
+  })),
+}));
 
 jest.mock("@aws-sdk/client-dynamodb", () => ({
   DynamoDBClient: jest.fn().mockImplementation(() => ({})),
@@ -31,7 +28,7 @@ beforeEach(() => {
 
 describe("favourite routes handler", () => {
   it("saves favourite on POST", async () => {
-    mockGet.mockResolvedValueOnce([]);  // ningún favorito previo
+    mockGet.mockResolvedValueOnce([]); // ningún favorito previo
     const res = await handler({
       ...baseCtx,
       httpMethod: "POST",
@@ -43,7 +40,7 @@ describe("favourite routes handler", () => {
   });
 
   it("returns 409 when favourite already exists", async () => {
-    mockGet.mockResolvedValueOnce(["1"]);  // ya existe
+    mockGet.mockResolvedValueOnce(["1"]); // ya existe
     const res = await handler({
       ...baseCtx,
       httpMethod: "POST",
@@ -91,5 +88,21 @@ describe("favourite routes handler", () => {
     });
     expect(res.statusCode).toBe(400);
     expect(mockDelete).not.toHaveBeenCalled();
+  });
+
+  it("returns list of favourites on GET", async () => {
+    // simula que tenemos dos favoritos guardados
+    mockGet.mockResolvedValueOnce(["FAV#1", "FAV#2"]);
+
+    const res = await handler({
+      ...baseCtx,
+      httpMethod: "GET",
+    });
+
+    expect(mockGet).toHaveBeenCalledWith("test@example.com");
+    expect(res.statusCode).toBe(200);
+
+    const body = JSON.parse(res.body);
+    expect(body).toEqual({ favourites: ["1", "2"] });
   });
 });
