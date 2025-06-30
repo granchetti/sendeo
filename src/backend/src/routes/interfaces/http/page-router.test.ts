@@ -1,11 +1,15 @@
 const mockFindById = jest.fn();
+const mockFindAll = jest.fn();
 
 jest.mock(
   "../../infrastructure/dynamodb/dynamo-route-repository",
   () => ({
     DynamoRouteRepository: jest
       .fn()
-      .mockImplementation(() => ({ findById: mockFindById })),
+      .mockImplementation(() => ({
+        findById: mockFindById,
+        findAll: mockFindAll,
+      })),
   })
 );
 
@@ -22,6 +26,7 @@ import { Path } from "../../domain/value-objects/path-value-object";
 
 beforeEach(() => {
   mockFindById.mockReset();
+  mockFindAll.mockReset();
 });
 
 describe("page router get route", () => {
@@ -71,5 +76,65 @@ describe("page router get route", () => {
       duration: 100,
       path: route.path!.Encoded,
     });
+  });
+});
+
+describe("page router list routes", () => {
+  const baseEvent = {
+    resource: "/routes",
+    httpMethod: "GET",
+  } as any;
+
+  it("returns 200 and empty array when no routes exist", async () => {
+    mockFindAll.mockResolvedValueOnce([]);
+    const res = await handler(baseEvent);
+    expect(mockFindAll).toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(Array.isArray(body)).toBe(true);
+    expect(body).toHaveLength(0);
+  });
+
+  it("returns 200 and list of routes when routes exist", async () => {
+    const route1 = new Route({
+      routeId: RouteId.generate(),
+      distanceKm: new DistanceKm(1),
+      duration: new Duration(10),
+      path: Path.fromCoordinates([
+        { lat: 10, lng: 10 },
+        { lat: 20, lng: 20 },
+      ]),
+    });
+    const route2 = new Route({
+      routeId: RouteId.generate(),
+      distanceKm: new DistanceKm(2),
+      duration: new Duration(20),
+      path: Path.fromCoordinates([
+        { lat: 30, lng: 30 },
+        { lat: 40, lng: 40 },
+      ]),
+    });
+    mockFindAll.mockResolvedValueOnce([route1, route2]);
+
+    const res = await handler(baseEvent);
+
+    expect(mockFindAll).toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+
+    const body = JSON.parse(res.body);
+    expect(body).toEqual([
+      {
+        routeId: route1.routeId.Value,
+        distanceKm: 1,
+        duration: 10,
+        path: route1.path!.Encoded,
+      },
+      {
+        routeId: route2.routeId.Value,
+        distanceKm: 2,
+        duration: 20,
+        path: route2.path!.Encoded,
+      },
+    ]);
   });
 });
