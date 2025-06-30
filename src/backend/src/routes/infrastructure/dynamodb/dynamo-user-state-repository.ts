@@ -38,7 +38,9 @@ export class DynamoUserStateRepository implements UserStateRepository {
       new QueryCommand({
         TableName: this.tableName,
         KeyConditionExpression: "PK = :pk",
-        ExpressionAttributeValues: { ":pk": { S: email } },
+        ExpressionAttributeValues: {
+          ":pk": { S: `USER#${email}` },
+        },
       })
     );
     return (res.Items || []).map((i) => i.SK.S!);
