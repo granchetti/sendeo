@@ -89,20 +89,4 @@ describe("favourite routes handler", () => {
     expect(res.statusCode).toBe(400);
     expect(mockDelete).not.toHaveBeenCalled();
   });
-
-  it("returns list of favourites on GET", async () => {
-    // simula que tenemos dos favoritos guardados
-    mockGet.mockResolvedValueOnce(["FAV#1", "FAV#2"]);
-
-    const res = await handler({
-      ...baseCtx,
-      httpMethod: "GET",
-    });
-
-    expect(mockGet).toHaveBeenCalledWith("test@example.com");
-    expect(res.statusCode).toBe(200);
-
-    const body = JSON.parse(res.body);
-    expect(body).toEqual({ favourites: ["1", "2"] });
-  });
 });

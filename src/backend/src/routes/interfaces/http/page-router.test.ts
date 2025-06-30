@@ -1,20 +1,25 @@
+// src/routes/interfaces/http/page-router.test.ts
+
+// 1) Mocks (antes de importar handler)
 const mockFindById = jest.fn();
 const mockFindAll = jest.fn();
-
-jest.mock(
-  "../../infrastructure/dynamodb/dynamo-route-repository",
-  () => ({
-    DynamoRouteRepository: jest
-      .fn()
-      .mockImplementation(() => ({
-        findById: mockFindById,
-        findAll: mockFindAll,
-      })),
-  })
-);
+const mockGetFavourites = jest.fn();
 
 jest.mock("@aws-sdk/client-dynamodb", () => ({
   DynamoDBClient: jest.fn().mockImplementation(() => ({})),
+}));
+
+jest.mock("../../infrastructure/dynamodb/dynamo-route-repository", () => ({
+  DynamoRouteRepository: jest.fn().mockImplementation(() => ({
+    findById: mockFindById,
+    findAll: mockFindAll,
+  })),
+}));
+
+jest.mock("../../infrastructure/dynamodb/dynamo-user-state-repository", () => ({
+  DynamoUserStateRepository: jest.fn().mockImplementation(() => ({
+    getFavourites: mockGetFavourites,
+  })),
 }));
 
 import { handler } from "./page-router";
@@ -24,13 +29,21 @@ import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
 
+const baseCtx = {
+  requestContext: {
+    authorizer: { claims: { email: "test@example.com" } },
+  },
+} as any;
+
 beforeEach(() => {
   mockFindById.mockReset();
   mockFindAll.mockReset();
+  mockGetFavourites.mockReset();
 });
 
 describe("page router get route", () => {
   const baseEvent = {
+    ...baseCtx,
     resource: "/routes/{routeId}",
     httpMethod: "GET",
   } as any;
@@ -68,7 +81,6 @@ describe("page router get route", () => {
 
     expect(mockFindById).toHaveBeenCalledWith(route.routeId.Value);
     expect(res.statusCode).toBe(200);
-
     const body = JSON.parse(res.body);
     expect(body).toEqual({
       routeId: route.routeId.Value,
@@ -81,6 +93,7 @@ describe("page router get route", () => {
 
 describe("page router list routes", () => {
   const baseEvent = {
+    ...baseCtx,
     resource: "/routes",
     httpMethod: "GET",
   } as any;
@@ -138,3 +151,22 @@ describe("page router list routes", () => {
     ]);
   });
 });
+
+describe("page router get favourites", () => {
+  const baseEvent = {
+    ...baseCtx, // <— y aquí
+    resource: "/favourites",
+    httpMethod: "GET",
+  } as any;
+
+  it("returns list of favourites on GET", async () => {
+    mockGetFavourites.mockResolvedValueOnce(["FAV#1", "FAV#2"]);
+    const res = await handler(baseEvent);
+    expect(mockGetFavourites).toHaveBeenCalledWith("test@example.com");
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body).toEqual({ favourites: ["1", "2"] });
+  });
+});
+
+// … resto de tests para profile, telemetry, finish, etc. …
