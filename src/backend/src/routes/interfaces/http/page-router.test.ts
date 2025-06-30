@@ -168,5 +168,3 @@ describe("page router get favourites", () => {
     expect(body).toEqual({ favourites: ["1", "2"] });
   });
 });
-
-// … resto de tests para profile, telemetry, finish, etc. …
