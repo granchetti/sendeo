@@ -1,6 +1,6 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as sqs from "aws-cdk-lib/aws-sqs";
@@ -116,6 +116,7 @@ export class ComputeStack extends cdk.Stack {
       routes: [
         { path: "profile", methods: ["GET", "PUT"], authorizer },
         { path: "favourites", methods: ["GET"], authorizer },
+        { path: "routes", methods: ["GET"], authorizer },
         { path: "routes/{routeId}", methods: ["GET"], authorizer },
         { path: "telemetry/started", methods: ["POST"], authorizer },
         { path: "routes/{routeId}/finish", methods: ["POST"], authorizer },

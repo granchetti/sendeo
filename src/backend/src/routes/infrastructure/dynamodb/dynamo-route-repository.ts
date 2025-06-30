@@ -3,6 +3,7 @@ import {
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
+  ScanCommand,
 } from "@aws-sdk/client-dynamodb";
 import { RouteRepository } from "../../domain/repositories/route-repository";
 import { Route } from "../../domain/entities/route-entity";
@@ -47,6 +48,23 @@ export class DynamoRouteRepository implements RouteRepository {
     });
   }
 
+  async findAll(): Promise<Route[]> {
+    const res = await this.client.send(
+      new ScanCommand({ TableName: this.tableName })
+    );
+    return (res.Items || []).map(
+      (item) =>
+        new Route({
+          routeId: RouteId.fromString(item.routeId.S!),
+          distanceKm: item.distanceKm
+            ? new DistanceKm(+item.distanceKm.N!)
+            : undefined,
+          duration: item.duration ? new Duration(+item.duration.N!) : undefined,
+          path: item.path ? new Path(item.path.S!) : undefined,
+        })
+    );
+  }
+  
   async remove(id: string): Promise<void> {
     await this.client.send(
       new DeleteItemCommand({
