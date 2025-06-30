@@ -1,33 +1,47 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
+import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-user-state-repository";
 
 const dynamo = new DynamoDBClient({});
-const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
+const routeRepository = new DynamoRouteRepository(
+  dynamo,
+  process.env.ROUTES_TABLE!
+);
+const userStateRepository = new DynamoUserStateRepository(
+  dynamo,
+  process.env.USER_STATE_TABLE!
+);
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const { httpMethod, resource, pathParameters } = event;
-
-    // GET /routes
+  const email = (event.requestContext as any).authorizer?.claims?.email;
+  if (!email) {
+    return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+  }
+  // GET /routes
   if (httpMethod === "GET" && resource === "/routes") {
     try {
-      const all = await repository.findAll();
+      const all = await routeRepository.findAll();
       return {
         statusCode: 200,
         body: JSON.stringify(
-          all.map(r => ({
-            routeId:   r.routeId.Value,
-            distanceKm:  r.distanceKm?.Value,
-            duration:  r.duration?.Value,
-            path:      r.path?.Encoded,
+          all.map((r) => ({
+            routeId: r.routeId.Value,
+            distanceKm: r.distanceKm?.Value,
+            duration: r.duration?.Value,
+            path: r.path?.Encoded,
           }))
         ),
       };
     } catch (err) {
       console.error("Error listing routes:", err);
-      return { statusCode: 500, body: JSON.stringify({ error: "Could not list routes" }) };
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Could not list routes" }),
+      };
     }
   }
 
@@ -41,7 +55,7 @@ export const handler = async (
       };
     }
 
-    const route = await repository.findById(routeId);
+    const route = await routeRepository.findById(routeId);
     if (!route) {
       return { statusCode: 404, body: JSON.stringify({ error: "Not Found" }) };
     }
@@ -65,8 +79,23 @@ export const handler = async (
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   }
 
-  if (resource === "/favourites" && httpMethod === "GET") {
-    return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+  if (httpMethod === "GET" && resource === "/favourites") {
+    try {
+      const items = await userStateRepository.getFavourites(email);
+      const favourites = items.map((s) =>
+        s.startsWith("FAV#") ? s.slice(4) : s
+      );
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ favourites }),
+      };
+    } catch (err) {
+      console.error("❌ Error reading favourites:", err);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Could not fetch favourites" }),
+      };
+    }
   }
 
   if (resource === "/telemetry/started" && httpMethod === "POST") {
@@ -77,5 +106,8 @@ export const handler = async (
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   }
 
-  return { statusCode: 501, body: JSON.stringify({ error: "Not Implemented" }) };
+  return {
+    statusCode: 501,
+    body: JSON.stringify({ error: "Not Implemented" }),
+  };
 };

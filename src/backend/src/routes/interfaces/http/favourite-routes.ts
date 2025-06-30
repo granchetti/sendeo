@@ -18,26 +18,6 @@ export const handler = async (
 
   const { httpMethod } = event;
 
-  if (httpMethod === "GET") {
-    try {
-      const items = await repository.getFavourites(email);
-      // eliminamos el prefijo "FAV#" si lo tenemos
-      const favourites = items.map(s =>
-        s.startsWith("FAV#") ? s.slice(4) : s
-      );
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ favourites }),
-      };
-    } catch (err) {
-      console.error("❌ Error reading favourites:", err);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Could not fetch favourites" }),
-      };
-    }
-  }
-
   if (httpMethod === "POST") {
     let payload: any;
     try {
