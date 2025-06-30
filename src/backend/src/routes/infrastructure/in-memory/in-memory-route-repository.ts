@@ -1,5 +1,5 @@
-import { Route } from '../../domain/entities/route-entity';
-import { RouteRepository } from '../../domain/repositories/route-repository';
+import { Route } from "../../domain/entities/route-entity";
+import { RouteRepository } from "../../domain/repositories/route-repository";
 
 export class InMemoryRouteRepository implements RouteRepository {
   private routes = new Map<string, Route>();
@@ -10,5 +10,12 @@ export class InMemoryRouteRepository implements RouteRepository {
 
   async findById(id: string): Promise<Route | null> {
     return this.routes.get(id) ?? null;
+  }
+
+  async findAll(): Promise<Route[]> {
+    return Array.from(this.routes.values());
+  }
+  async remove(id: string): Promise<void> {
+    this.routes.delete(id);
   }
 }

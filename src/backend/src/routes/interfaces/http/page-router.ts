@@ -19,7 +19,7 @@ export const handler = async (
         body: JSON.stringify(
           all.map(r => ({
             routeId:   r.routeId.Value,
-            distance:  r.distanceKm?.Value,
+            distanceKm:  r.distanceKm?.Value,
             duration:  r.duration?.Value,
             path:      r.path?.Encoded,
           }))
