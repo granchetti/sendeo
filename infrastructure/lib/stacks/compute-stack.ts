@@ -94,7 +94,7 @@ export class ComputeStack extends cdk.Stack {
     });
     favoriteRoutes.fn.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["dynamodb:PutItem", "dynamodb:DeleteItem"],
+        actions: ["dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:Query"],
         resources: [props.userStateTable.tableArn],
       })
     );
