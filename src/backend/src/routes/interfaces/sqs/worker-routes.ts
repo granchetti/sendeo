@@ -17,7 +17,6 @@ const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 const sm = new SecretsManagerClient({});
 
-/** 1️⃣ Obtiene la API key de Secrets Manager */
 async function getGoogleKey(): Promise<string> {
   const envKey = process.env.GOOGLE_API_KEY;
   if (envKey) {
@@ -36,7 +35,6 @@ async function getGoogleKey(): Promise<string> {
   return key;
 }
 
-/** 2️⃣ Helper para hacer GET JSON (usado en geocoding) */
 function fetchJson<T = any>(url: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const req = httpsRequest(url, (res) => {
