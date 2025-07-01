@@ -48,10 +48,7 @@ describe("DynamoUserStateRepository", () => {
   });
 
   it("getFavourites returns SK values from QueryCommand results", async () => {
-    const items = [
-      { SK: { S: "FAV#1" } },
-      { SK: { S: "FAV#2" } },
-    ];
+    const items = [{ SK: { S: "FAV#1" } }, { SK: { S: "FAV#2" } }];
     mockSend.mockResolvedValueOnce({ Items: items });
     const result = await repo.getFavourites(email);
 
@@ -61,7 +58,7 @@ describe("DynamoUserStateRepository", () => {
     expect((cmd as any).input).toEqual({
       TableName: tableName,
       KeyConditionExpression: "PK = :pk",
-      ExpressionAttributeValues: { ":pk": { S: email } },
+      ExpressionAttributeValues: { ":pk": { S: `USER#${email}` } },
     });
 
     expect(result).toEqual(["FAV#1", "FAV#2"]);
