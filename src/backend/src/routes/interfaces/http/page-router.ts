@@ -3,6 +3,8 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-user-state-repository";
 import { RouteId } from "../../domain/value-objects/route-id-value-object";
+import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
+import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 
 const dynamo = new DynamoDBClient({});
 const routeRepository = new DynamoRouteRepository(
@@ -13,6 +15,8 @@ const userStateRepository = new DynamoUserStateRepository(
   dynamo,
   process.env.USER_STATE_TABLE!
 );
+const listRoutes = new ListRoutesUseCase(routeRepository);
+const getRouteDetails = new GetRouteDetailsUseCase(routeRepository);
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -25,7 +29,7 @@ export const handler = async (
   // GET /routes
   if (httpMethod === "GET" && resource === "/routes") {
     try {
-      const all = await routeRepository.findAll();
+      const all = await listRoutes.execute();
       return {
         statusCode: 200,
         body: JSON.stringify(
@@ -56,7 +60,7 @@ export const handler = async (
       };
     }
 
-    const route = await routeRepository.findById(RouteId.fromString(routeId));
+    const route = await getRouteDetails.execute(RouteId.fromString(routeId));
     if (!route) {
       return { statusCode: 404, body: JSON.stringify({ error: "Not Found" }) };
     }

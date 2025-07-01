@@ -1,12 +1,16 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-user-state-repository";
+import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../application/use-cases/add-favourite";
+import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
 
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoUserStateRepository(
   dynamo,
   process.env.USER_STATE_TABLE!
 );
+const addFavourite = new AddFavouriteUseCase(repository);
+const removeFavourite = new RemoveFavouriteUseCase(repository);
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -37,15 +41,17 @@ export const handler = async (
       };
     }
 
-    const existing = await repository.getFavourites(email);
-    if (existing.includes(routeId)) {
-      return {
-        statusCode: 409,
-        body: JSON.stringify({ error: "Route already in favourites" }),
-      };
+    try {
+      await addFavourite.execute(email, routeId);
+    } catch (err) {
+      if (err instanceof FavouriteAlreadyExistsError) {
+        return {
+          statusCode: 409,
+          body: JSON.stringify({ error: "Route already in favourites" }),
+        };
+      }
+      throw err;
     }
-
-    await repository.putFavourite(email, routeId);
     return { statusCode: 200, body: JSON.stringify({ saved: true }) };
   }
 
@@ -57,7 +63,7 @@ export const handler = async (
         body: JSON.stringify({ error: "routeId parameter required" }),
       };
     }
-    await repository.deleteFavourite(email, routeId);
+    await removeFavourite.execute(email, routeId);
     return { statusCode: 200, body: JSON.stringify({ deleted: true }) };
   }
 
