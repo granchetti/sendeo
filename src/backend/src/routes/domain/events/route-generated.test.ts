@@ -4,6 +4,7 @@ import { RouteId } from '../value-objects/route-id-value-object';
 import { DistanceKm } from '../value-objects/distance-value-object';
 import { Duration } from '../value-objects/duration-value-object';
 import { Path } from '../value-objects/path-value-object';
+import { LatLng } from '../value-objects/lat-lng-value-object';
 
 describe('RouteGeneratedEvent', () => {
   it('should hold the generated route', () => {
@@ -11,9 +12,9 @@ describe('RouteGeneratedEvent', () => {
       routeId: RouteId.generate(),
       distanceKm: new DistanceKm(1),
       duration: new Duration(60),
-      path: new Path([
-        { lat: 0, lng: 0 },
-        { lat: 1, lng: 1 },
+      path: Path.fromCoordinates([
+        LatLng.fromNumbers(0, 0),
+        LatLng.fromNumbers(1, 1),
       ]),
     });
     const event = new RouteGeneratedEvent({ route });

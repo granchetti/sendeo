@@ -99,7 +99,7 @@ describe("worker routes handler", () => {
     expect(saved.routeId.Value).toBe("550e8400-e29b-41d4-a716-446655440000");
     expect(saved.distanceKm.Value).toBe(1.5);
     expect(saved.duration.Value).toBe(600);
-    expect(saved.path.Coordinates).toEqual([
+    expect(saved.path.Coordinates.map(c => ({ lat: c.Lat, lng: c.Lng }))).toEqual([
       { lat: 38.5, lng: -120.2 },
       { lat: 40.7, lng: -120.95 },
       { lat: 43.252, lng: -126.453 },
