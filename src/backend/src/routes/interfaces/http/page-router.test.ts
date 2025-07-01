@@ -54,11 +54,13 @@ describe("page router get route", () => {
   });
 
   it("returns 404 when route not found", async () => {
+    const missingId = RouteId.generate();
     mockFindById.mockResolvedValueOnce(null);
     const res = await handler({
       ...baseEvent,
-      pathParameters: { routeId: "1" },
+      pathParameters: { routeId: missingId.Value },
     });
+    expect(mockFindById).toHaveBeenCalledWith(missingId);
     expect(res.statusCode).toBe(404);
   });
 
@@ -79,7 +81,7 @@ describe("page router get route", () => {
       pathParameters: { routeId: route.routeId.Value },
     });
 
-    expect(mockFindById).toHaveBeenCalledWith(route.routeId.Value);
+    expect(mockFindById).toHaveBeenCalledWith(route.routeId);
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body).toEqual({

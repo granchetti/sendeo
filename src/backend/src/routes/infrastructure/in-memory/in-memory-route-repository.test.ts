@@ -24,7 +24,7 @@ describe('InMemoryRouteRepository', () => {
     });
 
     await repo.save(route);
-    const fetched = await repo.findById(route.routeId.Value);
+    const fetched = await repo.findById(route.routeId);
 
     expect(fetched).not.toBeNull();
     expect(fetched?.routeId.equals(route.routeId)).toBe(true);
@@ -34,7 +34,7 @@ describe('InMemoryRouteRepository', () => {
   });
 
   it('returns null when finding non-existent id', async () => {
-    const missing = await repo.findById('does-not-exist');
+    const missing = await repo.findById(RouteId.generate());
     expect(missing).toBeNull();
   });
 
@@ -80,9 +80,9 @@ describe('InMemoryRouteRepository', () => {
     });
 
     await repo.save(route);
-    expect(await repo.findById(route.routeId.Value)).not.toBeNull();
+    expect(await repo.findById(route.routeId)).not.toBeNull();
 
-    await repo.remove(route.routeId.Value);
-    expect(await repo.findById(route.routeId.Value)).toBeNull();
+    await repo.remove(route.routeId);
+    expect(await repo.findById(route.routeId)).toBeNull();
   });
 });

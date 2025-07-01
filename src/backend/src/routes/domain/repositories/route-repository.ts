@@ -1,8 +1,9 @@
 import { Route } from "../entities/route-entity";
+import { RouteId } from "../value-objects/route-id-value-object";
 
 export interface RouteRepository {
   save(route: Route): Promise<void>;
-  findById(id: string): Promise<Route | null>;
+  findById(id: RouteId): Promise<Route | null>;
   findAll(): Promise<Route[]>;
-  remove(id: string): Promise<void>;
+  remove(id: RouteId): Promise<void>;
 }
