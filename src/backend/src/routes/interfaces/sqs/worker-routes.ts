@@ -188,11 +188,12 @@ export const handler: SQSHandler = async (event) => {
         ? parseInt(leg.duration.replace(/[^0-9]/g, ""), 10)
         : leg.duration?.seconds ?? 0;
 
+    const encoded = leg.polyline?.encodedPolyline;
     const route = new Route({
       routeId: RouteId.fromString(routeId),
       distanceKm: new DistanceKm((leg.distanceMeters || 0) / 1000),
       duration: new Duration(durationSeconds),
-      path: new Path( leg.polyline?.encodedPolyline ?? "" ),
+      ...(encoded ? { path: new Path(encoded) } : {}),
     });
 
     console.info("💾 Saving route to DynamoDB:", route);

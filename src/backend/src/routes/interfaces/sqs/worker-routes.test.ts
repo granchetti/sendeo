@@ -145,4 +145,41 @@ describe("worker routes handler", () => {
     expect(mockSave).not.toHaveBeenCalled();
     expect(mockPublish).not.toHaveBeenCalled();
   });
+
+  it("saves route when no encoded polyline is returned", async () => {
+    responseDataHolder.data = JSON.stringify({
+      routes: [
+        {
+          legs: [
+            {
+              distanceMeters: 1500,
+              duration: { seconds: 600 },
+              polyline: {},
+            },
+          ],
+        },
+      ],
+    });
+
+    const handler = loadHandler();
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({
+            routeId: "550e8400-e29b-41d4-a716-446655440001",
+            origin: "a",
+            destination: "b",
+          }),
+        },
+      ],
+    } as any;
+
+    await handler(event);
+
+    const saved = mockSave.mock.calls[0][0];
+    expect(saved.routeId.Value).toBe(
+      "550e8400-e29b-41d4-a716-446655440001"
+    );
+    expect(saved.path).toBeUndefined();
+  });
 });
