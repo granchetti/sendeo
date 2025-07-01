@@ -46,6 +46,7 @@ new ComputeStack(app, "SendeoComputeStack", {
   userPool: auth.userPool,
   googleApiKeySecretName: 'google-api-key',
   appSyncUrl: appSync.api.graphqlUrl,
+  appSyncApiKey: appSync.api.apiKey || undefined,
   appSyncApiKey: appSync.api.apiKey,
   appSyncRegion: env.region,
 });

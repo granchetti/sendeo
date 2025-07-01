@@ -69,6 +69,9 @@ export class ComputeStack extends cdk.Stack {
       queue: props.routeJobsQueue,
       environment: {
         ROUTES_TABLE: props.routesTable.tableName,
+        ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
+        ...(props.appSyncApiKey ? { APPSYNC_API_KEY: props.appSyncApiKey } : {}),
+        ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
       },
     });
     googleSecret.grantRead(workerRoutes.fn);
@@ -76,6 +79,12 @@ export class ComputeStack extends cdk.Stack {
       new iam.PolicyStatement({
         actions: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
         resources: [props.routesTable.tableArn],
+      })
+    );
+    workerRoutes.fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["appsync:GraphQL"],
+        resources: ["*"]
       })
     );
 
