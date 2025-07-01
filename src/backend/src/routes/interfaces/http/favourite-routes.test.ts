@@ -1,6 +1,8 @@
 const mockPut = jest.fn();
 const mockDelete = jest.fn();
 const mockGet = jest.fn();
+const mockPublishSaved = jest.fn();
+const mockPublishDeleted = jest.fn();
 
 jest.mock("../../infrastructure/dynamodb/dynamo-user-state-repository", () => ({
   DynamoUserStateRepository: jest.fn().mockImplementation(() => ({
@@ -14,6 +16,11 @@ jest.mock("@aws-sdk/client-dynamodb", () => ({
   DynamoDBClient: jest.fn().mockImplementation(() => ({})),
 }));
 
+jest.mock("../appsync-client", () => ({
+  publishFavouriteSaved: (...args: any[]) => mockPublishSaved(...args),
+  publishFavouriteDeleted: (...args: any[]) => mockPublishDeleted(...args),
+}));
+
 import { handler } from "./favourite-routes";
 
 const baseCtx = {
@@ -24,6 +31,8 @@ beforeEach(() => {
   mockPut.mockReset();
   mockDelete.mockReset();
   mockGet.mockReset();
+  mockPublishSaved.mockReset();
+  mockPublishDeleted.mockReset();
 });
 
 describe("favourite routes handler", () => {
@@ -36,6 +45,7 @@ describe("favourite routes handler", () => {
     });
     expect(mockGet).toHaveBeenCalledWith("test@example.com");
     expect(mockPut).toHaveBeenCalledWith("test@example.com", "1");
+    expect(mockPublishSaved).toHaveBeenCalledWith("test@example.com", "1");
     expect(res.statusCode).toBe(200);
   });
 
@@ -78,6 +88,7 @@ describe("favourite routes handler", () => {
       pathParameters: { routeId: "2" },
     });
     expect(mockDelete).toHaveBeenCalledWith("test@example.com", "2");
+    expect(mockPublishDeleted).toHaveBeenCalledWith("test@example.com", "2");
     expect(res.statusCode).toBe(200);
   });
 

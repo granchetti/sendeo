@@ -1,6 +1,10 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-user-state-repository";
+import {
+  publishFavouriteSaved,
+  publishFavouriteDeleted,
+} from "../appsync-client";
 import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../application/use-cases/add-favourite";
 import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
 
@@ -52,6 +56,7 @@ export const handler = async (
       }
       throw err;
     }
+    await publishFavouriteSaved(email, routeId);
     return { statusCode: 200, body: JSON.stringify({ saved: true }) };
   }
 
@@ -64,6 +69,7 @@ export const handler = async (
       };
     }
     await removeFavourite.execute(email, routeId);
+    await publishFavouriteDeleted(email, routeId);
     return { statusCode: 200, body: JSON.stringify({ deleted: true }) };
   }
 

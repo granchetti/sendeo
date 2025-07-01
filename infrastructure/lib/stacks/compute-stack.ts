@@ -17,6 +17,9 @@ export interface ComputeStackProps extends cdk.StackProps {
   readonly metricsQueue: sqs.IQueue;
   readonly userPool: IUserPool;
   readonly googleApiKeySecretName: string;
+  readonly appSyncUrl?: string;
+  readonly appSyncApiKey?: string;
+  readonly appSyncRegion?: string;
 }
 
 export class ComputeStack extends cdk.Stack {
@@ -85,6 +88,9 @@ export class ComputeStack extends cdk.Stack {
       handler: "favourite-routes.handler",
       environment: {
         USER_STATE_TABLE: props.userStateTable.tableName,
+        ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
+        ...(props.appSyncApiKey ? { APPSYNC_API_KEY: props.appSyncApiKey } : {}),
+        ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
       },
       api,
       routes: [
