@@ -27,11 +27,11 @@ export class DynamoRouteRepository implements RouteRepository {
     );
   }
 
-  async findById(id: string): Promise<Route | null> {
+  async findById(id: RouteId): Promise<Route | null> {
     const res = await this.client.send(
       new GetItemCommand({
         TableName: this.tableName,
-        Key: { routeId: { S: id } },
+        Key: { routeId: { S: id.Value } },
       })
     );
     if (!res.Item) return null;
@@ -65,11 +65,11 @@ export class DynamoRouteRepository implements RouteRepository {
     );
   }
   
-  async remove(id: string): Promise<void> {
+  async remove(id: RouteId): Promise<void> {
     await this.client.send(
       new DeleteItemCommand({
         TableName: this.tableName,
-        Key: { routeId: { S: id } },
+        Key: { routeId: { S: id.Value } },
       })
     );
   }

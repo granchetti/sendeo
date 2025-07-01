@@ -86,7 +86,7 @@ describe('DynamoRouteRepository', () => {
     };
     mockSend.mockResolvedValueOnce({ Item: returned });
 
-    const route = await repository.findById(id);
+    const route = await repository.findById(RouteId.fromString(id));
 
     expect(mockGet).toHaveBeenCalledWith({
       TableName: tableName,
