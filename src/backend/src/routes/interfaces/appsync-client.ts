@@ -2,6 +2,7 @@ import { HttpRequest } from "@aws-sdk/protocol-http";
 import { SignatureV4 } from "@aws-sdk/signature-v4";
 import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { Sha256 } from "@aws-crypto/sha256-js";
+import { Route } from "../domain/entities/route-entity";
 
 const url = process.env.APPSYNC_URL;
 const apiKey = process.env.APPSYNC_API_KEY;
@@ -58,5 +59,18 @@ export async function publishFavouriteDeleted(email: string, routeId: string) {
   await send(
     `mutation PublishFavouriteDeleted($email: String!, $routeId: ID!) {\n  publishFavouriteDeleted(email: $email, routeId: $routeId)\n}`,
     { email, routeId }
+  );
+}
+
+export async function publishRoutesGenerated(jobId: string, routes: Route[]) {
+  const inputs = routes.map((r) => ({
+    routeId: r.routeId.Value,
+    distanceKm: r.distanceKm?.Value,
+    duration: r.duration?.Value,
+    path: r.path?.Encoded,
+  }));
+  await send(
+    `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes)\n}`,
+    { jobId, routes: inputs }
   );
 }

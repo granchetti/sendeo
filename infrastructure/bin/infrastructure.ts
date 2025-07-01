@@ -28,7 +28,14 @@ const queues = new QueueStack(app, "SendeoQueuesStack", { env, synthesizer });
 // 3) Cognito User Pool
 const auth = new AuthStack(app, "SendeoAuthStack", { env, synthesizer });
 
-// 4) Compute: Lambdas + API Gateway
+// 4) AppSync
+const appSync = new AppSyncStack(app, 'SendeoAppSyncStack', {
+  env,
+  synthesizer,
+  userPool: auth.userPool,
+});
+
+// 5) Compute: Lambdas + API Gateway
 new ComputeStack(app, "SendeoComputeStack", {
   env,
   synthesizer,
@@ -38,20 +45,16 @@ new ComputeStack(app, "SendeoComputeStack", {
   metricsQueue: queues.metricsQueue,
   userPool: auth.userPool,
   googleApiKeySecretName: 'google-api-key',
+  appSyncUrl: appSync.api.graphqlUrl,
+  appSyncApiKey: appSync.api.apiKey || undefined,
+  appSyncRegion: env.region,
 });
 
-// 5) Frontend: Amplify App
+// 6) Frontend: Amplify App
 new FrontendStack(app, "SendeoFrontendStack", {
   repoOwner: "granchetti",
   repoName: "sendeo",
   oauthTokenSecretName: "my-github-token",
   env,
   synthesizer,
-});
-
-// 6) AppSync
-new AppSyncStack(app, 'SendeoAppSyncStack', {
-  env,
-  synthesizer,
-  userPool: auth.userPool,
 });

@@ -12,6 +12,11 @@ jest.mock("@aws-sdk/client-dynamodb", () => ({
   DynamoDBClient: jest.fn().mockImplementation(() => ({})),
 }));
 
+const mockPublish = jest.fn();
+jest.mock("../appsync-client", () => ({
+  publishRoutesGenerated: (...args: any[]) => mockPublish(...args),
+}));
+
 const responseDataHolder: { data: string } = { data: "" };
 const httpsRequest = jest.fn((opts: string | any, cb: (res: any) => void) => {
   const res = new EventEmitter();
@@ -46,6 +51,7 @@ describe("worker routes handler", () => {
     jest.resetModules();
     mockSave.mockReset();
     httpsRequest.mockClear();
+    mockPublish.mockReset();
     process.env.ROUTES_TABLE = "t";
     process.env.GOOGLE_API_KEY = "k";
   });
@@ -104,6 +110,10 @@ describe("worker routes handler", () => {
       { lat: 40.7, lng: -120.95 },
       { lat: 43.252, lng: -126.453 },
     ]);
+    expect(mockPublish).toHaveBeenCalledWith(
+      "550e8400-e29b-41d4-a716-446655440000",
+      [saved]
+    );
   });
 
   it("does not save when response has no legs", async () => {
@@ -133,5 +143,6 @@ describe("worker routes handler", () => {
     );
     expect(routeCalls).toHaveLength(1);
     expect(mockSave).not.toHaveBeenCalled();
+    expect(mockPublish).not.toHaveBeenCalled();
   });
 });

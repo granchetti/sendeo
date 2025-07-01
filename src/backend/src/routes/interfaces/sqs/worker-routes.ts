@@ -11,6 +11,7 @@ import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
 import { RouteId } from "../../domain/value-objects/route-id-value-object";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
+import { publishRoutesGenerated } from "../appsync-client";
 
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
@@ -200,6 +201,7 @@ export const handler: SQSHandler = async (event) => {
     try {
       await repository.save(route);
       console.info("✅ Route saved:", route.routeId.toString());
+      await publishRoutesGenerated(route.routeId.Value, [route]);
     } catch (err) {
       console.error("❌ Error saving to DynamoDB:", err);
     }
