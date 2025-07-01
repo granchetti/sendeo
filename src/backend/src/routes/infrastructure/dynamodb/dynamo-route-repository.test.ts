@@ -51,14 +51,19 @@ describe('DynamoRouteRepository', () => {
       path,
     });
 
+    const now = 1_600_000_000;
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(now * 1000);
+    process.env.ROUTES_TTL = '60';
+
     await repository.save(route);
 
-    // Ahora esperamos que 'path' sea la cadena codificada
     const expectedItem = {
       routeId: { S: route.routeId.Value },
       distanceKm: { N: '5' },
       duration: { N: '10' },
       path: { S: path.Encoded },
+      createdAt: { N: now.toString() },
+      ttl: { N: (now + 60).toString() },
     };
 
     expect(mockPut).toHaveBeenCalledWith({
@@ -69,6 +74,9 @@ describe('DynamoRouteRepository', () => {
       TableName: tableName,
       Item: expectedItem,
     });
+
+    spy.mockRestore();
+    delete process.env.ROUTES_TTL;
   });
 
   it('findById reconstructs a Route from response', async () => {

@@ -34,5 +34,17 @@ export class AppSyncStack extends cdk.Stack {
         },
       },
     });
+
+    new cdk.CfnOutput(this, "AppSyncUrl", {
+      value: this.api.graphqlUrl,
+      exportName: "SendeoAppSyncUrl",
+    });
+
+    if (this.api.apiKey) {
+      new cdk.CfnOutput(this, "AppSyncApiKey", {
+        value: this.api.apiKey,
+        exportName: "SendeoAppSyncApiKey",
+      });
+    }
   }
 }
