@@ -1,9 +1,10 @@
-import { Path, LatLng } from './path-value-object';
+import { Path } from './path-value-object';
+import { LatLng } from './lat-lng-value-object';
 
 describe('Path', () => {
   const coords: LatLng[] = [
-    { lat: 41.38, lng: 2.17 },
-    { lat: 41.39, lng: 2.18 },
+    LatLng.fromNumbers(41.38, 2.17),
+    LatLng.fromNumbers(41.39, 2.18),
   ];
 
   describe('fromCoordinates()', () => {
@@ -19,9 +20,9 @@ describe('Path', () => {
     });
 
     it('should throw an error if the array has only one point', () => {
-      expect(() => Path.fromCoordinates([{ lat: 41.38, lng: 2.17 }])).toThrow(
-        'The path must have at least two coordinates'
-      );
+      expect(() =>
+        Path.fromCoordinates([LatLng.fromNumbers(41.38, 2.17)])
+      ).toThrow('The path must have at least two coordinates');
     });
 
     it('Coordinates should return a copy of the array', () => {
@@ -29,9 +30,11 @@ describe('Path', () => {
       const path = Path.fromCoordinates(original);
       const c1 = path.Coordinates;
       const c2 = path.Coordinates;
-      expect(c1).not.toBe(original);    
-      expect(c1).toEqual(original);    
-      expect(c1).not.toBe(c2);          
+      expect(c1).not.toBe(original);
+      expect(c1.map(v => ({ lat: v.Lat, lng: v.Lng }))).toEqual(
+        original.map(v => ({ lat: v.Lat, lng: v.Lng }))
+      );
+      expect(c1).not.toBe(c2);
     });
   });
 
@@ -45,7 +48,9 @@ describe('Path', () => {
     it('should decode correctly back to the same coords', () => {
       const path = Path.fromCoordinates(coords);
       const roundtrip = new Path(path.Encoded);
-      expect(roundtrip.Coordinates).toEqual(coords);
+      expect(roundtrip.Coordinates.map(v => ({ lat: v.Lat, lng: v.Lng }))).toEqual(
+        coords.map(v => ({ lat: v.Lat, lng: v.Lng }))
+      );
     });
   });
 });

@@ -28,6 +28,7 @@ import { RouteId } from "../../domain/value-objects/route-id-value-object";
 import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
+import { LatLng } from "../../domain/value-objects/lat-lng-value-object";
 
 const baseCtx = {
   requestContext: {
@@ -68,8 +69,8 @@ describe("page router get route", () => {
       distanceKm: new DistanceKm(2),
       duration: new Duration(100),
       path: Path.fromCoordinates([
-        { lat: 0, lng: 0 },
-        { lat: 1, lng: 1 },
+        LatLng.fromNumbers(0, 0),
+        LatLng.fromNumbers(1, 1),
       ]),
     });
     mockFindById.mockResolvedValueOnce(route);
@@ -114,8 +115,8 @@ describe("page router list routes", () => {
       distanceKm: new DistanceKm(1),
       duration: new Duration(10),
       path: Path.fromCoordinates([
-        { lat: 10, lng: 10 },
-        { lat: 20, lng: 20 },
+        LatLng.fromNumbers(10, 10),
+        LatLng.fromNumbers(20, 20),
       ]),
     });
     const route2 = new Route({
@@ -123,8 +124,8 @@ describe("page router list routes", () => {
       distanceKm: new DistanceKm(2),
       duration: new Duration(20),
       path: Path.fromCoordinates([
-        { lat: 30, lng: 30 },
-        { lat: 40, lng: 40 },
+        LatLng.fromNumbers(30, 30),
+        LatLng.fromNumbers(40, 40),
       ]),
     });
     mockFindAll.mockResolvedValueOnce([route1, route2]);

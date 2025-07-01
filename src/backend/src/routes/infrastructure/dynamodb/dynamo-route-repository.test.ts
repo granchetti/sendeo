@@ -3,6 +3,7 @@ import { RouteId } from '../../domain/value-objects/route-id-value-object';
 import { DistanceKm } from '../../domain/value-objects/distance-value-object';
 import { Duration } from '../../domain/value-objects/duration-value-object';
 import { Path } from '../../domain/value-objects/path-value-object';
+import { LatLng } from '../../domain/value-objects/lat-lng-value-object';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoRouteRepository } from './dynamo-route-repository';
 
@@ -39,8 +40,8 @@ describe('DynamoRouteRepository', () => {
 
   it('save correctly calls PutItemCommand', async () => {
     const coords = [
-      { lat: 1, lng: 2 },
-      { lat: 3, lng: 4 },
+      LatLng.fromNumbers(1, 2),
+      LatLng.fromNumbers(3, 4),
     ];
     const path = Path.fromCoordinates(coords);
     const route = new Route({
@@ -73,8 +74,8 @@ describe('DynamoRouteRepository', () => {
   it('findById reconstructs a Route from response', async () => {
     const id = RouteId.generate().Value;
     const coords = [
-      { lat: 1, lng: 2 },
-      { lat: 3, lng: 4 },
+      LatLng.fromNumbers(1, 2),
+      LatLng.fromNumbers(3, 4),
     ];
     // Prepara un encoded válido para el mock de Dynamo
     const encoded = Path.fromCoordinates(coords).Encoded;
@@ -96,6 +97,9 @@ describe('DynamoRouteRepository', () => {
     expect(route?.distanceKm?.Value).toBe(5);
     expect(route?.duration?.Value).toBe(10);
     // Y comprobamos que se haya decodificado correctamente
-    expect(route?.path?.Coordinates).toEqual(coords);
+    expect(route?.path?.Coordinates.map(c => ({ lat: c.Lat, lng: c.Lng }))).toEqual([
+      { lat: 1, lng: 2 },
+      { lat: 3, lng: 4 },
+    ]);
   });
 });

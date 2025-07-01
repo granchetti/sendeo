@@ -4,6 +4,7 @@ import { RouteId } from '../../domain/value-objects/route-id-value-object';
 import { DistanceKm } from '../../domain/value-objects/distance-value-object';
 import { Duration } from '../../domain/value-objects/duration-value-object';
 import { Path } from '../../domain/value-objects/path-value-object';
+import { LatLng } from '../../domain/value-objects/lat-lng-value-object';
 
 describe('InMemoryRouteRepository', () => {
   let repo: InMemoryRouteRepository;
@@ -18,8 +19,8 @@ describe('InMemoryRouteRepository', () => {
       distanceKm: new DistanceKm(3),
       duration: new Duration(300),
       path: Path.fromCoordinates([
-        { lat: 0, lng: 0 },
-        { lat: 1, lng: 1 },
+        LatLng.fromNumbers(0, 0),
+        LatLng.fromNumbers(1, 1),
       ]),
     });
 
@@ -30,7 +31,9 @@ describe('InMemoryRouteRepository', () => {
     expect(fetched?.routeId.equals(route.routeId)).toBe(true);
     expect(fetched?.distanceKm?.Value).toBe(3);
     expect(fetched?.duration?.Value).toBe(300);
-    expect(fetched?.path?.Coordinates).toEqual(route.path!.Coordinates);
+    expect(fetched?.path?.Coordinates.map(c => ({ lat: c.Lat, lng: c.Lng }))).toEqual(
+      route.path!.Coordinates.map(c => ({ lat: c.Lat, lng: c.Lng }))
+    );
   });
 
   it('returns null when finding non-existent id', async () => {
@@ -44,8 +47,8 @@ describe('InMemoryRouteRepository', () => {
       distanceKm: new DistanceKm(1),
       duration: new Duration(100),
       path: Path.fromCoordinates([
-        { lat: 10, lng: 10 },
-        { lat: 20, lng: 20 },
+        LatLng.fromNumbers(10, 10),
+        LatLng.fromNumbers(20, 20),
       ]),
     });
     const routeB = new Route({
@@ -53,8 +56,8 @@ describe('InMemoryRouteRepository', () => {
       distanceKm: new DistanceKm(2),
       duration: new Duration(200),
       path: Path.fromCoordinates([
-        { lat: 30, lng: 30 },
-        { lat: 40, lng: 40 },
+        LatLng.fromNumbers(30, 30),
+        LatLng.fromNumbers(40, 40),
       ]),
     });
 
@@ -74,8 +77,8 @@ describe('InMemoryRouteRepository', () => {
       distanceKm: new DistanceKm(5),
       duration: new Duration(500),
       path: Path.fromCoordinates([
-        { lat: 50, lng: 50 },
-        { lat: 60, lng: 60 },
+        LatLng.fromNumbers(50, 50),
+        LatLng.fromNumbers(60, 60),
       ]),
     });
 
