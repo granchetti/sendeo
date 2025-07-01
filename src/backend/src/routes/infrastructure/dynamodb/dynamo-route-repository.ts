@@ -16,11 +16,23 @@ export class DynamoRouteRepository implements RouteRepository {
   constructor(private client: DynamoDBClient, private tableName: string) {}
 
   async save(route: Route): Promise<void> {
-    const item: any = { routeId: { S: route.routeId.Value } };
+    const now = Math.floor(Date.now() / 1000);
+    const item: any = {
+      routeId: { S: route.routeId.Value },
+      createdAt: { N: now.toString() },
+    };
     if (route.distanceKm)
       item.distanceKm = { N: route.distanceKm.Value.toString() };
     if (route.duration) item.duration = { N: route.duration.Value.toString() };
     if (route.path) item.path = { S: route.path.Encoded };
+
+    const ttlEnv = process.env.ROUTES_TTL;
+    if (ttlEnv) {
+      const ttlSeconds = parseInt(ttlEnv, 10);
+      if (!isNaN(ttlSeconds)) {
+        item.ttl = { N: (now + ttlSeconds).toString() };
+      }
+    }
 
     await this.client.send(
       new PutItemCommand({ TableName: this.tableName, Item: item })
