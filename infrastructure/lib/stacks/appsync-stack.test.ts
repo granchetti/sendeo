@@ -45,4 +45,18 @@ describe('AppSyncStack', () => {
       },
     });
   });
+
+  test('outputs the API url', () => {
+    template.hasOutput('AppSyncUrl', {
+      Export: { Name: 'SendeoAppSyncUrl' },
+    });
+  });
+
+  test('conditionally outputs the API key', () => {
+    if (template.findOutputs('AppSyncApiKey', true)) {
+      template.hasOutput('AppSyncApiKey', {
+        Export: { Name: 'SendeoAppSyncApiKey' },
+      });
+    }
+  });
 });
