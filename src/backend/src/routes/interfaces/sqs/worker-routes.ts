@@ -123,76 +123,166 @@ function postJson<T = any>(
   });
 }
 
+function offsetCoordinate(
+  lat: number,
+  lng: number,
+  distanceKm: number,
+  bearingDeg = 90
+): { lat: number; lng: number } {
+  const R = 6371; // Earth radius in km
+  const dRad = distanceKm / R;
+  const bearing = (bearingDeg * Math.PI) / 180;
+  const lat1 = (lat * Math.PI) / 180;
+  const lng1 = (lng * Math.PI) / 180;
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(dRad) +
+      Math.cos(lat1) * Math.sin(dRad) * Math.cos(bearing)
+  );
+  const lng2 =
+    lng1 +
+    Math.atan2(
+      Math.sin(bearing) * Math.sin(dRad) * Math.cos(lat1),
+      Math.cos(dRad) - Math.sin(lat1) * Math.sin(lat2)
+    );
+  return { lat: (lat2 * 180) / Math.PI, lng: (lng2 * 180) / Math.PI };
+}
+
+async function computeRoute(
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number },
+  apiKey: string
+): Promise<{ distanceMeters: number; durationSeconds: number; encoded?: string } | null> {
+  const requestBody = {
+    origin: {
+      location: {
+        latLng: { latitude: origin.lat, longitude: origin.lng },
+      },
+    },
+    destination: {
+      location: {
+        latLng: { latitude: destination.lat, longitude: destination.lng },
+      },
+    },
+    travelMode: "WALK",
+  };
+  console.info("🌐 Calling Routes API with coords…", requestBody);
+  let resp: any;
+  try {
+    resp = await postJson(
+      "routes.googleapis.com",
+      "/directions/v2:computeRoutes",
+      apiKey,
+      requestBody
+    );
+  } catch (err) {
+    console.error("❌ Failed calling Routes API:", err);
+    return null;
+  }
+  console.info("📊 Routes API returned:", JSON.stringify(resp, null, 2));
+  const leg = resp?.routes?.[0]?.legs?.[0];
+  if (!leg) {
+    console.warn("⚠️ No legs returned in response:", resp);
+    return null;
+  }
+  const durationSeconds =
+    typeof leg.duration === "string"
+      ? parseInt(leg.duration.replace(/[^0-9]/g, ""), 10)
+      : leg.duration?.seconds ?? 0;
+  const encoded = leg.polyline?.encodedPolyline;
+  return {
+    distanceMeters: leg.distanceMeters || 0,
+    durationSeconds,
+    ...(encoded ? { encoded } : {}),
+  };
+}
+
 export const handler: SQSHandler = async (event) => {
   console.info("📥 Received SQS event:", JSON.stringify(event, null, 2));
   const googleKey = await getGoogleKey();
 
   for (const record of event.Records) {
-    const { origin, destination, routeId } = JSON.parse(record.body);
-    console.info("➡️ Processing record:", { origin, destination, routeId });
+    const { origin, destination, distanceKm, roundTrip, routeId } =
+      JSON.parse(record.body);
+    console.info("➡️ Processing record:", {
+      origin,
+      destination,
+      distanceKm,
+      roundTrip,
+      routeId,
+    });
 
-    let oCoords, dCoords;
+    if (destination || !distanceKm) {
+      let oCoords, dCoords;
+      try {
+        [oCoords, dCoords] = await Promise.all([
+          geocode(origin, googleKey),
+          geocode(destination, googleKey),
+        ]);
+      } catch (err) {
+        console.error("❌ Geocoding error:", err);
+        continue;
+      }
+
+      const leg = await computeRoute(oCoords, dCoords, googleKey);
+      if (!leg) continue;
+
+      const route = new Route({
+        routeId: RouteId.fromString(routeId),
+        distanceKm: new DistanceKm(leg.distanceMeters / 1000),
+        duration: new Duration(leg.durationSeconds),
+        ...(leg.encoded ? { path: new Path(leg.encoded) } : {}),
+      });
+
+      console.info("💾 Saving route to DynamoDB:", route);
+      try {
+        await repository.save(route);
+        console.info("✅ Route saved:", route.routeId.toString());
+        await publishRoutesGenerated(route.routeId.Value, [route]);
+      } catch (err) {
+        console.error("❌ Error saving to DynamoDB:", err);
+      }
+      continue;
+    }
+
+    let oCoords;
     try {
-      [oCoords, dCoords] = await Promise.all([
-        geocode(origin, googleKey),
-        geocode(destination, googleKey),
-      ]);
+      oCoords = await geocode(origin, googleKey);
     } catch (err) {
       console.error("❌ Geocoding error:", err);
       continue;
     }
 
-    const requestBody = {
-      origin: {
-        location: {
-          latLng: {
-            latitude: oCoords.lat,
-            longitude: oCoords.lng,
-          },
-        },
-      },
-      destination: {
-        location: {
-          latLng: {
-            latitude: dCoords.lat,
-            longitude: dCoords.lng,
-          },
-        },
-      },
-      travelMode: "WALK",
-    };
-    console.info("🌐 Calling Routes API with coords…", requestBody);
+    const destCoords = offsetCoordinate(
+      oCoords.lat,
+      oCoords.lng,
+      roundTrip ? distanceKm / 2 : distanceKm
+    );
 
-    let resp: any;
-    try {
-      resp = await postJson(
-        "routes.googleapis.com",
-        "/directions/v2:computeRoutes",
-        googleKey,
-        requestBody
-      );
-    } catch (err) {
-      console.error("❌ Failed calling Routes API:", err);
-      continue;
-    }
-    console.info("📊 Routes API returned:", JSON.stringify(resp, null, 2));
+    const outLeg = await computeRoute(oCoords, destCoords, googleKey);
+    if (!outLeg) continue;
 
-    const leg = resp?.routes?.[0]?.legs?.[0];
-    if (!leg) {
-      console.warn("⚠️ No legs returned in response:", resp);
-      continue;
+    let totalDistance = outLeg.distanceMeters;
+    let totalDuration = outLeg.durationSeconds;
+    let encoded = outLeg.encoded;
+
+    if (roundTrip) {
+      const backLeg = await computeRoute(destCoords, oCoords, googleKey);
+      if (!backLeg) continue;
+      totalDistance += backLeg.distanceMeters;
+      totalDuration += backLeg.durationSeconds;
+      if (encoded && backLeg.encoded) {
+        const coords1 = new Path(encoded).Coordinates;
+        const coords2 = new Path(backLeg.encoded).Coordinates;
+        encoded = Path.fromCoordinates([...coords1, ...coords2.slice(1)]).Encoded;
+      } else {
+        encoded = undefined;
+      }
     }
 
-    const durationSeconds =
-      typeof leg.duration === "string"
-        ? parseInt(leg.duration.replace(/[^0-9]/g, ""), 10)
-        : leg.duration?.seconds ?? 0;
-
-    const encoded = leg.polyline?.encodedPolyline;
     const route = new Route({
       routeId: RouteId.fromString(routeId),
-      distanceKm: new DistanceKm((leg.distanceMeters || 0) / 1000),
-      duration: new Duration(durationSeconds),
+      distanceKm: new DistanceKm(totalDistance / 1000),
+      duration: new Duration(totalDuration),
       ...(encoded ? { path: new Path(encoded) } : {}),
     });
 

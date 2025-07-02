@@ -182,4 +182,56 @@ describe("worker routes handler", () => {
     );
     expect(saved.path).toBeUndefined();
   });
+
+  it("generates round trip when distanceKm provided", async () => {
+    responseDataHolder.data = JSON.stringify({
+      routes: [
+        {
+          legs: [
+            {
+              distanceMeters: 1500,
+              duration: { seconds: 600 },
+              polyline: {
+                encodedPolyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const handler = loadHandler();
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({
+            routeId: "550e8400-e29b-41d4-a716-446655440002",
+            origin: "a",
+            distanceKm: 3,
+            roundTrip: true,
+          }),
+        },
+      ],
+    } as any;
+
+    await handler(event);
+
+    const routeCalls = httpsRequest.mock.calls.filter(
+      ([opts]) =>
+        typeof opts === "object" &&
+        (opts as any).host === "routes.googleapis.com"
+    );
+    expect(routeCalls).toHaveLength(2);
+
+    const saved = mockSave.mock.calls[0][0];
+    expect(saved.distanceKm.Value).toBe(3);
+    expect(saved.duration.Value).toBe(1200);
+    expect(saved.path.Coordinates.map((c) => ({ lat: c.Lat, lng: c.Lng }))).toEqual([
+      { lat: 38.5, lng: -120.2 },
+      { lat: 40.7, lng: -120.95 },
+      { lat: 43.252, lng: -126.453 },
+      { lat: 40.7, lng: -120.95 },
+      { lat: 38.5, lng: -120.2 },
+    ]);
+  });
 });
