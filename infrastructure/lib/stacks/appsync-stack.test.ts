@@ -1,20 +1,19 @@
-// test/stacks/appsync-stack.test.ts
-import * as cdk from 'aws-cdk-lib';
-import { Template } from 'aws-cdk-lib/assertions';
-import * as cognito from 'aws-cdk-lib/aws-cognito';
-import { AppSyncStack } from './appsync-stack';
+import * as cdk from "aws-cdk-lib";
+import { Template } from "aws-cdk-lib/assertions";
+import * as cognito from "aws-cdk-lib/aws-cognito";
+import { AppSyncStack } from "./appsync-stack";
 
-describe('AppSyncStack', () => {
+describe("AppSyncStack", () => {
   let template: Template;
-  const TEST_ENV = { account: '123456789012', region: 'us-east-1' };
+  const TEST_ENV = { account: "123456789012", region: "us-east-1" };
 
   beforeAll(() => {
     const app = new cdk.App();
 
-    const deps = new cdk.Stack(app, 'Deps', { env: TEST_ENV });
+    const deps = new cdk.Stack(app, "Deps", { env: TEST_ENV });
 
-    const userPool = new cognito.UserPool(deps, 'UserPool', {
-      userPoolName: 'TestUserPool',
+    const userPool = new cognito.UserPool(deps, "UserPool", {
+      userPoolName: "TestUserPool",
       selfSignUpEnabled: true,
       signInAliases: { email: true },
       autoVerify: { email: true },
@@ -28,34 +27,34 @@ describe('AppSyncStack', () => {
       },
     });
 
-    const stack = new AppSyncStack(app, 'TestAppSyncStack', {
-      env:      TEST_ENV,
+    const stack = new AppSyncStack(app, "TestAppSyncStack", {
+      env: TEST_ENV,
       userPool,
     });
 
     template = Template.fromStack(stack);
   });
 
-  test('creates a GraphQL API with Cognito auth', () => {
-    template.hasResourceProperties('AWS::AppSync::GraphQLApi', {
-      Name:               'SendeoGraphQL',
-      AuthenticationType: 'AMAZON_COGNITO_USER_POOLS',
+  test("creates a GraphQL API with Cognito auth", () => {
+    template.hasResourceProperties("AWS::AppSync::GraphQLApi", {
+      Name: "SendeoGraphQL",
+      AuthenticationType: "AMAZON_COGNITO_USER_POOLS",
       LogConfig: {
-        FieldLogLevel: 'ALL',
+        FieldLogLevel: "ALL",
       },
     });
   });
 
-  test('outputs the API url', () => {
-    template.hasOutput('AppSyncUrl', {
-      Export: { Name: 'SendeoAppSyncUrl' },
+  test("outputs the API url", () => {
+    template.hasOutput("AppSyncUrl", {
+      Export: { Name: "SendeoAppSyncUrl" },
     });
   });
 
-  test('conditionally outputs the API key', () => {
-    if (template.findOutputs('AppSyncApiKey', true)) {
-      template.hasOutput('AppSyncApiKey', {
-        Export: { Name: 'SendeoAppSyncApiKey' },
+  test("conditionally outputs the API key", () => {
+    if (Object.keys(template.findOutputs("AppSyncApiKey", true)).length > 0) {
+      template.hasOutput("AppSyncApiKey", {
+        Export: { Name: "SendeoAppSyncApiKey" },
       });
     }
   });

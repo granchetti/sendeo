@@ -73,7 +73,6 @@ async function geocode(
   return { lat: loc.lat, lng: loc.lng };
 }
 
-
 function postJson<T = any>(
   host: string,
   path: string,
@@ -151,7 +150,11 @@ async function computeRoute(
   origin: { lat: number; lng: number },
   destination: { lat: number; lng: number },
   apiKey: string
-): Promise<{ distanceMeters: number; durationSeconds: number; encoded?: string } | null> {
+): Promise<{
+  distanceMeters: number;
+  durationSeconds: number;
+  encoded?: string;
+} | null> {
   const requestBody = {
     origin: {
       location: {
@@ -201,8 +204,9 @@ export const handler: SQSHandler = async (event) => {
   const googleKey = await getGoogleKey();
 
   for (const record of event.Records) {
-    const { origin, destination, distanceKm, roundTrip, routeId } =
-      JSON.parse(record.body);
+    const { origin, destination, distanceKm, roundTrip, routeId } = JSON.parse(
+      record.body
+    );
     console.info("➡️ Processing record:", {
       origin,
       destination,
@@ -272,8 +276,9 @@ export const handler: SQSHandler = async (event) => {
       totalDuration += backLeg.durationSeconds;
       if (encoded && backLeg.encoded) {
         const coords1 = new Path(encoded).Coordinates;
-        const coords2 = new Path(backLeg.encoded).Coordinates;
-        encoded = Path.fromCoordinates([...coords1, ...coords2.slice(1)]).Encoded;
+        const coords2 = new Path(backLeg.encoded).Coordinates.slice().reverse();
+        const roundCoords = [...coords1, ...coords2.slice(1)];
+        encoded = Path.fromCoordinates(roundCoords).Encoded;
       } else {
         encoded = undefined;
       }
