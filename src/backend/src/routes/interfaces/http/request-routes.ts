@@ -21,6 +21,15 @@ export const handler = async (
   if (!data.routeId) {
     data.routeId = RouteId.generate().Value;
   }
+
+  if (data.maxDeltaKm !== undefined) {
+    const n = Number(data.maxDeltaKm);
+    if (!Number.isNaN(n)) {
+      data.maxDeltaKm = n;
+    } else {
+      delete data.maxDeltaKm;
+    }
+
   if (data.routesCount !== undefined) {
     const num = parseInt(String(data.routesCount), 10);
     if (!isNaN(num) && num > 0) data.routesCount = num;

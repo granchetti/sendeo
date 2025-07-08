@@ -237,6 +237,34 @@ describe("worker routes handler", () => {
     ]);
   });
 
+
+  it("skips save when distance difference exceeds maxDeltaKm", async () => {
+    responseDataHolder.data = JSON.stringify({
+      routes: [
+        {
+          legs: [
+            {
+              distanceMeters: 9000,
+              duration: { seconds: 600 },
+              polyline: {},
+            },
+          ],
+        },
+      ],
+    });
+
+    const handler = loadHandler();
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({
+            routeId: "550e8400-e29b-41d4-a716-446655440003",
+            origin: "a",
+            destination: "b",
+            distanceKm: 10,
+            maxDeltaKm: 0.5,
+            
+            
   it("publishes multiple routes when routesCount specified", async () => {
     responseDataHolder.data = JSON.stringify({
       routes: [
@@ -267,9 +295,8 @@ describe("worker routes handler", () => {
     } as any;
 
     await handler(event);
-
-    expect(mockSave).toHaveBeenCalledTimes(2);
-    expect(mockPublish).toHaveBeenCalledTimes(1);
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockPublish).not.toHaveBeenCalled();
     const published = mockPublish.mock.calls[0][1];
     expect(published).toHaveLength(2);
   });

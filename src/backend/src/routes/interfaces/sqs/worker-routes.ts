@@ -209,6 +209,8 @@ export const handler: SQSHandler = async (event) => {
       destination,
       distanceKm,
       roundTrip,
+      routeId,
+      maxDeltaKm,
       routeId: jobId,
       routesCount = 1,
     } = JSON.parse(record.body);
@@ -237,6 +239,17 @@ export const handler: SQSHandler = async (event) => {
 
       const leg = await computeRoute(oCoords, dCoords, googleKey);
       if (!leg) continue;
+
+      if (
+        typeof distanceKm === "number" &&
+        typeof maxDeltaKm === "number" &&
+        Math.abs(leg.distanceMeters / 1000 - distanceKm) > maxDeltaKm
+      ) {
+        console.warn(
+          `⚠️ Generated distance ${leg.distanceMeters / 1000}km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
+        );
+        continue;
+      }
 
       const route = new Route({
         routeId: RouteId.generate(),
@@ -297,6 +310,16 @@ export const handler: SQSHandler = async (event) => {
           encoded = undefined;
         }
       }
+
+    if (
+      typeof maxDeltaKm === "number" &&
+      Math.abs(totalDistance / 1000 - distanceKm) > maxDeltaKm
+    ) {
+      console.warn(
+        `⚠️ Generated distance ${totalDistance / 1000}km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
+      );
+      continue;
+    }
 
       const route = new Route({
         routeId: RouteId.generate(),
