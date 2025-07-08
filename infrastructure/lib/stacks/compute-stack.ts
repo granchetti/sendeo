@@ -133,6 +133,7 @@ export class ComputeStack extends cdk.Stack {
         { path: "favourites", methods: ["GET"], authorizer },
         { path: "routes", methods: ["GET"], authorizer },
         { path: "routes/{routeId}", methods: ["GET"], authorizer },
+        { path: "jobs/{jobId}/routes", methods: ["GET"], authorizer },
         { path: "telemetry/started", methods: ["POST"], authorizer },
         { path: "routes/{routeId}/finish", methods: ["POST"], authorizer },
       ],

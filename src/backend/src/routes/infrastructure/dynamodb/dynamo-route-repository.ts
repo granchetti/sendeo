@@ -4,6 +4,7 @@ import {
   GetItemCommand,
   PutItemCommand,
   ScanCommand,
+  QueryCommand,
 } from "@aws-sdk/client-dynamodb";
 import { RouteRepository } from "../../domain/repositories/route-repository";
 import { Route } from "../../domain/entities/route-entity";
@@ -21,6 +22,7 @@ export class DynamoRouteRepository implements RouteRepository {
       routeId: { S: route.routeId.Value },
       createdAt: { N: now.toString() },
     };
+    if (route.jobId) item.jobId = { S: route.jobId };
     if (route.distanceKm)
       item.distanceKm = { N: route.distanceKm.Value.toString() };
     if (route.duration) item.duration = { N: route.duration.Value.toString() };
@@ -50,6 +52,7 @@ export class DynamoRouteRepository implements RouteRepository {
 
     return new Route({
       routeId: RouteId.fromString(res.Item.routeId.S!),
+      jobId: res.Item.jobId ? res.Item.jobId.S! : undefined,
       distanceKm: res.Item.distanceKm
         ? new DistanceKm(parseFloat(res.Item.distanceKm.N!))
         : undefined,
@@ -68,6 +71,32 @@ export class DynamoRouteRepository implements RouteRepository {
       (item) =>
         new Route({
           routeId: RouteId.fromString(item.routeId.S!),
+          jobId: item.jobId ? item.jobId.S! : undefined,
+          distanceKm: item.distanceKm
+            ? new DistanceKm(+item.distanceKm.N!)
+            : undefined,
+          duration: item.duration ? new Duration(+item.duration.N!) : undefined,
+          path: item.path ? new Path(item.path.S!) : undefined,
+        })
+    );
+  }
+
+  async findByJobId(jobId: string): Promise<Route[]> {
+    const res = await this.client.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        IndexName: "GSI2",
+        KeyConditionExpression: "jobId = :job",
+        ExpressionAttributeValues: {
+          ":job": { S: jobId },
+        },
+      })
+    );
+    return (res.Items || []).map(
+      (item) =>
+        new Route({
+          routeId: RouteId.fromString(item.routeId.S!),
+          jobId: item.jobId ? item.jobId.S! : undefined,
           distanceKm: item.distanceKm
             ? new DistanceKm(+item.distanceKm.N!)
             : undefined,

@@ -71,6 +71,23 @@ describe('InMemoryRouteRepository', () => {
     );
   });
 
+  it('findByJobId filters routes by jobId', async () => {
+    const jobId = 'job-1';
+    const r1 = new Route({
+      routeId: RouteId.generate(),
+      jobId,
+    });
+    const r2 = new Route({
+      routeId: RouteId.generate(),
+      jobId: 'job-2',
+    });
+    await repo.save(r1);
+    await repo.save(r2);
+
+    const res = await repo.findByJobId(jobId);
+    expect(res.map((r) => r.routeId.Value)).toEqual([r1.routeId.Value]);
+  });
+
   it('remove deletes the route', async () => {
     const route = new Route({
       routeId: RouteId.generate(),

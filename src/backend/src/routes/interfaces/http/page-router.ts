@@ -76,6 +76,37 @@ export const handler = async (
     };
   }
 
+  // GET /jobs/{jobId}/routes
+  if (httpMethod === "GET" && resource === "/jobs/{jobId}/routes") {
+    const jobId = pathParameters?.jobId;
+    if (!jobId) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "jobId parameter required" }),
+      };
+    }
+    try {
+      const list = await routeRepository.findByJobId(jobId);
+      return {
+        statusCode: 200,
+        body: JSON.stringify(
+          list.map((r) => ({
+            routeId: r.routeId.Value,
+            distanceKm: r.distanceKm?.Value,
+            duration: r.duration?.Value,
+            path: r.path?.Encoded,
+          }))
+        ),
+      };
+    } catch (err) {
+      console.error("Error listing job routes:", err);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Could not list routes" }),
+      };
+    }
+  }
+
   if (resource === "/profile" && httpMethod === "GET") {
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   }

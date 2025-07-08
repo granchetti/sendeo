@@ -5,6 +5,7 @@ import { RouteId } from "../value-objects/route-id-value-object";
 
 export interface RouteProps {
   readonly routeId: RouteId;
+  readonly jobId?: string;
   readonly distanceKm?: DistanceKm;
   readonly duration?: Duration;
   readonly path?: Path;
@@ -18,6 +19,10 @@ export class Route {
       throw new Error("routeId is required");
     }
     this.props = { ...props};
+  }
+
+  get jobId(): string | undefined {
+    return this.props.jobId;
   }
 
   get routeId(): RouteId {

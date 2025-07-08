@@ -3,6 +3,7 @@
 // 1) Mocks (antes de importar handler)
 const mockFindById = jest.fn();
 const mockFindAll = jest.fn();
+const mockFindByJobId = jest.fn();
 const mockGetFavourites = jest.fn();
 
 jest.mock("@aws-sdk/client-dynamodb", () => ({
@@ -13,6 +14,7 @@ jest.mock("../../infrastructure/dynamodb/dynamo-route-repository", () => ({
   DynamoRouteRepository: jest.fn().mockImplementation(() => ({
     findById: mockFindById,
     findAll: mockFindAll,
+    findByJobId: mockFindByJobId,
   })),
 }));
 
@@ -39,6 +41,7 @@ const baseCtx = {
 beforeEach(() => {
   mockFindById.mockReset();
   mockFindAll.mockReset();
+  mockFindByJobId.mockReset();
   mockGetFavourites.mockReset();
 });
 
@@ -169,5 +172,32 @@ describe("page router get favourites", () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body).toEqual({ favourites: ["1", "2"] });
+  });
+});
+
+describe("page router list routes by jobId", () => {
+  const baseEvent = {
+    ...baseCtx,
+    resource: "/jobs/{jobId}/routes",
+    httpMethod: "GET",
+  } as any;
+
+  it("returns 400 when jobId missing", async () => {
+    const res = await handler(baseEvent);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("returns list of routes for job", async () => {
+    const r = new Route({ routeId: RouteId.generate(), jobId: "job1" });
+    mockFindByJobId.mockResolvedValueOnce([r]);
+    const res = await handler({
+      ...baseEvent,
+      pathParameters: { jobId: "job1" },
+    });
+    expect(mockFindByJobId).toHaveBeenCalledWith("job1");
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual([
+      { routeId: r.routeId.Value, distanceKm: undefined, duration: undefined, path: undefined },
+    ]);
   });
 });

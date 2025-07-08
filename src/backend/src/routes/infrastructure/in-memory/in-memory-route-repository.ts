@@ -16,6 +16,10 @@ export class InMemoryRouteRepository implements RouteRepository {
   async findAll(): Promise<Route[]> {
     return Array.from(this.routes.values());
   }
+
+  async findByJobId(jobId: string): Promise<Route[]> {
+    return Array.from(this.routes.values()).filter((r) => r.jobId === jobId);
+  }
   async remove(id: RouteId): Promise<void> {
     this.routes.delete(id.Value);
   }
