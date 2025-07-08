@@ -1,6 +1,6 @@
 import { Route } from "../../domain/entities/route-entity";
 import { RouteRepository } from "../../domain/repositories/route-repository";
-import { RouteId } from "../../domain/value-objects/route-id-value-object";
+import { UUID } from "../../domain/value-objects/uuid-value-object";
 
 export class InMemoryRouteRepository implements RouteRepository {
   private routes = new Map<string, Route>();
@@ -9,7 +9,7 @@ export class InMemoryRouteRepository implements RouteRepository {
     this.routes.set(route.routeId.Value, route);
   }
 
-  async findById(id: RouteId): Promise<Route | null> {
+  async findById(id: UUID): Promise<Route | null> {
     return this.routes.get(id.Value) ?? null;
   }
 
@@ -20,7 +20,7 @@ export class InMemoryRouteRepository implements RouteRepository {
   async findByJobId(jobId: string): Promise<Route[]> {
     return Array.from(this.routes.values()).filter((r) => r.jobId === jobId);
   }
-  async remove(id: RouteId): Promise<void> {
+  async remove(id: UUID): Promise<void> {
     this.routes.delete(id.Value);
   }
 }

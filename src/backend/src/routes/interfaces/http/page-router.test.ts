@@ -26,7 +26,7 @@ jest.mock("../../infrastructure/dynamodb/dynamo-user-state-repository", () => ({
 
 import { handler } from "./page-router";
 import { Route } from "../../domain/entities/route-entity";
-import { RouteId } from "../../domain/value-objects/route-id-value-object";
+import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
@@ -58,7 +58,7 @@ describe("page router get route", () => {
   });
 
   it("returns 404 when route not found", async () => {
-    const missingId = RouteId.generate();
+    const missingId = UUID.generate();
     mockFindById.mockResolvedValueOnce(null);
     const res = await handler({
       ...baseEvent,
@@ -70,7 +70,7 @@ describe("page router get route", () => {
 
   it("returns route when found", async () => {
     const route = new Route({
-      routeId: RouteId.generate(),
+      routeId: UUID.generate(),
       distanceKm: new DistanceKm(2),
       duration: new Duration(100),
       path: Path.fromCoordinates([
@@ -116,7 +116,7 @@ describe("page router list routes", () => {
 
   it("returns 200 and list of routes when routes exist", async () => {
     const route1 = new Route({
-      routeId: RouteId.generate(),
+      routeId: UUID.generate(),
       distanceKm: new DistanceKm(1),
       duration: new Duration(10),
       path: Path.fromCoordinates([
@@ -125,7 +125,7 @@ describe("page router list routes", () => {
       ]),
     });
     const route2 = new Route({
-      routeId: RouteId.generate(),
+      routeId: UUID.generate(),
       distanceKm: new DistanceKm(2),
       duration: new Duration(20),
       path: Path.fromCoordinates([
@@ -188,7 +188,7 @@ describe("page router list routes by jobId", () => {
   });
 
   it("returns list of routes for job", async () => {
-    const r = new Route({ routeId: RouteId.generate(), jobId: "job1" });
+    const r = new Route({ routeId: UUID.generate(), jobId: "job1" });
     mockFindByJobId.mockResolvedValueOnce([r]);
     const res = await handler({
       ...baseEvent,

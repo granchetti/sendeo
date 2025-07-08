@@ -1,5 +1,5 @@
 import { Route } from "./route-entity";
-import { RouteId } from "../value-objects/route-id-value-object";
+import { UUID } from "../value-objects/uuid-value-object";
 import { DistanceKm } from "../value-objects/distance-value-object";
 import { Duration } from "../value-objects/duration-value-object";
 import { Path } from "../value-objects/path-value-object";
@@ -7,7 +7,8 @@ import { LatLng } from "../value-objects/lat-lng-value-object";
 
 describe("Route", () => {
   it("should create a Route with all properties", () => {
-    const routeId = RouteId.generate();
+    const routeId = UUID.generate();
+    const jobId = UUID.generate();
     const distance = new DistanceKm(10);
     const duration = new Duration(1200);
     const path = Path.fromCoordinates([
@@ -17,14 +18,14 @@ describe("Route", () => {
 
     const route = new Route({
       routeId,
-      jobId: "job1",
+      jobId,
       distanceKm: distance,
       duration,
       path,
     });
 
     expect(route.routeId.equals(routeId)).toBe(true);
-    expect(route.jobId).toBe("job1");
+    expect(route.jobId).toBe(jobId);
     expect(route.distanceKm?.Value).toBe(10);
     expect(route.duration?.Value).toBe(1200);
     expect(route.path?.Coordinates.map(v => ({ lat: v.Lat, lng: v.Lng }))).toEqual([
@@ -34,7 +35,7 @@ describe("Route", () => {
   });
 
   it("should create a Route with only the required property", () => {
-    const routeId = RouteId.generate();
+    const routeId = UUID.generate();
 
     const route = new Route({
       routeId,

@@ -1,11 +1,11 @@
 import { DistanceKm } from "../value-objects/distance-value-object";
 import { Duration } from "../value-objects/duration-value-object";
 import { Path } from "../value-objects/path-value-object";
-import { RouteId } from "../value-objects/route-id-value-object";
+import { UUID } from "../value-objects/uuid-value-object";
 
 export interface RouteProps {
-  readonly routeId: RouteId;
-  readonly jobId?: string;
+  readonly routeId: UUID;
+  readonly jobId?: UUID;
   readonly distanceKm?: DistanceKm;
   readonly duration?: Duration;
   readonly path?: Path;
@@ -21,11 +21,11 @@ export class Route {
     this.props = { ...props};
   }
 
-  get jobId(): string | undefined {
+  get jobId(): UUID | undefined {
     return this.props.jobId;
   }
 
-  get routeId(): RouteId {
+  get routeId(): UUID {
     return this.props.routeId;
   }
 

@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
-import { RouteId } from "../../domain/value-objects/route-id-value-object";
+import { UUID } from "../../domain/value-objects/uuid-value-object";
 
 const sqs = new SQSClient({});
 
@@ -32,7 +32,7 @@ export const handler = async (
   }
 
   if (!data.jobId) {
-    data.jobId = RouteId.generate().Value;
+    data.jobId = UUID.generate().Value;
   }
 
   if (data.maxDeltaKm != null) {

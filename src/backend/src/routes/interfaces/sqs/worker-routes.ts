@@ -9,7 +9,7 @@ import { Route } from "../../domain/entities/route-entity";
 import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
-import { RouteId } from "../../domain/value-objects/route-id-value-object";
+import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { publishRoutesGenerated } from "../appsync-client";
 
@@ -223,9 +223,12 @@ export const handler: SQSHandler = async (event) => {
       ]);
 
       let attempts = 0;
-      while (routes.length < routesCount && attempts++ < routesCount * 5) {
+      while (routes.length < routesCount && attempts < routesCount) {
+        attempts++;
         const leg = await computeRoute(oCoords, dCoords, googleKey);
-        if (!leg) continue;
+        if (!leg) {
+          break;
+        }
 
         if (
           typeof distanceKm === "number" &&
@@ -241,7 +244,7 @@ export const handler: SQSHandler = async (event) => {
         }
 
         const route = new Route({
-          routeId: RouteId.generate(),
+          routeId: UUID.generate(),
           distanceKm: new DistanceKm(leg.distanceMeters / 1000),
           duration: new Duration(leg.durationSeconds),
           ...(leg.encoded ? { path: new Path(leg.encoded) } : {}),
@@ -271,7 +274,6 @@ export const handler: SQSHandler = async (event) => {
     let attempts = 0;
 
     while (routes.length < routesCount && attempts++ < routesCount * 5) {
-
       const bearing = Math.random() * 360;
       const dist = roundTrip ? distanceKm! / 2 : distanceKm!;
       const destCoords = offsetCoordinate(
@@ -315,7 +317,7 @@ export const handler: SQSHandler = async (event) => {
       }
 
       const route = new Route({
-        routeId: RouteId.generate(),
+        routeId: UUID.generate(),
         distanceKm: new DistanceKm(totalDistance / 1000),
         duration: new Duration(totalDuration),
         ...(encoded ? { path: new Path(encoded) } : {}),

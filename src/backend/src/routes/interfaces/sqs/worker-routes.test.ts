@@ -82,9 +82,10 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
-            routeId: "550e8400-e29b-41d4-a716-446655440000",
+            jobId: "550e8400-e29b-41d4-a716-446655440000",
             origin: "a",
             destination: "b",
+            routesCount: 1,
           }),
         },
       ],
@@ -102,19 +103,16 @@ describe("worker routes handler", () => {
     expect(mockSave).toHaveBeenCalledTimes(1);
     const saved = mockSave.mock.calls[0][0];
 
-    expect(saved.routeId.Value).toMatch(/^[0-9a-f-]{36}$/);
-    expect(saved.routeId.Value).not.toBe(
-      "550e8400-e29b-41d4-a716-446655440000"
-    );
     expect(saved.distanceKm.Value).toBe(1.5);
     expect(saved.duration.Value).toBe(600);
     expect(
-      saved.path.Coordinates.map((c) => ({ lat: c.Lat, lng: c.Lng }))
+      saved.path!.Coordinates.map((c) => ({ lat: c.Lat, lng: c.Lng }))
     ).toEqual([
       { lat: 38.5, lng: -120.2 },
       { lat: 40.7, lng: -120.95 },
       { lat: 43.252, lng: -126.453 },
     ]);
+
     expect(mockPublish).toHaveBeenCalledWith(
       "550e8400-e29b-41d4-a716-446655440000",
       [saved]
@@ -131,9 +129,10 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
-            routeId: "550e8400-e29b-41d4-a716-446655440000",
+            jobId: "550e8400-e29b-41d4-a716-446655440001",
             origin: "a",
             destination: "b",
+            routesCount: 1,
           }),
         },
       ],
@@ -171,9 +170,10 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
-            routeId: "550e8400-e29b-41d4-a716-446655440001",
+            jobId: "550e8400-e29b-41d4-a716-446655440002",
             origin: "a",
             destination: "b",
+            routesCount: 1,
           }),
         },
       ],
@@ -182,10 +182,6 @@ describe("worker routes handler", () => {
     await handler(event);
 
     const saved = mockSave.mock.calls[0][0];
-    expect(saved.routeId.Value).toMatch(/^[0-9a-f-]{36}$/);
-    expect(saved.routeId.Value).not.toBe(
-      "550e8400-e29b-41d4-a716-446655440001"
-    );
     expect(saved.path).toBeUndefined();
   });
 
@@ -211,10 +207,11 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
-            routeId: "550e8400-e29b-41d4-a716-446655440002",
+            jobId: "550e8400-e29b-41d4-a716-446655440003",
             origin: "a",
             distanceKm: 3,
             roundTrip: true,
+            routesCount: 1,
           }),
         },
       ],
@@ -233,7 +230,7 @@ describe("worker routes handler", () => {
     expect(saved.distanceKm.Value).toBe(3);
     expect(saved.duration.Value).toBe(1200);
     expect(
-      saved.path.Coordinates.map((c) => ({ lat: c.Lat, lng: c.Lng }))
+      saved.path!.Coordinates.map((c) => ({ lat: c.Lat, lng: c.Lng }))
     ).toEqual([
       { lat: 38.5, lng: -120.2 },
       { lat: 40.7, lng: -120.95 },
@@ -263,11 +260,12 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
-            routeId: "550e8400-e29b-41d4-a716-446655440003",
+            jobId: "550e8400-e29b-41d4-a716-446655440004",
             origin: "a",
             destination: "b",
             distanceKm: 10,
             maxDeltaKm: 0.5,
+            routesCount: 1,
           }),
         },
       ],
@@ -299,7 +297,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
-            routeId: "550e8400-e29b-41d4-a716-446655440003",
+            jobId: "550e8400-e29b-41d4-a716-446655440005",
             origin: "a",
             distanceKm: 1,
             routesCount: 2,
@@ -336,7 +334,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
-            routeId: "550e8400-e29b-41d4-a716-446655440004",
+            jobId: "550e8400-e29b-41d4-a716-446655440006",
             origin: "a",
             destination: "b",
             routesCount: 2,

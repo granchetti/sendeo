@@ -2,7 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-user-state-repository";
-import { RouteId } from "../../domain/value-objects/route-id-value-object";
+import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 
@@ -60,7 +60,7 @@ export const handler = async (
       };
     }
 
-    const route = await getRouteDetails.execute(RouteId.fromString(routeId));
+    const route = await getRouteDetails.execute(UUID.fromString(routeId));
     if (!route) {
       return { statusCode: 404, body: JSON.stringify({ error: "Not Found" }) };
     }
