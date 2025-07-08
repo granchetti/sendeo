@@ -122,6 +122,73 @@ function postJson<T = any>(
   });
 }
 
+async function computeRoutes(
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number },
+  apiKey: string
+): Promise<
+  Array<{
+    distanceMeters: number;
+    durationSeconds: number;
+    encoded?: string;
+  }>
+> {
+  const requestBody = {
+    origin: {
+      location: { latLng: { latitude: origin.lat, longitude: origin.lng } },
+    },
+    destination: {
+      location: {
+        latLng: { latitude: destination.lat, longitude: destination.lng },
+      },
+    },
+    travelMode: "WALK",
+    computeAlternativeRoutes: true,
+    routingPreference: "UNRESTRICTED",
+  };
+
+  console.info("🌐 Calling Routes API with coords…", requestBody);
+  let resp: any;
+  try {
+    resp = await postJson(
+      "routes.googleapis.com",
+      "/directions/v2:computeRoutes",
+      apiKey,
+      requestBody
+    );
+  } catch (err) {
+    console.error("❌ Failed calling Routes API:", err);
+    return [];
+  }
+  console.info("📊 Routes API returned:", JSON.stringify(resp, null, 2));
+
+  return (resp?.routes ?? [])
+    .map((route: any) => {
+      const leg = route.legs?.[0];
+      if (!leg) return null;
+      const durationSeconds =
+        typeof leg.duration === "string"
+          ? parseInt(leg.duration.replace(/[^0-9]/g, ""), 10)
+          : leg.duration?.seconds ?? 0;
+      return {
+        distanceMeters: leg.distanceMeters || 0,
+        durationSeconds,
+        ...(leg.polyline?.encodedPolyline
+          ? { encoded: leg.polyline.encodedPolyline }
+          : {}),
+      };
+    })
+    .filter(
+      (
+        r
+      ): r is {
+        distanceMeters: number;
+        durationSeconds: number;
+        encoded?: string;
+      } => r !== null
+    );
+}
+
 function offsetCoordinate(
   lat: number,
   lng: number,
@@ -144,59 +211,6 @@ function offsetCoordinate(
       Math.cos(dRad) - Math.sin(lat1) * Math.sin(lat2)
     );
   return { lat: (lat2 * 180) / Math.PI, lng: (lng2 * 180) / Math.PI };
-}
-
-async function computeRoute(
-  origin: { lat: number; lng: number },
-  destination: { lat: number; lng: number },
-  apiKey: string
-): Promise<{
-  distanceMeters: number;
-  durationSeconds: number;
-  encoded?: string;
-} | null> {
-  const requestBody = {
-    origin: {
-      location: {
-        latLng: { latitude: origin.lat, longitude: origin.lng },
-      },
-    },
-    destination: {
-      location: {
-        latLng: { latitude: destination.lat, longitude: destination.lng },
-      },
-    },
-    travelMode: "WALK",
-  };
-  console.info("🌐 Calling Routes API with coords…", requestBody);
-  let resp: any;
-  try {
-    resp = await postJson(
-      "routes.googleapis.com",
-      "/directions/v2:computeRoutes",
-      apiKey,
-      requestBody
-    );
-  } catch (err) {
-    console.error("❌ Failed calling Routes API:", err);
-    return null;
-  }
-  console.info("📊 Routes API returned:", JSON.stringify(resp, null, 2));
-  const leg = resp?.routes?.[0]?.legs?.[0];
-  if (!leg) {
-    console.warn("⚠️ No legs returned in response:", resp);
-    return null;
-  }
-  const durationSeconds =
-    typeof leg.duration === "string"
-      ? parseInt(leg.duration.replace(/[^0-9]/g, ""), 10)
-      : leg.duration?.seconds ?? 0;
-  const encoded = leg.polyline?.encodedPolyline;
-  return {
-    distanceMeters: leg.distanceMeters || 0,
-    durationSeconds,
-    ...(encoded ? { encoded } : {}),
-  };
 }
 
 export const handler: SQSHandler = async (event) => {
@@ -222,22 +236,15 @@ export const handler: SQSHandler = async (event) => {
         geocode(destination, googleKey),
       ]);
 
-      let attempts = 0;
-      while (routes.length < routesCount && attempts < routesCount) {
-        attempts++;
-        const leg = await computeRoute(oCoords, dCoords, googleKey);
-        if (!leg) {
-          break;
-        }
-
+      const alternatives = await computeRoutes(oCoords, dCoords, googleKey);
+      for (const alt of alternatives.slice(0, routesCount)) {
         if (
           typeof distanceKm === "number" &&
-          typeof maxDeltaKm === "number" &&
-          Math.abs(leg.distanceMeters / 1000 - distanceKm) > maxDeltaKm
+          Math.abs(alt.distanceMeters / 1000 - distanceKm) > maxDeltaKm
         ) {
           console.warn(
-            `Warning: generated ${
-              leg.distanceMeters / 1000
+            `⚠️ Generated ${
+              alt.distanceMeters / 1000
             }km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
           );
           continue;
@@ -246,15 +253,14 @@ export const handler: SQSHandler = async (event) => {
         const route = new Route({
           routeId: UUID.generate(),
           jobId: UUID.fromString(jobId),
-          distanceKm: new DistanceKm(leg.distanceMeters / 1000),
-          duration: new Duration(leg.durationSeconds),
-          ...(leg.encoded ? { path: new Path(leg.encoded) } : {}),
+          distanceKm: new DistanceKm(alt.distanceMeters / 1000),
+          duration: new Duration(alt.durationSeconds),
+          ...(alt.encoded ? { path: new Path(alt.encoded) } : {}),
         });
 
         console.info("💾 Saving route to DynamoDB:", route);
         try {
           await repository.save(route);
-          console.info("✅ Route saved:", route.routeId.toString());
           routes.push(route);
         } catch (err) {
           console.error("❌ Error saving to DynamoDB:", err);
@@ -273,7 +279,6 @@ export const handler: SQSHandler = async (event) => {
 
     const oCoords = await geocode(origin, googleKey);
     let attempts = 0;
-
     while (routes.length < routesCount && attempts++ < routesCount * 5) {
       const bearing = Math.random() * 360;
       const dist = roundTrip ? distanceKm! / 2 : distanceKm!;
@@ -284,21 +289,24 @@ export const handler: SQSHandler = async (event) => {
         bearing
       );
 
-      const outLeg = await computeRoute(oCoords, destCoords, googleKey);
-      if (!outLeg) continue;
+      const outLeg = await computeRoutes(oCoords, destCoords, googleKey);
+  
+      const first = outLeg[0];
+      if (!first) continue;
 
-      let totalDistance = outLeg.distanceMeters;
-      let totalDuration = outLeg.durationSeconds;
-      let encoded = outLeg.encoded;
+      let totalDistance = first.distanceMeters;
+      let totalDuration = first.durationSeconds;
+      let encoded = first.encoded;
 
       if (roundTrip) {
-        const backLeg = await computeRoute(destCoords, oCoords, googleKey);
-        if (!backLeg) continue;
-        totalDistance += backLeg.distanceMeters;
-        totalDuration += backLeg.durationSeconds;
-        if (encoded && backLeg.encoded) {
+        const backArr = await computeRoutes(destCoords, oCoords, googleKey);
+        const back = backArr[0];
+        if (!back) continue;
+        totalDistance += back.distanceMeters;
+        totalDuration += back.durationSeconds;
+        if (encoded && back.encoded) {
           const c1 = new Path(encoded).Coordinates;
-          const c2 = new Path(backLeg.encoded).Coordinates.slice().reverse();
+          const c2 = new Path(back.encoded).Coordinates.slice().reverse();
           encoded = Path.fromCoordinates([...c1, ...c2.slice(1)]).Encoded;
         } else {
           encoded = undefined;
@@ -310,7 +318,7 @@ export const handler: SQSHandler = async (event) => {
         Math.abs(totalDistance / 1000 - distanceKm!) > maxDeltaKm
       ) {
         console.warn(
-          `Warning: generated ${
+          `⚠️ Generated ${
             totalDistance / 1000
           }km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
         );
@@ -328,7 +336,6 @@ export const handler: SQSHandler = async (event) => {
       console.info("💾 Saving route to DynamoDB:", route);
       try {
         await repository.save(route);
-        console.info("✅ Route saved:", route.routeId.toString());
         routes.push(route);
       } catch (err) {
         console.error("❌ Error saving to DynamoDB:", err);
