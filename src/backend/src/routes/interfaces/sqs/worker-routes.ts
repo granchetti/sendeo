@@ -204,16 +204,24 @@ export const handler: SQSHandler = async (event) => {
   const googleKey = await getGoogleKey();
 
   for (const record of event.Records) {
-    const { origin, destination, distanceKm, roundTrip, routeId } = JSON.parse(
-      record.body
-    );
+    const {
+      origin,
+      destination,
+      distanceKm,
+      roundTrip,
+      routeId: jobId,
+      routesCount = 1,
+    } = JSON.parse(record.body);
     console.info("➡️ Processing record:", {
       origin,
       destination,
       distanceKm,
       roundTrip,
-      routeId,
+      jobId,
+      routesCount,
     });
+
+    const routes: Route[] = [];
 
     if (destination || !distanceKm) {
       let oCoords, dCoords;
@@ -231,7 +239,7 @@ export const handler: SQSHandler = async (event) => {
       if (!leg) continue;
 
       const route = new Route({
-        routeId: RouteId.fromString(routeId),
+        routeId: RouteId.generate(),
         distanceKm: new DistanceKm(leg.distanceMeters / 1000),
         duration: new Duration(leg.durationSeconds),
         ...(leg.encoded ? { path: new Path(leg.encoded) } : {}),
@@ -241,7 +249,8 @@ export const handler: SQSHandler = async (event) => {
       try {
         await repository.save(route);
         console.info("✅ Route saved:", route.routeId.toString());
-        await publishRoutesGenerated(route.routeId.Value, [route]);
+        routes.push(route);
+        await publishRoutesGenerated(jobId, routes);
       } catch (err) {
         console.error("❌ Error saving to DynamoDB:", err);
       }
@@ -256,48 +265,62 @@ export const handler: SQSHandler = async (event) => {
       continue;
     }
 
-    const destCoords = offsetCoordinate(
-      oCoords.lat,
-      oCoords.lng,
-      roundTrip ? distanceKm / 2 : distanceKm
-    );
+    let attempts = 0;
+    while (routes.length < routesCount && attempts < routesCount * 5) {
+      attempts++;
+      const bearing = Math.random() * 360;
+      const destCoords = offsetCoordinate(
+        oCoords.lat,
+        oCoords.lng,
+        roundTrip ? distanceKm / 2 : distanceKm,
+        bearing
+      );
 
-    const outLeg = await computeRoute(oCoords, destCoords, googleKey);
-    if (!outLeg) continue;
+      const outLeg = await computeRoute(oCoords, destCoords, googleKey);
+      if (!outLeg) continue;
 
-    let totalDistance = outLeg.distanceMeters;
-    let totalDuration = outLeg.durationSeconds;
-    let encoded = outLeg.encoded;
+      let totalDistance = outLeg.distanceMeters;
+      let totalDuration = outLeg.durationSeconds;
+      let encoded = outLeg.encoded;
 
-    if (roundTrip) {
-      const backLeg = await computeRoute(destCoords, oCoords, googleKey);
-      if (!backLeg) continue;
-      totalDistance += backLeg.distanceMeters;
-      totalDuration += backLeg.durationSeconds;
-      if (encoded && backLeg.encoded) {
-        const coords1 = new Path(encoded).Coordinates;
-        const coords2 = new Path(backLeg.encoded).Coordinates.slice().reverse();
-        const roundCoords = [...coords1, ...coords2.slice(1)];
-        encoded = Path.fromCoordinates(roundCoords).Encoded;
-      } else {
-        encoded = undefined;
+      if (roundTrip) {
+        const backLeg = await computeRoute(destCoords, oCoords, googleKey);
+        if (!backLeg) continue;
+        totalDistance += backLeg.distanceMeters;
+        totalDuration += backLeg.durationSeconds;
+        if (encoded && backLeg.encoded) {
+          const coords1 = new Path(encoded).Coordinates;
+          const coords2 = new Path(backLeg.encoded).Coordinates.slice().reverse();
+          const roundCoords = [...coords1, ...coords2.slice(1)];
+          encoded = Path.fromCoordinates(roundCoords).Encoded;
+        } else {
+          encoded = undefined;
+        }
+      }
+
+      const route = new Route({
+        routeId: RouteId.generate(),
+        distanceKm: new DistanceKm(totalDistance / 1000),
+        duration: new Duration(totalDuration),
+        ...(encoded ? { path: new Path(encoded) } : {}),
+      });
+
+      console.info("💾 Saving route to DynamoDB:", route);
+      try {
+        await repository.save(route);
+        console.info("✅ Route saved:", route.routeId.toString());
+        routes.push(route);
+      } catch (err) {
+        console.error("❌ Error saving to DynamoDB:", err);
       }
     }
 
-    const route = new Route({
-      routeId: RouteId.fromString(routeId),
-      distanceKm: new DistanceKm(totalDistance / 1000),
-      duration: new Duration(totalDuration),
-      ...(encoded ? { path: new Path(encoded) } : {}),
-    });
-
-    console.info("💾 Saving route to DynamoDB:", route);
-    try {
-      await repository.save(route);
-      console.info("✅ Route saved:", route.routeId.toString());
-      await publishRoutesGenerated(route.routeId.Value, [route]);
-    } catch (err) {
-      console.error("❌ Error saving to DynamoDB:", err);
+    if (routes.length) {
+      try {
+        await publishRoutesGenerated(jobId, routes);
+      } catch (err) {
+        console.error("❌ Error publishing routes:", err);
+      }
     }
   }
 };

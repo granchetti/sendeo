@@ -21,6 +21,11 @@ export const handler = async (
   if (!data.routeId) {
     data.routeId = RouteId.generate().Value;
   }
+  if (data.routesCount !== undefined) {
+    const num = parseInt(String(data.routesCount), 10);
+    if (!isNaN(num) && num > 0) data.routesCount = num;
+    else delete data.routesCount;
+  }
 
   await sqs.send(
     new SendMessageCommand({
