@@ -44,7 +44,6 @@ export const handler = async (
     }
   }
 
-  // Normalize routesCount
   if (data.routesCount != null) {
     const c = parseInt(String(data.routesCount), 10);
     if (c > 0) {
