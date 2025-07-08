@@ -220,7 +220,7 @@ export const handler: SQSHandler = async (event) => {
       destination,
       distanceKm,
       roundTrip = false,
-      maxDeltaKm = 0.5,
+      maxDeltaKm = 1,
       routesCount = 3,
       jobId,
     } = JSON.parse(record.body);
