@@ -1,19 +1,19 @@
-import { InMemoryRouteRepository } from './in-memory-route-repository';
-import { Route } from '../../domain/entities/route-entity';
-import { UUID } from '../../domain/value-objects/uuid-value-object';
-import { DistanceKm } from '../../domain/value-objects/distance-value-object';
-import { Duration } from '../../domain/value-objects/duration-value-object';
-import { Path } from '../../domain/value-objects/path-value-object';
-import { LatLng } from '../../domain/value-objects/lat-lng-value-object';
+import { InMemoryRouteRepository } from "./in-memory-route-repository";
+import { Route } from "../../domain/entities/route-entity";
+import { UUID } from "../../domain/value-objects/uuid-value-object";
+import { DistanceKm } from "../../domain/value-objects/distance-value-object";
+import { Duration } from "../../domain/value-objects/duration-value-object";
+import { Path } from "../../domain/value-objects/path-value-object";
+import { LatLng } from "../../domain/value-objects/lat-lng-value-object";
 
-describe('InMemoryRouteRepository', () => {
+describe("InMemoryRouteRepository", () => {
   let repo: InMemoryRouteRepository;
 
   beforeEach(() => {
     repo = new InMemoryRouteRepository();
   });
 
-  it('saves and retrieves a route by id', async () => {
+  it("saves and retrieves a route by id", async () => {
     const route = new Route({
       routeId: UUID.generate(),
       distanceKm: new DistanceKm(3),
@@ -31,17 +31,17 @@ describe('InMemoryRouteRepository', () => {
     expect(fetched?.routeId.equals(route.routeId)).toBe(true);
     expect(fetched?.distanceKm?.Value).toBe(3);
     expect(fetched?.duration?.Value).toBe(300);
-    expect(fetched?.path?.Coordinates.map(c => ({ lat: c.Lat, lng: c.Lng }))).toEqual(
-      route.path!.Coordinates.map(c => ({ lat: c.Lat, lng: c.Lng }))
-    );
+    expect(
+      fetched?.path?.Coordinates.map((c) => ({ lat: c.Lat, lng: c.Lng }))
+    ).toEqual(route.path!.Coordinates.map((c) => ({ lat: c.Lat, lng: c.Lng })));
   });
 
-  it('returns null when finding non-existent id', async () => {
+  it("returns null when finding non-existent id", async () => {
     const missing = await repo.findById(UUID.generate());
     expect(missing).toBeNull();
   });
 
-  it('findAll returns all saved routes', async () => {
+  it("findAll returns all saved routes", async () => {
     const routeA = new Route({
       routeId: UUID.generate(),
       distanceKm: new DistanceKm(1),
@@ -66,29 +66,32 @@ describe('InMemoryRouteRepository', () => {
 
     const all = await repo.findAll();
     expect(all).toHaveLength(2);
-    expect(all.map(r => r.routeId.Value)).toEqual(
+    expect(all.map((r) => r.routeId.Value)).toEqual(
       expect.arrayContaining([routeA.routeId.Value, routeB.routeId.Value])
     );
   });
 
-  it('findByJobId filters routes by jobId', async () => {
-    const jobId = 'job-1';
+  it("findByJobId filters routes by jobId", async () => {
+    const jobId = UUID.generate();
     const r1 = new Route({
       routeId: UUID.generate(),
       jobId,
     });
     const r2 = new Route({
       routeId: UUID.generate(),
-      jobId: 'job-2',
+      jobId,
     });
     await repo.save(r1);
     await repo.save(r2);
 
-    const res = await repo.findByJobId(jobId);
-    expect(res.map((r) => r.routeId.Value)).toEqual([r1.routeId.Value]);
+    const res = await repo.findByJobId(jobId.Value);
+    expect(res.map((r) => r.routeId.Value)).toEqual([
+      r1.routeId.Value,
+      r2.routeId.Value,
+    ]);
   });
 
-  it('remove deletes the route', async () => {
+  it("remove deletes the route", async () => {
     const route = new Route({
       routeId: UUID.generate(),
       distanceKm: new DistanceKm(5),

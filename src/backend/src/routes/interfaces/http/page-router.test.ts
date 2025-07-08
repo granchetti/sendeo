@@ -188,13 +188,14 @@ describe("page router list routes by jobId", () => {
   });
 
   it("returns list of routes for job", async () => {
-    const r = new Route({ routeId: UUID.generate(), jobId: "job1" });
+    const jobId = UUID.generate()
+    const r = new Route({ routeId: UUID.generate(), jobId });
     mockFindByJobId.mockResolvedValueOnce([r]);
     const res = await handler({
       ...baseEvent,
-      pathParameters: { jobId: "job1" },
+      pathParameters: { jobId: jobId.Value },
     });
-    expect(mockFindByJobId).toHaveBeenCalledWith("job1");
+    expect(mockFindByJobId).toHaveBeenCalledWith(jobId.Value);
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual([
       { routeId: r.routeId.Value, distanceKm: undefined, duration: undefined, path: undefined },
