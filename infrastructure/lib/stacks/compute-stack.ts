@@ -67,6 +67,8 @@ export class ComputeStack extends cdk.Stack {
       ),
       handler: "worker-routes.handler",
       queue: props.routeJobsQueue,
+      memorySize: 1024,
+      timeout: cdk.Duration.seconds(30),
       environment: {
         ROUTES_TABLE: props.routesTable.tableName,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
