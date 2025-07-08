@@ -17,12 +17,14 @@ describe("Route", () => {
 
     const route = new Route({
       routeId,
+      jobId: "job1",
       distanceKm: distance,
       duration,
       path,
     });
 
     expect(route.routeId.equals(routeId)).toBe(true);
+    expect(route.jobId).toBe("job1");
     expect(route.distanceKm?.Value).toBe(10);
     expect(route.duration?.Value).toBe(1200);
     expect(route.path?.Coordinates.map(v => ({ lat: v.Lat, lng: v.Lng }))).toEqual([
@@ -39,6 +41,7 @@ describe("Route", () => {
     });
 
     expect(route.routeId.equals(routeId)).toBe(true);
+    expect(route.jobId).toBeUndefined();
     expect(route.distanceKm).toBeUndefined();
     expect(route.duration).toBeUndefined();
     expect(route.path).toBeUndefined();

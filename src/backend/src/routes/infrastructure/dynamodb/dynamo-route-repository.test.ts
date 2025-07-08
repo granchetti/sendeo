@@ -10,6 +10,7 @@ import { DynamoRouteRepository } from './dynamo-route-repository';
 const mockSend = jest.fn();
 const mockPut = jest.fn();
 const mockGet = jest.fn();
+const mockQuery = jest.fn();
 
 jest.mock('@aws-sdk/client-dynamodb', () => ({
   DynamoDBClient: jest
@@ -21,6 +22,9 @@ jest.mock('@aws-sdk/client-dynamodb', () => ({
   GetItemCommand: jest
     .fn()
     .mockImplementation((input) => { mockGet(input); return input; }),
+  QueryCommand: jest
+    .fn()
+    .mockImplementation((input) => { mockQuery(input); return input; }),
 }));
 
 const tableName = 'routes';
@@ -32,6 +36,7 @@ describe('DynamoRouteRepository', () => {
     mockSend.mockReset();
     mockPut.mockReset();
     mockGet.mockReset();
+    mockQuery.mockReset();
     repository = new DynamoRouteRepository(
       new DynamoDBClient({}) as any,
       tableName
@@ -46,6 +51,7 @@ describe('DynamoRouteRepository', () => {
     const path = Path.fromCoordinates(coords);
     const route = new Route({
       routeId: RouteId.generate(),
+      jobId: 'job1',
       distanceKm: new DistanceKm(5),
       duration: new Duration(10),
       path,
@@ -59,6 +65,7 @@ describe('DynamoRouteRepository', () => {
 
     const expectedItem = {
       routeId: { S: route.routeId.Value },
+      jobId: { S: 'job1' },
       distanceKm: { N: '5' },
       duration: { N: '10' },
       path: { S: path.Encoded },
@@ -89,6 +96,7 @@ describe('DynamoRouteRepository', () => {
     const encoded = Path.fromCoordinates(coords).Encoded;
     const returned = {
       routeId: { S: id },
+      jobId: { S: 'job1' },
       distanceKm: { N: '5' },
       duration:  { N: '10' },
       path:      { S: encoded },
@@ -102,6 +110,7 @@ describe('DynamoRouteRepository', () => {
       Key: { routeId: { S: id } },
     });
     expect(route?.routeId.Value).toBe(id);
+    expect(route?.jobId).toBe('job1');
     expect(route?.distanceKm?.Value).toBe(5);
     expect(route?.duration?.Value).toBe(10);
     // Y comprobamos que se haya decodificado correctamente
@@ -109,5 +118,28 @@ describe('DynamoRouteRepository', () => {
       { lat: 1, lng: 2 },
       { lat: 3, lng: 4 },
     ]);
+  });
+
+  it('findByJobId queries using GSI2', async () => {
+    const returned = {
+      Items: [
+        {
+          routeId: { S: '1' },
+          jobId: { S: 'job1' },
+        },
+      ],
+    };
+    mockSend.mockResolvedValueOnce(returned);
+
+    const res = await repository.findByJobId('job1');
+
+    expect(mockQuery).toHaveBeenCalledWith({
+      TableName: tableName,
+      IndexName: 'GSI2',
+      KeyConditionExpression: 'jobId = :job',
+      ExpressionAttributeValues: { ':job': { S: 'job1' } },
+    });
+    expect(res).toHaveLength(1);
+    expect(res[0].jobId).toBe('job1');
   });
 });

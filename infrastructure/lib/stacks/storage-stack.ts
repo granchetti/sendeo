@@ -31,6 +31,12 @@ export class StorageStack extends cdk.Stack {
       projectionType: ProjectionType.ALL,
     });
 
+    this.routesTable.addGlobalSecondaryIndex({
+      indexName: "GSI2",
+      partitionKey: { name: "jobId", type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
     this.userStateTable = new Table(this, "UserStateTable", {
       tableName: "UserState",
       partitionKey: { name: "PK", type: AttributeType.STRING },
