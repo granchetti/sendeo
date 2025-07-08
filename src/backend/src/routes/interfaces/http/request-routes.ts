@@ -18,11 +18,24 @@ export const handler = async (
       };
     }
   }
-  if (!data.routeId) {
-    data.routeId = RouteId.generate().Value;
+
+  if (
+    typeof data.origin !== "string" ||
+    (!data.destination && data.distanceKm == null)
+  ) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        error: "Must provide origin and (destination OR distanceKm)",
+      }),
+    };
   }
 
-  if (data.maxDeltaKm !== undefined) {
+  if (!data.jobId) {
+    data.jobId = RouteId.generate().Value;
+  }
+
+  if (data.maxDeltaKm != null) {
     const n = Number(data.maxDeltaKm);
     if (!Number.isNaN(n)) {
       data.maxDeltaKm = n;
@@ -31,10 +44,14 @@ export const handler = async (
     }
   }
 
-  if (data.routesCount !== undefined) {
-    const num = parseInt(String(data.routesCount), 10);
-    if (!isNaN(num) && num > 0) data.routesCount = num;
-    else delete data.routesCount;
+  // Normalize routesCount
+  if (data.routesCount != null) {
+    const c = parseInt(String(data.routesCount), 10);
+    if (c > 0) {
+      data.routesCount = c;
+    } else {
+      delete data.routesCount;
+    }
   }
 
   await sqs.send(
@@ -46,6 +63,6 @@ export const handler = async (
 
   return {
     statusCode: 202,
-    body: JSON.stringify({ enqueued: true, routeId: data.routeId }),
+    body: JSON.stringify({ enqueued: true, jobId: data.jobId }),
   };
 };

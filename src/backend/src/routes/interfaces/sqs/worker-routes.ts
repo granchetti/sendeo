@@ -208,39 +208,22 @@ export const handler: SQSHandler = async (event) => {
       origin,
       destination,
       distanceKm,
-      roundTrip,
-      routeId,
+      roundTrip = false,
       maxDeltaKm,
-      routeId: jobId,
       routesCount = 3,
-    } = JSON.parse(record.body);
-    console.info("➡️ Processing record:", {
-      origin,
-      destination,
-      distanceKm,
-      roundTrip,
       jobId,
-      routesCount,
-    });
+    } = JSON.parse(record.body);
 
     const routes: Route[] = [];
 
-    if (destination || !distanceKm) {
-      let oCoords, dCoords;
-      try {
-        [oCoords, dCoords] = await Promise.all([
-          geocode(origin, googleKey),
-          geocode(destination, googleKey),
-        ]);
-      } catch (err) {
-        console.error("❌ Geocoding error:", err);
-        continue;
-      }
+    if (destination) {
+      const [oCoords, dCoords] = await Promise.all([
+        geocode(origin, googleKey),
+        geocode(destination, googleKey),
+      ]);
 
       let attempts = 0;
-      while (routes.length < routesCount && attempts < routesCount * 5) {
-        attempts++;
-
+      while (routes.length < routesCount && attempts++ < routesCount * 5) {
         const leg = await computeRoute(oCoords, dCoords, googleKey);
         if (!leg) continue;
 
@@ -250,7 +233,9 @@ export const handler: SQSHandler = async (event) => {
           Math.abs(leg.distanceMeters / 1000 - distanceKm) > maxDeltaKm
         ) {
           console.warn(
-            `⚠️ Generated distance ${leg.distanceMeters / 1000}km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
+            `Warning: generated ${
+              leg.distanceMeters / 1000
+            }km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
           );
           continue;
         }
@@ -282,22 +267,17 @@ export const handler: SQSHandler = async (event) => {
       continue;
     }
 
-    let oCoords;
-    try {
-      oCoords = await geocode(origin, googleKey);
-    } catch (err) {
-      console.error("❌ Geocoding error:", err);
-      continue;
-    }
-
+    const oCoords = await geocode(origin, googleKey);
     let attempts = 0;
-    while (routes.length < routesCount && attempts < routesCount * 5) {
-      attempts++;
+
+    while (routes.length < routesCount && attempts++ < routesCount * 5) {
+
       const bearing = Math.random() * 360;
+      const dist = roundTrip ? distanceKm! / 2 : distanceKm!;
       const destCoords = offsetCoordinate(
         oCoords.lat,
         oCoords.lng,
-        roundTrip ? distanceKm / 2 : distanceKm,
+        dist,
         bearing
       );
 
@@ -314,24 +294,25 @@ export const handler: SQSHandler = async (event) => {
         totalDistance += backLeg.distanceMeters;
         totalDuration += backLeg.durationSeconds;
         if (encoded && backLeg.encoded) {
-          const coords1 = new Path(encoded).Coordinates;
-          const coords2 = new Path(backLeg.encoded).Coordinates.slice().reverse();
-          const roundCoords = [...coords1, ...coords2.slice(1)];
-          encoded = Path.fromCoordinates(roundCoords).Encoded;
+          const c1 = new Path(encoded).Coordinates;
+          const c2 = new Path(backLeg.encoded).Coordinates.slice().reverse();
+          encoded = Path.fromCoordinates([...c1, ...c2.slice(1)]).Encoded;
         } else {
           encoded = undefined;
         }
       }
 
-    if (
-      typeof maxDeltaKm === "number" &&
-      Math.abs(totalDistance / 1000 - distanceKm) > maxDeltaKm
-    ) {
-      console.warn(
-        `⚠️ Generated distance ${totalDistance / 1000}km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
-      );
-      continue;
-    }
+      if (
+        typeof maxDeltaKm === "number" &&
+        Math.abs(totalDistance / 1000 - distanceKm!) > maxDeltaKm
+      ) {
+        console.warn(
+          `Warning: generated ${
+            totalDistance / 1000
+          }km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
+        );
+        continue;
+      }
 
       const route = new Route({
         routeId: RouteId.generate(),
