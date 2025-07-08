@@ -45,4 +45,13 @@ describe("request routes handler", () => {
     expect(JSON.parse(res.body).error).toBeDefined();
     expect(mockSend).not.toHaveBeenCalled();
   });
+
+  it("forwards maxDeltaKm when provided", async () => {
+    mockSend.mockResolvedValueOnce({});
+    await handler({
+      body: JSON.stringify({ maxDeltaKm: 1 }),
+    } as any);
+    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    expect(payload.maxDeltaKm).toBe(1);
+  });
 });

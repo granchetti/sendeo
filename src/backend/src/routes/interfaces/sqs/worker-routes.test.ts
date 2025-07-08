@@ -234,4 +234,40 @@ describe("worker routes handler", () => {
       { lat: 38.5, lng: -120.2 },
     ]);
   });
+
+  it("skips save when distance difference exceeds maxDeltaKm", async () => {
+    responseDataHolder.data = JSON.stringify({
+      routes: [
+        {
+          legs: [
+            {
+              distanceMeters: 9000,
+              duration: { seconds: 600 },
+              polyline: {},
+            },
+          ],
+        },
+      ],
+    });
+
+    const handler = loadHandler();
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({
+            routeId: "550e8400-e29b-41d4-a716-446655440003",
+            origin: "a",
+            destination: "b",
+            distanceKm: 10,
+            maxDeltaKm: 0.5,
+          }),
+        },
+      ],
+    } as any;
+
+    await handler(event);
+
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockPublish).not.toHaveBeenCalled();
+  });
 });
