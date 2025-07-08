@@ -315,4 +315,41 @@ describe("worker routes handler", () => {
     const published = mockPublish.mock.calls[0][1];
     expect(published).toHaveLength(2);
   });
+
+  it("publishes multiple routes with destination when routesCount specified", async () => {
+    responseDataHolder.data = JSON.stringify({
+      routes: [
+        {
+          legs: [
+            {
+              distanceMeters: 1500,
+              duration: { seconds: 600 },
+              polyline: {},
+            },
+          ],
+        },
+      ],
+    });
+
+    const handler = loadHandler();
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({
+            routeId: "550e8400-e29b-41d4-a716-446655440004",
+            origin: "a",
+            destination: "b",
+            routesCount: 2,
+          }),
+        },
+      ],
+    } as any;
+
+    await handler(event);
+
+    expect(mockSave).toHaveBeenCalledTimes(2);
+    expect(mockPublish).toHaveBeenCalledTimes(1);
+    const published = mockPublish.mock.calls[0][1];
+    expect(published).toHaveLength(2);
+  });
 });
