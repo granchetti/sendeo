@@ -212,7 +212,7 @@ export const handler: SQSHandler = async (event) => {
       routeId,
       maxDeltaKm,
       routeId: jobId,
-      routesCount = 1,
+      routesCount = 3,
     } = JSON.parse(record.body);
     console.info("➡️ Processing record:", {
       origin,
