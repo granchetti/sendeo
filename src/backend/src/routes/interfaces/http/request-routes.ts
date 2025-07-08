@@ -7,24 +7,24 @@ const sqs = new SQSClient({});
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  // 1️⃣ Parsear body
-  let data: any;
-  try {
-    data = event.body ? JSON.parse(event.body) : {};
-  } catch {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Invalid JSON body" }),
-    };
+  let data: any = {};
+  if (event.body) {
+    try {
+      data = JSON.parse(event.body);
+    } catch (err) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Invalid JSON body" }),
+      };
+    }
   }
-
   if (!data.routeId) {
     data.routeId = RouteId.generate().Value;
   }
 
   if (data.maxDeltaKm !== undefined) {
     const n = Number(data.maxDeltaKm);
-    if (!isNaN(n)) {
+    if (!Number.isNaN(n)) {
       data.maxDeltaKm = n;
     } else {
       delete data.maxDeltaKm;
@@ -32,12 +32,9 @@ export const handler = async (
   }
 
   if (data.routesCount !== undefined) {
-    const n = parseInt(String(data.routesCount), 10);
-    if (!isNaN(n) && n > 0) {
-      data.routesCount = n;
-    } else {
-      delete data.routesCount;
-    }
+    const num = parseInt(String(data.routesCount), 10);
+    if (!isNaN(num) && num > 0) data.routesCount = num;
+    else delete data.routesCount;
   }
 
   await sqs.send(
@@ -48,7 +45,7 @@ export const handler = async (
   );
 
   return {
-    statusCode: 200,
-    body: JSON.stringify({ routeId: data.routeId }),
+    statusCode: 202,
+    body: JSON.stringify({ enqueued: true, routeId: data.routeId }),
   };
 };
