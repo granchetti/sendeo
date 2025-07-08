@@ -126,8 +126,7 @@ async function computeRoutes(
       },
     },
     travelMode: "WALK",
-    computeAlternativeRoutes: true,
-    routingPreference: "UNRESTRICTED",
+    computeAlternativeRoutes: true
   };
   console.info("🌐 Calling Routes API with coords…", body);
   let resp: any;
