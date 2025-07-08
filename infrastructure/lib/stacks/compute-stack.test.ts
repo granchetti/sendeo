@@ -1,5 +1,5 @@
 import * as cdk from "aws-cdk-lib";
-import { Template } from "aws-cdk-lib/assertions";
+import { Template, Match } from "aws-cdk-lib/assertions";
 import { ComputeStack } from "./compute-stack";
 import { Table, AttributeType, BillingMode } from "aws-cdk-lib/aws-dynamodb";
 import { Queue } from "aws-cdk-lib/aws-sqs";
@@ -55,5 +55,27 @@ describe("ComputeStack", () => {
 
   test("creates two SQS event source mappings", () => {
     template.resourceCountIs("AWS::Lambda::EventSourceMapping", 2);
+  });
+
+  test("grants PageRouter access to the GSI2 index", () => {
+    template.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Resource: Match.arrayWith([
+              Match.objectLike({
+                "Fn::Join": Match.arrayWith([
+                  "",
+                  Match.arrayWith([
+                    Match.objectLike({ "Fn::GetAtt": Match.arrayWith([Match.stringLikeRegexp("Routes"), "Arn"]) }),
+                    "/index/*",
+                  ]),
+                ]),
+              }),
+            ]),
+          }),
+        ]),
+      },
+    });
   });
 });

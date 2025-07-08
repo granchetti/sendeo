@@ -141,7 +141,10 @@ export class ComputeStack extends cdk.Stack {
     pageRouter.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:Scan"],
-        resources: [props.routesTable.tableArn],
+        resources: [
+          props.routesTable.tableArn,
+          `${props.routesTable.tableArn}/index/*`,
+        ],
       })
     );
     pageRouter.fn.addToRolePolicy(
