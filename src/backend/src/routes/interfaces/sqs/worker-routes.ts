@@ -236,7 +236,7 @@ export const handler: SQSHandler = async (event) => {
       ]);
 
       let attempts = 0;
-      const maxAttempts = 30;
+      const maxAttempts = 10;
 
       while (routes.length < routesCount && attempts++ < maxAttempts) {
         const alts = await computeRoutes(oCoords, dCoords, googleKey);
