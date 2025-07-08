@@ -237,35 +237,47 @@ export const handler: SQSHandler = async (event) => {
         continue;
       }
 
-      const leg = await computeRoute(oCoords, dCoords, googleKey);
-      if (!leg) continue;
+      let attempts = 0;
+      while (routes.length < routesCount && attempts < routesCount * 5) {
+        attempts++;
 
-      if (
-        typeof distanceKm === "number" &&
-        typeof maxDeltaKm === "number" &&
-        Math.abs(leg.distanceMeters / 1000 - distanceKm) > maxDeltaKm
-      ) {
-        console.warn(
-          `⚠️ Generated distance ${leg.distanceMeters / 1000}km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
-        );
-        continue;
+        const leg = await computeRoute(oCoords, dCoords, googleKey);
+        if (!leg) continue;
+
+        if (
+          typeof distanceKm === "number" &&
+          typeof maxDeltaKm === "number" &&
+          Math.abs(leg.distanceMeters / 1000 - distanceKm) > maxDeltaKm
+        ) {
+          console.warn(
+            `⚠️ Generated distance ${leg.distanceMeters / 1000}km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
+          );
+          continue;
+        }
+
+        const route = new Route({
+          routeId: RouteId.generate(),
+          distanceKm: new DistanceKm(leg.distanceMeters / 1000),
+          duration: new Duration(leg.durationSeconds),
+          ...(leg.encoded ? { path: new Path(leg.encoded) } : {}),
+        });
+
+        console.info("💾 Saving route to DynamoDB:", route);
+        try {
+          await repository.save(route);
+          console.info("✅ Route saved:", route.routeId.toString());
+          routes.push(route);
+        } catch (err) {
+          console.error("❌ Error saving to DynamoDB:", err);
+        }
       }
 
-      const route = new Route({
-        routeId: RouteId.generate(),
-        distanceKm: new DistanceKm(leg.distanceMeters / 1000),
-        duration: new Duration(leg.durationSeconds),
-        ...(leg.encoded ? { path: new Path(leg.encoded) } : {}),
-      });
-
-      console.info("💾 Saving route to DynamoDB:", route);
-      try {
-        await repository.save(route);
-        console.info("✅ Route saved:", route.routeId.toString());
-        routes.push(route);
-        await publishRoutesGenerated(jobId, routes);
-      } catch (err) {
-        console.error("❌ Error saving to DynamoDB:", err);
+      if (routes.length) {
+        try {
+          await publishRoutesGenerated(jobId, routes);
+        } catch (err) {
+          console.error("❌ Error publishing routes:", err);
+        }
       }
       continue;
     }
