@@ -53,5 +53,14 @@ describe("request routes handler", () => {
     } as any);
     const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
     expect(payload.maxDeltaKm).toBe(1);
+
+  it("forwards routesCount when provided", async () => {
+    mockSend.mockResolvedValueOnce({});
+    await handler({
+      body: JSON.stringify({ origin: "A", destination: "B", routesCount: 3 }),
+    } as any);
+    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    expect(payload.routesCount).toBe(3);
+
   });
 });

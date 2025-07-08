@@ -102,7 +102,8 @@ describe("worker routes handler", () => {
     expect(mockSave).toHaveBeenCalledTimes(1);
     const saved = mockSave.mock.calls[0][0];
 
-    expect(saved.routeId.Value).toBe("550e8400-e29b-41d4-a716-446655440000");
+    expect(saved.routeId.Value).toMatch(/^[0-9a-f-]{36}$/);
+    expect(saved.routeId.Value).not.toBe("550e8400-e29b-41d4-a716-446655440000");
     expect(saved.distanceKm.Value).toBe(1.5);
     expect(saved.duration.Value).toBe(600);
     expect(saved.path.Coordinates.map(c => ({ lat: c.Lat, lng: c.Lng }))).toEqual([
@@ -177,7 +178,8 @@ describe("worker routes handler", () => {
     await handler(event);
 
     const saved = mockSave.mock.calls[0][0];
-    expect(saved.routeId.Value).toBe(
+    expect(saved.routeId.Value).toMatch(/^[0-9a-f-]{36}$/);
+    expect(saved.routeId.Value).not.toBe(
       "550e8400-e29b-41d4-a716-446655440001"
     );
     expect(saved.path).toBeUndefined();
@@ -235,6 +237,7 @@ describe("worker routes handler", () => {
     ]);
   });
 
+
   it("skips save when distance difference exceeds maxDeltaKm", async () => {
     responseDataHolder.data = JSON.stringify({
       routes: [
@@ -260,14 +263,41 @@ describe("worker routes handler", () => {
             destination: "b",
             distanceKm: 10,
             maxDeltaKm: 0.5,
+            
+            
+  it("publishes multiple routes when routesCount specified", async () => {
+    responseDataHolder.data = JSON.stringify({
+      routes: [
+        {
+          legs: [
+            {
+              distanceMeters: 1500,
+              duration: { seconds: 600 },
+              polyline: {},
+            },
+          ],
+        },
+      ],
+    });
+
+    const handler = loadHandler();
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({
+            routeId: "550e8400-e29b-41d4-a716-446655440003",
+            origin: "a",
+            distanceKm: 1,
+            routesCount: 2,
           }),
         },
       ],
     } as any;
 
     await handler(event);
-
     expect(mockSave).not.toHaveBeenCalled();
     expect(mockPublish).not.toHaveBeenCalled();
+    const published = mockPublish.mock.calls[0][1];
+    expect(published).toHaveLength(2);
   });
 });
