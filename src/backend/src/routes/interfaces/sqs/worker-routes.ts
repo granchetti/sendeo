@@ -245,6 +245,7 @@ export const handler: SQSHandler = async (event) => {
 
         const route = new Route({
           routeId: UUID.generate(),
+          jobId: UUID.fromString(jobId),
           distanceKm: new DistanceKm(leg.distanceMeters / 1000),
           duration: new Duration(leg.durationSeconds),
           ...(leg.encoded ? { path: new Path(leg.encoded) } : {}),
@@ -318,6 +319,7 @@ export const handler: SQSHandler = async (event) => {
 
       const route = new Route({
         routeId: UUID.generate(),
+        jobId: UUID.fromString(jobId),
         distanceKm: new DistanceKm(totalDistance / 1000),
         duration: new Duration(totalDuration),
         ...(encoded ? { path: new Path(encoded) } : {}),
