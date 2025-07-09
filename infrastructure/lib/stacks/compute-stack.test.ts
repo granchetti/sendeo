@@ -51,7 +51,7 @@ describe("ComputeStack", () => {
   });
 
   test("defines six Lambda functions", () => {
-    template.resourceCountIs("AWS::Lambda::Function", 6);
+    template.resourceCountIs("AWS::Lambda::Function", 7);
   });
 
   test("creates two SQS event source mappings", () => {

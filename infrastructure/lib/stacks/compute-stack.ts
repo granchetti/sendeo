@@ -189,7 +189,7 @@ export class ComputeStack extends cdk.Stack {
       new iam.PolicyStatement({ actions: ["appsync:GraphQL"], resources: ["*"] })
     );
 
-    // 5) MetricsConsumer
+    // 6) MetricsConsumer
     new SqsConsumer(this, "MetricsConsumer", {
       entry: path.join(
         __dirname,
@@ -200,7 +200,7 @@ export class ComputeStack extends cdk.Stack {
       queue: props.metricsQueue,
     });
     
-    // 6) SwaggerDocs → GET /swagger & GET /swagger.json
+    // 7) SwaggerDocs → GET /swagger & GET /swagger.json
     new HttpLambda(this, "SwaggerDocs", {
       entry: path.join(
         __dirname,
