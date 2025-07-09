@@ -17,7 +17,6 @@ const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 const sm = new SecretsManagerClient({});
 
-// Fetch a URL and parse JSON
 function fetchJson<T = any>(url: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const req = httpsRequest(url, (res) => {
@@ -38,7 +37,6 @@ function fetchJson<T = any>(url: string): Promise<T> {
   });
 }
 
-// Turn an address into lat/lng
 async function geocode(
   address: string,
   apiKey: string
@@ -57,7 +55,6 @@ async function geocode(
   return { lat: loc.lat, lng: loc.lng };
 }
 
-// POST JSON to Google Routes API
 function postJson<T = any>(
   host: string,
   path: string,
@@ -170,7 +167,6 @@ async function computeRoutes(
     );
 }
 
-// Offset a coordinate by a given bearing and distance
 function offsetCoordinate(
   lat: number,
   lng: number,
@@ -194,7 +190,6 @@ function offsetCoordinate(
   return { lat: (φ2 * 180) / Math.PI, lng: (λ2 * 180) / Math.PI };
 }
 
-// Retrieve Google API key (env or Secrets Manager)
 async function getGoogleKey(): Promise<string> {
   const envKey = process.env.GOOGLE_API_KEY;
   if (envKey) {
@@ -287,8 +282,11 @@ export const handler: SQSHandler = async (event) => {
 
     // Otherwise, generate random bearings (round-trip or one-way)
     const oCoords = await geocode(origin, googleKey);
+
     let attempts = 0;
-    while (routes.length < routesCount && attempts++ < routesCount * 5) {
+    const maxAttempts = 10;
+    
+    while (routes.length < routesCount && attempts++ < routesCount * maxAttempts) {
       const bearing = Math.random() * 360;
       const dist = roundTrip ? distanceKm! / 2 : distanceKm!;
       const dest = offsetCoordinate(oCoords.lat, oCoords.lng, dist, bearing);
