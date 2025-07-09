@@ -137,4 +137,38 @@ describe('DynamoUserStateRepository', () => {
     expect(mockSend).toHaveBeenCalled();
     expect(result).toBeNull();
   });
+
+  it('stores route start timestamp', async () => {
+    await repo.putRouteStart(email.Value, routeId, 123);
+    const cmd = mockSend.mock.calls[0][0];
+    expect(cmd).toBeInstanceOf(PutItemCommand);
+    expect((cmd as any).input).toEqual({
+      TableName: tableName,
+      Item: {
+        PK: { S: `USER#${email.Value}` },
+        SK: { S: `START#${routeId}` },
+        timestamp: { N: '123' },
+      },
+    });
+  });
+
+  it('retrieves start timestamp', async () => {
+    mockSend.mockResolvedValueOnce({
+      Item: { timestamp: { N: '456' } },
+    });
+    const ts = await repo.getRouteStart(email.Value, routeId);
+    const cmd = mockSend.mock.calls[0][0];
+    expect(cmd).toBeInstanceOf(GetItemCommand);
+    expect(ts).toBe(456);
+  });
+
+  it('deletes start timestamp', async () => {
+    await repo.deleteRouteStart(email.Value, routeId);
+    const cmd = mockSend.mock.calls[0][0];
+    expect(cmd).toBeInstanceOf(DeleteItemCommand);
+    expect((cmd as any).input).toEqual({
+      TableName: tableName,
+      Key: { PK: { S: `USER#${email.Value}` }, SK: { S: `START#${routeId}` } },
+    });
+  });
 });

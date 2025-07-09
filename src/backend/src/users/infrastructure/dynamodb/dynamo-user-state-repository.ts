@@ -83,4 +83,41 @@ export class DynamoUserStateRepository implements UserStateRepository {
       new PutItemCommand({ TableName: this.tableName, Item: item })
     );
   }
+
+  async putRouteStart(
+    email: string,
+    routeId: string,
+    timestamp: number
+  ): Promise<void> {
+    await this.client.send(
+      new PutItemCommand({
+        TableName: this.tableName,
+        Item: {
+          PK: { S: `USER#${email}` },
+          SK: { S: `START#${routeId}` },
+          timestamp: { N: timestamp.toString() },
+        },
+      })
+    );
+  }
+
+  async getRouteStart(email: string, routeId: string): Promise<number | null> {
+    const res = await this.client.send(
+      new GetItemCommand({
+        TableName: this.tableName,
+        Key: { PK: { S: `USER#${email}` }, SK: { S: `START#${routeId}` } },
+      })
+    );
+    if (!res.Item || !res.Item.timestamp) return null;
+    return parseInt(res.Item.timestamp.N!, 10);
+  }
+
+  async deleteRouteStart(email: string, routeId: string): Promise<void> {
+    await this.client.send(
+      new DeleteItemCommand({
+        TableName: this.tableName,
+        Key: { PK: { S: `USER#${email}` }, SK: { S: `START#${routeId}` } },
+      })
+    );
+  }
 }
