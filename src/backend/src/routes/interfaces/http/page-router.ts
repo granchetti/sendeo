@@ -108,11 +108,32 @@ export const handler = async (
   }
 
   if (resource === "/profile" && httpMethod === "GET") {
-    return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+    const profile = await userStateRepository.getProfile(email);
+    if (!profile) {
+      return { statusCode: 404, body: JSON.stringify({ error: "Not Found" }) };
+    }
+    return { statusCode: 200, body: JSON.stringify(profile) };
   }
 
   if (resource === "/profile" && httpMethod === "PUT") {
-    return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+    let payload: any = {};
+    if (event.body) {
+      try {
+        payload = JSON.parse(event.body);
+      } catch {
+        return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON body" }) };
+      }
+    }
+    const profile = {
+      email,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      displayName: payload.displayName,
+      age: payload.age != null ? Number(payload.age) : undefined,
+      unit: payload.unit,
+    };
+    await userStateRepository.putProfile(profile);
+    return { statusCode: 200, body: JSON.stringify({ updated: true }) };
   }
 
   if (httpMethod === "GET" && resource === "/favourites") {

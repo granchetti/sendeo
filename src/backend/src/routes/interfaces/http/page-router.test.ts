@@ -5,6 +5,8 @@ const mockFindById = jest.fn();
 const mockFindAll = jest.fn();
 const mockFindByJobId = jest.fn();
 const mockGetFavourites = jest.fn();
+const mockGetProfile = jest.fn();
+const mockPutProfile = jest.fn();
 
 jest.mock("@aws-sdk/client-dynamodb", () => ({
   DynamoDBClient: jest.fn().mockImplementation(() => ({})),
@@ -21,6 +23,8 @@ jest.mock("../../infrastructure/dynamodb/dynamo-route-repository", () => ({
 jest.mock("../../infrastructure/dynamodb/dynamo-user-state-repository", () => ({
   DynamoUserStateRepository: jest.fn().mockImplementation(() => ({
     getFavourites: mockGetFavourites,
+    getProfile: mockGetProfile,
+    putProfile: mockPutProfile,
   })),
 }));
 
@@ -43,6 +47,8 @@ beforeEach(() => {
   mockFindAll.mockReset();
   mockFindByJobId.mockReset();
   mockGetFavourites.mockReset();
+  mockGetProfile.mockReset();
+  mockPutProfile.mockReset();
 });
 
 describe("page router get route", () => {
@@ -200,5 +206,54 @@ describe("page router list routes by jobId", () => {
     expect(JSON.parse(res.body)).toEqual([
       { routeId: r.routeId.Value, distanceKm: undefined, duration: undefined, path: undefined },
     ]);
+  });
+});
+
+describe("page router profile", () => {
+  const baseEvent = {
+    ...baseCtx,
+    resource: "/profile",
+  } as any;
+
+  it("returns profile on GET", async () => {
+    const profile = { email: "test@example.com", firstName: "t" };
+    mockGetProfile.mockResolvedValueOnce(profile);
+    const res = await handler({ ...baseEvent, httpMethod: "GET" });
+    expect(mockGetProfile).toHaveBeenCalledWith("test@example.com");
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual(profile);
+  });
+
+  it("returns 404 when profile missing", async () => {
+    mockGetProfile.mockResolvedValueOnce(null);
+    const res = await handler({ ...baseEvent, httpMethod: "GET" });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("updates profile on PUT", async () => {
+    const body = { firstName: "A", lastName: "B" };
+    const res = await handler({
+      ...baseEvent,
+      httpMethod: "PUT",
+      body: JSON.stringify(body),
+    });
+    expect(mockPutProfile).toHaveBeenCalledWith({
+      email: "test@example.com",
+      firstName: "A",
+      lastName: "B",
+      displayName: undefined,
+      age: undefined,
+      unit: undefined,
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("returns 400 when PUT body invalid", async () => {
+    const res = await handler({
+      ...baseEvent,
+      httpMethod: "PUT",
+      body: "{",
+    });
+    expect(res.statusCode).toBe(400);
   });
 });
