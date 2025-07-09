@@ -220,14 +220,17 @@ describe("page router profile", () => {
     mockGetProfile.mockResolvedValueOnce(profile);
     const res = await handler({ ...baseEvent, httpMethod: "GET" });
     expect(mockGetProfile).toHaveBeenCalledWith("test@example.com");
+    expect(mockPutProfile).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual(profile);
   });
 
-  it("returns 404 when profile missing", async () => {
+  it("creates profile when missing", async () => {
     mockGetProfile.mockResolvedValueOnce(null);
     const res = await handler({ ...baseEvent, httpMethod: "GET" });
-    expect(res.statusCode).toBe(404);
+    expect(mockPutProfile).toHaveBeenCalledWith({ email: "test@example.com" });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({ email: "test@example.com" });
   });
 
   it("updates profile on PUT", async () => {

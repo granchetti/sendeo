@@ -108,9 +108,10 @@ export const handler = async (
   }
 
   if (resource === "/profile" && httpMethod === "GET") {
-    const profile = await userStateRepository.getProfile(email);
+    let profile = await userStateRepository.getProfile(email);
     if (!profile) {
-      return { statusCode: 404, body: JSON.stringify({ error: "Not Found" }) };
+      profile = { email };
+      await userStateRepository.putProfile(profile);
     }
     return { statusCode: 200, body: JSON.stringify(profile) };
   }
