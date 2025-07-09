@@ -1,6 +1,6 @@
-import { UserStateRepository } from '../..//domain/repositories/user-state-repository';
-import { UserProfile } from '../..//domain/entities/user-profile';
-import { Email } from '../..//domain/value-objects/email-value-object';
+import { UserStateRepository } from '../domain/repositories/user-state-repository';
+import { UserProfile } from '../domain/entities/user-profile';
+import { Email } from '../../routes/domain/value-objects/email-value-object';
 
 export class GetUserProfileUseCase {
   constructor(private repository: UserStateRepository) {}

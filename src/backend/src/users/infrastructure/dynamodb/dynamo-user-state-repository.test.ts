@@ -7,7 +7,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { DynamoUserStateRepository } from './dynamo-user-state-repository';
 import { UserProfile } from '../../domain/entities/user-profile';
-import { Email } from '../../domain/value-objects/email-value-object';
+import { Email } from '../../../routes/domain/value-objects/email-value-object';
 
 describe('DynamoUserStateRepository', () => {
   let mockSend: jest.Mock;

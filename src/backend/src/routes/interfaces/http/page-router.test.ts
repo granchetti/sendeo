@@ -20,7 +20,7 @@ jest.mock("../../infrastructure/dynamodb/dynamo-route-repository", () => ({
   })),
 }));
 
-jest.mock("../../infrastructure/dynamodb/dynamo-user-state-repository", () => ({
+jest.mock("../../../users/infrastructure/dynamodb/dynamo-user-state-repository", () => ({
   DynamoUserStateRepository: jest.fn().mockImplementation(() => ({
     getFavourites: mockGetFavourites,
     getProfile: mockGetProfile,
@@ -48,7 +48,7 @@ import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
 import { LatLng } from "../../domain/value-objects/lat-lng-value-object";
-import { UserProfile } from "../../domain/entities/user-profile";
+import { UserProfile } from "../../../users/domain/entities/user-profile";
 import { Email } from "../../domain/value-objects/email-value-object";
 
 const baseCtx = {
