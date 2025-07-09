@@ -2,8 +2,6 @@ const mockFindById = jest.fn();
 const mockFindAll = jest.fn();
 const mockFindByJobId = jest.fn();
 const mockGetFavourites = jest.fn();
-const mockGetProfile = jest.fn();
-const mockPutProfile = jest.fn();
 const mockPutRouteStart = jest.fn();
 const mockGetRouteStart = jest.fn();
 const mockDeleteRouteStart = jest.fn();
@@ -26,8 +24,6 @@ jest.mock("../../infrastructure/dynamodb/dynamo-route-repository", () => ({
 jest.mock("../../../users/infrastructure/dynamodb/dynamo-user-state-repository", () => ({
   DynamoUserStateRepository: jest.fn().mockImplementation(() => ({
     getFavourites: mockGetFavourites,
-    getProfile: mockGetProfile,
-    putProfile: mockPutProfile,
     putRouteStart: (...args: any[]) => mockPutRouteStart(...args),
     getRouteStart: (...args: any[]) => mockGetRouteStart(...args),
     deleteRouteStart: (...args: any[]) => mockDeleteRouteStart(...args),
@@ -54,8 +50,6 @@ import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
 import { LatLng } from "../../domain/value-objects/lat-lng-value-object";
-import { UserProfile } from "../../../users/domain/entities/user-profile";
-import { Email } from "../../domain/value-objects/email-value-object";
 
 const baseCtx = {
   requestContext: {
@@ -68,8 +62,6 @@ beforeEach(() => {
   mockFindAll.mockReset();
   mockFindByJobId.mockReset();
   mockGetFavourites.mockReset();
-  mockGetProfile.mockReset();
-  mockPutProfile.mockReset();
   mockPutRouteStart.mockReset();
   mockGetRouteStart.mockReset();
   mockDeleteRouteStart.mockReset();
@@ -192,22 +184,6 @@ describe("page router list routes", () => {
   });
 });
 
-describe("page router get favourites", () => {
-  const baseEvent = {
-    ...baseCtx, // <— y aquí
-    resource: "/favourites",
-    httpMethod: "GET",
-  } as any;
-
-  it("returns list of favourites on GET", async () => {
-    mockGetFavourites.mockResolvedValueOnce(["FAV#1", "FAV#2"]);
-    const res = await handler(baseEvent);
-    expect(mockGetFavourites).toHaveBeenCalledWith("test@example.com");
-    expect(res.statusCode).toBe(200);
-    const body = JSON.parse(res.body);
-    expect(body).toEqual({ favourites: ["1", "2"] });
-  });
-});
 
 describe("page router list routes by jobId", () => {
   const baseEvent = {
@@ -237,50 +213,6 @@ describe("page router list routes by jobId", () => {
   });
 });
 
-describe("page router profile", () => {
-  const baseEvent = {
-    ...baseCtx,
-    resource: "/profile",
-  } as any;
-
-  it("returns profile on GET", async () => {
-    const profile = UserProfile.fromPrimitives({ email: "test@example.com", firstName: "t" });
-    mockGetProfile.mockResolvedValueOnce(profile);
-    const res = await handler({ ...baseEvent, httpMethod: "GET" });
-    expect(mockGetProfile).toHaveBeenCalledWith(expect.any(Email));
-    expect(mockPutProfile).not.toHaveBeenCalled();
-    expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body)).toEqual(profile.toPrimitives());
-  });
-
-  it("creates profile when missing", async () => {
-    mockGetProfile.mockResolvedValueOnce(null);
-    const res = await handler({ ...baseEvent, httpMethod: "GET" });
-    expect(mockPutProfile).toHaveBeenCalled();
-    expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body)).toEqual({ email: "test@example.com" });
-  });
-
-  it("updates profile on PUT", async () => {
-    const body = { firstName: "A", lastName: "B" };
-    const res = await handler({
-      ...baseEvent,
-      httpMethod: "PUT",
-      body: JSON.stringify(body),
-    });
-    expect(mockPutProfile).toHaveBeenCalledWith(expect.any(UserProfile));
-    expect(res.statusCode).toBe(200);
-  });
-
-  it("returns 400 when PUT body invalid", async () => {
-    const res = await handler({
-      ...baseEvent,
-      httpMethod: "PUT",
-      body: "{",
-    });
-    expect(res.statusCode).toBe(400);
-  });
-});
 
 describe("telemetry started", () => {
   const baseEvent = {
