@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
-import { RouteId } from "../../domain/value-objects/route-id-value-object";
+import { UUID } from "../../domain/value-objects/uuid-value-object";
 
 const sqs = new SQSClient({});
 
@@ -18,8 +18,39 @@ export const handler = async (
       };
     }
   }
-  if (!data.routeId) {
-    data.routeId = RouteId.generate().Value;
+
+  if (
+    typeof data.origin !== "string" ||
+    (!data.destination && data.distanceKm == null)
+  ) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        error: "Must provide origin and (destination OR distanceKm)",
+      }),
+    };
+  }
+
+  if (!data.jobId) {
+    data.jobId = UUID.generate().Value;
+  }
+
+  if (data.maxDeltaKm != null) {
+    const n = Number(data.maxDeltaKm);
+    if (!Number.isNaN(n)) {
+      data.maxDeltaKm = n;
+    } else {
+      delete data.maxDeltaKm;
+    }
+  }
+
+  if (data.routesCount != null) {
+    const c = parseInt(String(data.routesCount), 10);
+    if (c > 0) {
+      data.routesCount = c;
+    } else {
+      delete data.routesCount;
+    }
   }
 
   await sqs.send(
@@ -31,6 +62,6 @@ export const handler = async (
 
   return {
     statusCode: 202,
-    body: JSON.stringify({ enqueued: true, routeId: data.routeId }),
+    body: JSON.stringify({ enqueued: true, jobId: data.jobId }),
   };
 };

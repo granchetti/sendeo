@@ -1,10 +1,10 @@
 import { RequestRoutesEvent } from './request-routes';
-import { RouteId } from '../value-objects/route-id-value-object';
+import { UUID } from '../value-objects/uuid-value-object';
 import { Address } from '../value-objects/address-value-object';
 
 describe('RequestRoutesEvent', () => {
   it('should store provided properties', () => {
-    const routeId = RouteId.generate();
+    const routeId = UUID.generate();
     const event = new RequestRoutesEvent({
       routeId,
       origin: new Address('A'),

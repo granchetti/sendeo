@@ -74,3 +74,21 @@ export async function publishRoutesGenerated(jobId: string, routes: Route[]) {
     { jobId, routes: inputs }
   );
 }
+
+export async function publishRouteStarted(email: string, routeId: string) {
+  await send(
+    `mutation PublishRouteStarted($email: String!, $routeId: ID!) {\n  publishRouteStarted(email: $email, routeId: $routeId)\n}`,
+    { email, routeId }
+  );
+}
+
+export async function publishRouteFinished(
+  email: string,
+  routeId: string,
+  summary: string
+) {
+  await send(
+    `mutation PublishRouteFinished($email: String!, $routeId: ID!, $summary: String!) {\n  publishRouteFinished(email: $email, routeId: $routeId, summary: $summary)\n}`,
+    { email, routeId, summary }
+  );
+}

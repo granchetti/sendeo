@@ -4,10 +4,11 @@ import {
   GetItemCommand,
   PutItemCommand,
   ScanCommand,
+  QueryCommand,
 } from "@aws-sdk/client-dynamodb";
 import { RouteRepository } from "../../domain/repositories/route-repository";
 import { Route } from "../../domain/entities/route-entity";
-import { RouteId } from "../../domain/value-objects/route-id-value-object";
+import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
@@ -21,6 +22,7 @@ export class DynamoRouteRepository implements RouteRepository {
       routeId: { S: route.routeId.Value },
       createdAt: { N: now.toString() },
     };
+    if (route.jobId) item.jobId = { S: route.jobId.Value };
     if (route.distanceKm)
       item.distanceKm = { N: route.distanceKm.Value.toString() };
     if (route.duration) item.duration = { N: route.duration.Value.toString() };
@@ -39,7 +41,7 @@ export class DynamoRouteRepository implements RouteRepository {
     );
   }
 
-  async findById(id: RouteId): Promise<Route | null> {
+  async findById(id: UUID): Promise<Route | null> {
     const res = await this.client.send(
       new GetItemCommand({
         TableName: this.tableName,
@@ -49,7 +51,8 @@ export class DynamoRouteRepository implements RouteRepository {
     if (!res.Item) return null;
 
     return new Route({
-      routeId: RouteId.fromString(res.Item.routeId.S!),
+      routeId: UUID.fromString(res.Item.routeId.S!),
+      jobId: res.Item.jobId ? UUID.fromString(res.Item.jobId.S!) : undefined,
       distanceKm: res.Item.distanceKm
         ? new DistanceKm(parseFloat(res.Item.distanceKm.N!))
         : undefined,
@@ -67,7 +70,33 @@ export class DynamoRouteRepository implements RouteRepository {
     return (res.Items || []).map(
       (item) =>
         new Route({
-          routeId: RouteId.fromString(item.routeId.S!),
+          routeId: UUID.fromString(item.routeId.S!),
+          jobId: item.jobId ? UUID.fromString(item.jobId.S!) : undefined,
+          distanceKm: item.distanceKm
+            ? new DistanceKm(+item.distanceKm.N!)
+            : undefined,
+          duration: item.duration ? new Duration(+item.duration.N!) : undefined,
+          path: item.path ? new Path(item.path.S!) : undefined,
+        })
+    );
+  }
+
+  async findByJobId(jobId: string): Promise<Route[]> {
+    const res = await this.client.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        IndexName: "GSI2",
+        KeyConditionExpression: "jobId = :job",
+        ExpressionAttributeValues: {
+          ":job": { S: jobId },
+        },
+      })
+    );
+    return (res.Items || []).map(
+      (item) =>
+        new Route({
+          routeId: UUID.fromString(item.routeId.S!),
+          jobId: item.jobId ? UUID.fromString(item.jobId.S!) : undefined,
           distanceKm: item.distanceKm
             ? new DistanceKm(+item.distanceKm.N!)
             : undefined,
@@ -77,7 +106,7 @@ export class DynamoRouteRepository implements RouteRepository {
     );
   }
   
-  async remove(id: RouteId): Promise<void> {
+  async remove(id: UUID): Promise<void> {
     await this.client.send(
       new DeleteItemCommand({
         TableName: this.tableName,

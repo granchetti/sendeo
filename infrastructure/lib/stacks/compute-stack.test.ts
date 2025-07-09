@@ -1,5 +1,5 @@
 import * as cdk from "aws-cdk-lib";
-import { Template } from "aws-cdk-lib/assertions";
+import { Template, Match } from "aws-cdk-lib/assertions";
 import { ComputeStack } from "./compute-stack";
 import { Table, AttributeType, BillingMode } from "aws-cdk-lib/aws-dynamodb";
 import { Queue } from "aws-cdk-lib/aws-sqs";
@@ -26,7 +26,7 @@ describe("ComputeStack", () => {
     const routeJobsQueue = new Queue(deps, "RouteJobs");
     const metricsQueue = new Queue(deps, "Metrics");
     const userPool = new UserPool(deps, "UserPool");
-
+    const googleApiKeySecretName = "dummy-secret-name";
     const stack = new ComputeStack(app, "TestComputeStack", {
       env: TEST_ENV,
       routesTable,
@@ -34,6 +34,7 @@ describe("ComputeStack", () => {
       routeJobsQueue,
       metricsQueue,
       userPool,
+      googleApiKeySecretName,
     });
 
     template = Template.fromStack(stack);
@@ -55,5 +56,33 @@ describe("ComputeStack", () => {
 
   test("creates two SQS event source mappings", () => {
     template.resourceCountIs("AWS::Lambda::EventSourceMapping", 2);
+  });
+
+  test("grants PageRouter access to the GSI2 index", () => {
+    template.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Resource: Match.arrayWith([
+              Match.objectLike({
+                "Fn::Join": ["", [Match.anyValue(), "/index/*"]],
+              }),
+            ]),
+          }),
+        ]),
+      },
+    });
+  });
+
+  test("grants PageRouter permission to delete items in UserState", () => {
+    template.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: Match.arrayWith(["dynamodb:DeleteItem"]),
+          }),
+        ]),
+      },
+    });
   });
 });

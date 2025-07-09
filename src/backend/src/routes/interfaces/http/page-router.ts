@@ -1,12 +1,18 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
-import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-user-state-repository";
-import { RouteId } from "../../domain/value-objects/route-id-value-object";
+import { DynamoUserStateRepository } from "../../../users/infrastructure/dynamodb/dynamo-user-state-repository";
+import {
+  publishRouteStarted,
+  publishRouteFinished,
+} from "../appsync-client";
+import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 
 const dynamo = new DynamoDBClient({});
+const sqs = new SQSClient({});
 const routeRepository = new DynamoRouteRepository(
   dynamo,
   process.env.ROUTES_TABLE!
@@ -60,7 +66,7 @@ export const handler = async (
       };
     }
 
-    const route = await getRouteDetails.execute(RouteId.fromString(routeId));
+    const route = await getRouteDetails.execute(UUID.fromString(routeId));
     if (!route) {
       return { statusCode: 404, body: JSON.stringify({ error: "Not Found" }) };
     }
@@ -76,39 +82,141 @@ export const handler = async (
     };
   }
 
-  if (resource === "/profile" && httpMethod === "GET") {
-    return { statusCode: 200, body: JSON.stringify({ ok: true }) };
-  }
-
-  if (resource === "/profile" && httpMethod === "PUT") {
-    return { statusCode: 200, body: JSON.stringify({ ok: true }) };
-  }
-
-  if (httpMethod === "GET" && resource === "/favourites") {
+  // GET /jobs/{jobId}/routes
+  if (httpMethod === "GET" && resource === "/jobs/{jobId}/routes") {
+    const jobId = pathParameters?.jobId;
+    if (!jobId) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "jobId parameter required" }),
+      };
+    }
     try {
-      const items = await userStateRepository.getFavourites(email);
-      const favourites = items.map((s) =>
-        s.startsWith("FAV#") ? s.slice(4) : s
-      );
+      const list = await routeRepository.findByJobId(jobId);
       return {
         statusCode: 200,
-        body: JSON.stringify({ favourites }),
+        body: JSON.stringify(
+          list.map((r) => ({
+            routeId: r.routeId.Value,
+            distanceKm: r.distanceKm?.Value,
+            duration: r.duration?.Value,
+            path: r.path?.Encoded,
+          }))
+        ),
       };
     } catch (err) {
-      console.error("❌ Error reading favourites:", err);
+      console.error("Error listing job routes:", err);
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: "Could not fetch favourites" }),
+        body: JSON.stringify({ error: "Could not list routes" }),
       };
     }
   }
 
+
   if (resource === "/telemetry/started" && httpMethod === "POST") {
+    let payload: any = {};
+    if (event.body) {
+      try {
+        payload = JSON.parse(event.body);
+      } catch {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: "Invalid JSON body" }),
+        };
+      }
+    }
+
+    const routeId = payload.routeId;
+    if (!routeId) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "routeId required" }),
+      };
+    }
+
+    const ts = Date.now();
+    await userStateRepository.putRouteStart(email, routeId, ts);
+    await sqs.send(
+      new SendMessageCommand({
+        QueueUrl: process.env.METRICS_QUEUE!,
+        MessageBody: JSON.stringify({
+          event: "started",
+          routeId,
+          email,
+          timestamp: ts,
+        }),
+      })
+    );
+
+    try {
+      await publishRouteStarted(email, routeId);
+    } catch (err) {
+      console.error("❌ Error publishing route started:", err);
+    }
+
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   }
 
   if (resource === "/routes/{routeId}/finish" && httpMethod === "POST") {
-    return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+    const routeId = pathParameters?.routeId;
+    if (!routeId) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "routeId parameter required" }),
+      };
+    }
+
+    const route = await getRouteDetails.execute(UUID.fromString(routeId));
+    if (!route) {
+      return { statusCode: 404, body: JSON.stringify({ error: "Not Found" }) };
+    }
+
+    const finishTs = Date.now();
+    const startTs = await userStateRepository.getRouteStart(email, routeId);
+    if (startTs != null) {
+      await userStateRepository.deleteRouteStart(email, routeId);
+    }
+    const actualDuration = startTs != null ? finishTs - startTs : undefined;
+    await sqs.send(
+      new SendMessageCommand({
+        QueueUrl: process.env.METRICS_QUEUE!,
+        MessageBody: JSON.stringify({
+          event: "finished",
+          routeId,
+          email,
+          timestamp: finishTs,
+          ...(actualDuration != null ? { actualDuration } : {}),
+        }),
+      })
+    );
+
+    try {
+      await publishRouteFinished(
+        email,
+        routeId,
+        JSON.stringify({
+          routeId: route.routeId.Value,
+          distanceKm: route.distanceKm?.Value,
+          duration: route.duration?.Value,
+          path: route.path?.Encoded,
+          ...(actualDuration != null ? { actualDuration } : {}),
+        })
+      );
+    } catch (err) {
+      console.error("❌ Error publishing route finished:", err);
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        routeId: route.routeId.Value,
+        distanceKm: route.distanceKm?.Value,
+        duration: route.duration?.Value,
+        path: route.path?.Encoded,
+        ...(actualDuration != null ? { actualDuration } : {}),
+      }),
+    };
   }
 
   return {

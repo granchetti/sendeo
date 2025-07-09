@@ -32,6 +32,7 @@ describe('StorageStack', () => {
         { AttributeName: 'routeId', AttributeType: 'S' },
         { AttributeName: 'distanceKm', AttributeType: 'N' },
         { AttributeName: 'createdAt', AttributeType: 'N' },
+        { AttributeName: 'jobId', AttributeType: 'S' },
       ]),
     });
   });
@@ -44,6 +45,20 @@ describe('StorageStack', () => {
           KeySchema: [
             { AttributeName: 'distanceKm', KeyType: 'HASH' },
             { AttributeName: 'createdAt',   KeyType: 'RANGE' },
+          ],
+          Projection: { ProjectionType: 'ALL' },
+        },
+      ]),
+    });
+  });
+
+  test('Routes table has a GSI named GSI2 on jobId', () => {
+    template.hasResourceProperties('AWS::DynamoDB::Table', {
+      GlobalSecondaryIndexes: Match.arrayWith([
+        {
+          IndexName: 'GSI2',
+          KeySchema: [
+            { AttributeName: 'jobId', KeyType: 'HASH' },
           ],
           Projection: { ProjectionType: 'ALL' },
         },

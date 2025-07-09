@@ -4,7 +4,7 @@ import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-
 import {
   publishFavouriteSaved,
   publishFavouriteDeleted,
-} from "../appsync-client";
+} from "../../../routes/interfaces/appsync-client";
 import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../application/use-cases/add-favourite";
 import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
 
@@ -25,6 +25,23 @@ export const handler = async (
   }
 
   const { httpMethod } = event;
+
+  if (httpMethod === "GET") {
+    try {
+      const items = await repository.getFavourites(email);
+      const favourites = items.map((s) => (s.startsWith("FAV#") ? s.slice(4) : s));
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ favourites }),
+      };
+    } catch (err) {
+      console.error("❌ Error reading favourites:", err);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Could not fetch favourites" }),
+      };
+    }
+  }
 
   if (httpMethod === "POST") {
     let payload: any;
