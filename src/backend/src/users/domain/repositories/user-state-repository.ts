@@ -1,5 +1,5 @@
+import { Email } from '../../../routes/domain/value-objects/email-value-object';
 import { UserProfile } from '../entities/user-profile';
-import { Email } from '../value-objects/email-value-object';
 
 export interface UserStateRepository {
   putFavourite(email: string, routeId: string): Promise<void>;

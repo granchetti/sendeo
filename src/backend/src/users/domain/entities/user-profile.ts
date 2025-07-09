@@ -1,4 +1,5 @@
-import { Email } from '../value-objects/email-value-object';
+
+import { Email } from '../../../routes/domain/value-objects/email-value-object';
 import { Age } from '../value-objects/age-value-object';
 import { DistanceUnit } from '../value-objects/distance-unit-value-object';
 
