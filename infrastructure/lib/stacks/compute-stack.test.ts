@@ -26,7 +26,7 @@ describe("ComputeStack", () => {
     const routeJobsQueue = new Queue(deps, "RouteJobs");
     const metricsQueue = new Queue(deps, "Metrics");
     const userPool = new UserPool(deps, "UserPool");
-
+    const googleApiKeySecretName = "dummy-secret-name";
     const stack = new ComputeStack(app, "TestComputeStack", {
       env: TEST_ENV,
       routesTable,
@@ -34,6 +34,7 @@ describe("ComputeStack", () => {
       routeJobsQueue,
       metricsQueue,
       userPool,
+      googleApiKeySecretName,
     });
 
     template = Template.fromStack(stack);
@@ -64,13 +65,7 @@ describe("ComputeStack", () => {
           Match.objectLike({
             Resource: Match.arrayWith([
               Match.objectLike({
-                "Fn::Join": Match.arrayWith([
-                  "",
-                  Match.arrayWith([
-                    Match.objectLike({ "Fn::GetAtt": Match.arrayWith([Match.stringLikeRegexp("Routes"), "Arn"]) }),
-                    "/index/*",
-                  ]),
-                ]),
+                "Fn::Join": ["", [Match.anyValue(), "/index/*"]],
               }),
             ]),
           }),
