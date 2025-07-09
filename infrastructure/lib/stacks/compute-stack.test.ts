@@ -49,8 +49,8 @@ describe("ComputeStack", () => {
     template.resourceCountIs("AWS::ApiGateway::Authorizer", 1);
   });
 
-  test("defines five Lambda functions", () => {
-    template.resourceCountIs("AWS::Lambda::Function", 5);
+  test("defines six Lambda functions", () => {
+    template.resourceCountIs("AWS::Lambda::Function", 6);
   });
 
   test("creates two SQS event source mappings", () => {
