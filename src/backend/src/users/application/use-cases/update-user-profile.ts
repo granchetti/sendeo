@@ -1,5 +1,6 @@
-import { UserStateRepository } from '../domain/repositories/user-state-repository';
-import { UserProfile } from '../domain/entities/user-profile';
+import { UserProfile } from "../../domain/entities/user-profile";
+import { UserStateRepository } from "../../domain/repositories/user-state-repository";
+
 
 export class UpdateUserProfileUseCase {
   constructor(private repository: UserStateRepository) {}
