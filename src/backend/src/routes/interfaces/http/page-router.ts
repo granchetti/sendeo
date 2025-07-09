@@ -3,10 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { DynamoUserStateRepository } from "../../../users/infrastructure/dynamodb/dynamo-user-state-repository";
-import {
-  publishRouteStarted,
-  publishRouteFinished,
-} from "../appsync-client";
+import { publishRouteStarted, publishRouteFinished } from "../appsync-client";
 import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
@@ -113,7 +110,6 @@ export const handler = async (
     }
   }
 
-
   if (resource === "/telemetry/started" && httpMethod === "POST") {
     let payload: any = {};
     if (event.body) {
@@ -177,7 +173,12 @@ export const handler = async (
     if (startTs != null) {
       await userStateRepository.deleteRouteStart(email, routeId);
     }
-    const actualDuration = startTs != null ? finishTs - startTs : undefined;
+    const actualDurationMs = startTs != null ? finishTs - startTs : undefined;
+    const actualDuration =
+      actualDurationMs != null
+        ? Math.round(actualDurationMs / 1000)
+        : undefined;
+
     await sqs.send(
       new SendMessageCommand({
         QueueUrl: process.env.METRICS_QUEUE!,
