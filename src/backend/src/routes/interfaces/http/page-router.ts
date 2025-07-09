@@ -10,10 +10,6 @@ import {
 import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
-import { GetUserProfileUseCase } from "../../../users/application/use-cases/get-user-profile";
-import { UpdateUserProfileUseCase } from "../../../users/application/use-cases/update-user-profile";
-import { Email } from "../../domain/value-objects/email-value-object";
-import { UserProfile } from "../../../users/domain/entities/user-profile";
 
 const dynamo = new DynamoDBClient({});
 const sqs = new SQSClient({});
@@ -27,8 +23,6 @@ const userStateRepository = new DynamoUserStateRepository(
 );
 const listRoutes = new ListRoutesUseCase(routeRepository);
 const getRouteDetails = new GetRouteDetailsUseCase(routeRepository);
-const getUserProfile = new GetUserProfileUseCase(userStateRepository);
-const updateUserProfile = new UpdateUserProfileUseCase(userStateRepository);
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -119,50 +113,6 @@ export const handler = async (
     }
   }
 
-  if (resource === "/profile" && httpMethod === "GET") {
-    const profile = await getUserProfile.execute(Email.fromString(email));
-    return { statusCode: 200, body: JSON.stringify(profile.toPrimitives()) };
-  }
-
-  if (resource === "/profile" && httpMethod === "PUT") {
-    let payload: any = {};
-    if (event.body) {
-      try {
-        payload = JSON.parse(event.body);
-      } catch {
-        return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON body" }) };
-      }
-    }
-    const profile = UserProfile.fromPrimitives({
-      email,
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      displayName: payload.displayName,
-      age: payload.age != null ? Number(payload.age) : undefined,
-      unit: payload.unit,
-    });
-    await updateUserProfile.execute(profile);
-    return { statusCode: 200, body: JSON.stringify({ updated: true }) };
-  }
-
-  if (httpMethod === "GET" && resource === "/favourites") {
-    try {
-      const items = await userStateRepository.getFavourites(email);
-      const favourites = items.map((s) =>
-        s.startsWith("FAV#") ? s.slice(4) : s
-      );
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ favourites }),
-      };
-    } catch (err) {
-      console.error("❌ Error reading favourites:", err);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Could not fetch favourites" }),
-      };
-    }
-  }
 
   if (resource === "/telemetry/started" && httpMethod === "POST") {
     let payload: any = {};

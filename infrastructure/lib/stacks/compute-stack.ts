@@ -90,11 +90,11 @@ export class ComputeStack extends cdk.Stack {
       })
     );
 
-    // 3) FavouriteRoutes → POST /favourites & DELETE /favourites/{routeId}
+    // 3) FavouriteRoutes → GET/POST /favourites & DELETE /favourites/{routeId}
     const favoriteRoutes = new HttpLambda(this, "FavoriteRoutes", {
       entry: path.join(
         __dirname,
-        "../../../src/backend/src/routes/interfaces/http"
+        "../../../src/backend/src/users/interfaces/http"
       ),
       handler: "favourite-routes.handler",
       environment: {
@@ -105,7 +105,7 @@ export class ComputeStack extends cdk.Stack {
       },
       api,
       routes: [
-        { path: "favourites", methods: ["POST"], authorizer },
+        { path: "favourites", methods: ["GET", "POST"], authorizer },
         { path: "favourites/{routeId}", methods: ["DELETE"], authorizer },
       ],
     });
@@ -116,7 +116,30 @@ export class ComputeStack extends cdk.Stack {
       })
     );
 
-    // 4) PageRouter → multiple routes
+    // 4) ProfileRoutes → GET/PUT /profile
+    const profileRoutes = new HttpLambda(this, "ProfileRoutes", {
+      entry: path.join(
+        __dirname,
+        "../../../src/backend/src/users/interfaces/http"
+      ),
+      handler: "profile-routes.handler",
+      environment: {
+        USER_STATE_TABLE: props.userStateTable.tableName,
+        ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
+        ...(props.appSyncApiKey ? { APPSYNC_API_KEY: props.appSyncApiKey } : {}),
+        ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
+      },
+      api,
+      routes: [{ path: "profile", methods: ["GET", "PUT"], authorizer }],
+    });
+    profileRoutes.fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:GetItem", "dynamodb:PutItem"],
+        resources: [props.userStateTable.tableArn],
+      })
+    );
+
+    // 5) PageRouter → multiple routes
     const pageRouter = new HttpLambda(this, "PageRouter", {
       entry: path.join(
         __dirname,
@@ -134,8 +157,6 @@ export class ComputeStack extends cdk.Stack {
       },
       api,
       routes: [
-        { path: "profile", methods: ["GET", "PUT"], authorizer },
-        { path: "favourites", methods: ["GET"], authorizer },
         { path: "routes", methods: ["GET"], authorizer },
         { path: "routes/{routeId}", methods: ["GET"], authorizer },
         { path: "jobs/{jobId}/routes", methods: ["GET"], authorizer },
@@ -168,7 +189,7 @@ export class ComputeStack extends cdk.Stack {
       new iam.PolicyStatement({ actions: ["appsync:GraphQL"], resources: ["*"] })
     );
 
-    // 5) MetricsConsumer
+    // 6) MetricsConsumer
     new SqsConsumer(this, "MetricsConsumer", {
       entry: path.join(
         __dirname,
