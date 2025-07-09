@@ -1,6 +1,3 @@
-// src/routes/interfaces/http/page-router.test.ts
-
-// 1) Mocks (antes de importar handler)
 const mockFindById = jest.fn();
 const mockFindAll = jest.fn();
 const mockFindByJobId = jest.fn();
@@ -300,19 +297,20 @@ describe("telemetry started", () => {
 
   it("enqueues started metric", async () => {
     mockSend.mockResolvedValueOnce({});
+    const routeId = UUID.generate().Value
     const res = await handler({
       ...baseEvent,
-      body: JSON.stringify({ routeId: "1" }),
+      body: JSON.stringify({ routeId }),
     });
     expect(mockSend).toHaveBeenCalledTimes(1);
     const sent = mockSend.mock.calls[0][0];
     const payload = JSON.parse(sent.MessageBody);
     expect(payload).toMatchObject({
       event: "started",
-      routeId: "1",
+      routeId,
       email: "test@example.com",
     });
-    expect(mockPublishStarted).toHaveBeenCalledWith("test@example.com", "1");
+    expect(mockPublishStarted).toHaveBeenCalledWith("test@example.com", routeId);
     expect(res.statusCode).toBe(200);
   });
 });
@@ -333,7 +331,7 @@ describe("finish route", () => {
     mockFindById.mockResolvedValueOnce(null);
     const res = await handler({
       ...baseEvent,
-      pathParameters: { routeId: "x" },
+      pathParameters: { routeId: 'a28f07d1-d0f3-4c1a-b2e4-8e31b6f0e84a' },
     });
     expect(res.statusCode).toBe(404);
   });
