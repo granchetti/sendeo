@@ -2,7 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
-import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-user-state-repository";
+import { DynamoUserStateRepository } from "../../../users/infrastructure/dynamodb/dynamo-user-state-repository";
 import {
   publishRouteStarted,
   publishRouteFinished,
@@ -10,10 +10,10 @@ import {
 import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
-import { GetUserProfileUseCase } from "../../application/use-cases/get-user-profile";
-import { UpdateUserProfileUseCase } from "../../application/use-cases/update-user-profile";
+import { GetUserProfileUseCase } from "../../../users/application/use-cases/get-user-profile";
+import { UpdateUserProfileUseCase } from "../../../users/application/use-cases/update-user-profile";
 import { Email } from "../../domain/value-objects/email-value-object";
-import { UserProfile } from "../../domain/entities/user-profile";
+import { UserProfile } from "../../../users/domain/entities/user-profile";
 
 const dynamo = new DynamoDBClient({});
 const sqs = new SQSClient({});

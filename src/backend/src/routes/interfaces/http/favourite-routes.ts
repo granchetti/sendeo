@@ -1,12 +1,12 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-user-state-repository";
+import { DynamoUserStateRepository } from "../../../users/infrastructure/dynamodb/dynamo-user-state-repository";
 import {
   publishFavouriteSaved,
   publishFavouriteDeleted,
 } from "../appsync-client";
-import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../application/use-cases/add-favourite";
-import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
+import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../../users/application/use-cases/add-favourite";
+import { RemoveFavouriteUseCase } from "../../../users/application/use-cases/remove-favourite";
 
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoUserStateRepository(
