@@ -189,6 +189,20 @@ export class ComputeStack extends cdk.Stack {
       new iam.PolicyStatement({ actions: ["appsync:GraphQL"], resources: ["*"] })
     );
 
+    // 5) SwaggerDocs → GET /swagger & GET /swagger.json
+    new HttpLambda(this, "SwaggerDocs", {
+      entry: path.join(
+        __dirname,
+        "../../../src/backend/src/routes/interfaces/http"
+      ),
+      handler: "swagger.handler",
+      api,
+      routes: [
+        { path: "swagger", methods: ["GET"] },
+        { path: "swagger.json", methods: ["GET"] },
+      ],
+    });
+
     // 6) MetricsConsumer
     new SqsConsumer(this, "MetricsConsumer", {
       entry: path.join(
