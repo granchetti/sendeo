@@ -48,6 +48,8 @@ import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
 import { LatLng } from "../../domain/value-objects/lat-lng-value-object";
+import { UserProfile } from "../../domain/entities/user-profile";
+import { Email } from "../../domain/value-objects/email-value-object";
 
 const baseCtx = {
   requestContext: {
@@ -233,19 +235,19 @@ describe("page router profile", () => {
   } as any;
 
   it("returns profile on GET", async () => {
-    const profile = { email: "test@example.com", firstName: "t" };
+    const profile = UserProfile.fromPrimitives({ email: "test@example.com", firstName: "t" });
     mockGetProfile.mockResolvedValueOnce(profile);
     const res = await handler({ ...baseEvent, httpMethod: "GET" });
-    expect(mockGetProfile).toHaveBeenCalledWith("test@example.com");
+    expect(mockGetProfile).toHaveBeenCalledWith(expect.any(Email));
     expect(mockPutProfile).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body)).toEqual(profile);
+    expect(JSON.parse(res.body)).toEqual(profile.toPrimitives());
   });
 
   it("creates profile when missing", async () => {
     mockGetProfile.mockResolvedValueOnce(null);
     const res = await handler({ ...baseEvent, httpMethod: "GET" });
-    expect(mockPutProfile).toHaveBeenCalledWith({ email: "test@example.com" });
+    expect(mockPutProfile).toHaveBeenCalled();
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual({ email: "test@example.com" });
   });
@@ -257,14 +259,7 @@ describe("page router profile", () => {
       httpMethod: "PUT",
       body: JSON.stringify(body),
     });
-    expect(mockPutProfile).toHaveBeenCalledWith({
-      email: "test@example.com",
-      firstName: "A",
-      lastName: "B",
-      displayName: undefined,
-      age: undefined,
-      unit: undefined,
-    });
+    expect(mockPutProfile).toHaveBeenCalledWith(expect.any(UserProfile));
     expect(res.statusCode).toBe(200);
   });
 

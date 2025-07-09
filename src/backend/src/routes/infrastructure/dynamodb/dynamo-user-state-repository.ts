@@ -7,6 +7,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { UserStateRepository } from "../../domain/repositories/user-state-repository";
 import { UserProfile } from "../../domain/entities/user-profile";
+import { Email } from "../../domain/value-objects/email-value-object";
 
 export class DynamoUserStateRepository implements UserStateRepository {
   constructor(private client: DynamoDBClient, private tableName: string) {}
@@ -48,36 +49,36 @@ export class DynamoUserStateRepository implements UserStateRepository {
     return (res.Items || []).map((i) => i.SK.S!);
   }
 
-  async getProfile(email: string): Promise<UserProfile | null> {
+  async getProfile(email: Email): Promise<UserProfile | null> {
     const res = await this.client.send(
       new GetItemCommand({
         TableName: this.tableName,
-        Key: { PK: { S: `USER#${email}` }, SK: { S: "PROFILE" } },
+        Key: { PK: { S: `USER#${email.Value}` }, SK: { S: "PROFILE" } },
       })
     );
     if (!res.Item) return null;
-    return {
-      email: res.Item.email?.S ?? email,
+    return UserProfile.fromPrimitives({
+      email: res.Item.email?.S ?? email.Value,
       firstName: res.Item.firstName?.S,
       lastName: res.Item.lastName?.S,
       displayName: res.Item.displayName?.S,
       age: res.Item.age ? parseInt(res.Item.age.N!, 10) : undefined,
       unit: res.Item.unit?.S,
-    };
+    });
   }
 
   async putProfile(profile: UserProfile): Promise<void> {
+    const p = profile.toPrimitives();
     const item: any = {
-      PK: { S: `USER#${profile.email}` },
+      PK: { S: `USER#${p.email}` },
       SK: { S: "PROFILE" },
-      email: { S: profile.email },
+      email: { S: p.email },
     };
-    if (profile.firstName != null) item.firstName = { S: profile.firstName };
-    if (profile.lastName != null) item.lastName = { S: profile.lastName };
-    if (profile.displayName != null)
-      item.displayName = { S: profile.displayName };
-    if (profile.age != null) item.age = { N: profile.age.toString() };
-    if (profile.unit != null) item.unit = { S: profile.unit };
+    if (p.firstName != null) item.firstName = { S: p.firstName };
+    if (p.lastName != null) item.lastName = { S: p.lastName };
+    if (p.displayName != null) item.displayName = { S: p.displayName };
+    if (p.age != null) item.age = { N: p.age.toString() };
+    if (p.unit != null) item.unit = { S: p.unit };
     await this.client.send(
       new PutItemCommand({ TableName: this.tableName, Item: item })
     );
