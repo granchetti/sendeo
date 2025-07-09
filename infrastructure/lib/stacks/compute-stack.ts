@@ -128,6 +128,9 @@ export class ComputeStack extends cdk.Stack {
         ROUTES_TABLE: props.routesTable.tableName,
         USER_STATE_TABLE: props.userStateTable.tableName,
         METRICS_QUEUE: props.metricsQueue.queueUrl,
+        ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
+        ...(props.appSyncApiKey ? { APPSYNC_API_KEY: props.appSyncApiKey } : {}),
+        ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
       },
       api,
       routes: [
@@ -156,6 +159,9 @@ export class ComputeStack extends cdk.Stack {
       })
     );
     props.metricsQueue.grantSendMessages(pageRouter.fn);
+    pageRouter.fn.addToRolePolicy(
+      new iam.PolicyStatement({ actions: ["appsync:GraphQL"], resources: ["*"] })
+    );
 
     // 5) MetricsConsumer
     new SqsConsumer(this, "MetricsConsumer", {

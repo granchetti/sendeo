@@ -7,6 +7,9 @@ const mockFindByJobId = jest.fn();
 const mockGetFavourites = jest.fn();
 const mockGetProfile = jest.fn();
 const mockPutProfile = jest.fn();
+let mockSend: jest.Mock;
+const mockPublishStarted = jest.fn();
+const mockPublishFinished = jest.fn();
 
 jest.mock("@aws-sdk/client-dynamodb", () => ({
   DynamoDBClient: jest.fn().mockImplementation(() => ({})),
@@ -26,6 +29,19 @@ jest.mock("../../infrastructure/dynamodb/dynamo-user-state-repository", () => ({
     getProfile: mockGetProfile,
     putProfile: mockPutProfile,
   })),
+}));
+
+jest.mock("@aws-sdk/client-sqs", () => {
+  mockSend = jest.fn();
+  return {
+    SQSClient: jest.fn().mockImplementation(() => ({ send: mockSend })),
+    SendMessageCommand: jest.fn().mockImplementation((input) => input),
+  };
+});
+
+jest.mock("../appsync-client", () => ({
+  publishRouteStarted: (...args: any[]) => mockPublishStarted(...args),
+  publishRouteFinished: (...args: any[]) => mockPublishFinished(...args),
 }));
 
 import { handler } from "./page-router";
@@ -49,6 +65,10 @@ beforeEach(() => {
   mockGetFavourites.mockReset();
   mockGetProfile.mockReset();
   mockPutProfile.mockReset();
+  mockSend.mockReset();
+  mockPublishStarted.mockReset();
+  mockPublishFinished.mockReset();
+  process.env.METRICS_QUEUE = "http://localhost";
 });
 
 describe("page router get route", () => {
@@ -258,5 +278,100 @@ describe("page router profile", () => {
       body: "{",
     });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe("telemetry started", () => {
+  const baseEvent = {
+    ...baseCtx,
+    resource: "/telemetry/started",
+    httpMethod: "POST",
+  } as any;
+
+  it("returns 400 on invalid body", async () => {
+    const res = await handler({ ...baseEvent, body: "{" });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("returns 400 when routeId missing", async () => {
+    const res = await handler({ ...baseEvent, body: "{}" });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("enqueues started metric", async () => {
+    mockSend.mockResolvedValueOnce({});
+    const res = await handler({
+      ...baseEvent,
+      body: JSON.stringify({ routeId: "1" }),
+    });
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    const sent = mockSend.mock.calls[0][0];
+    const payload = JSON.parse(sent.MessageBody);
+    expect(payload).toMatchObject({
+      event: "started",
+      routeId: "1",
+      email: "test@example.com",
+    });
+    expect(mockPublishStarted).toHaveBeenCalledWith("test@example.com", "1");
+    expect(res.statusCode).toBe(200);
+  });
+});
+
+describe("finish route", () => {
+  const baseEvent = {
+    ...baseCtx,
+    resource: "/routes/{routeId}/finish",
+    httpMethod: "POST",
+  } as any;
+
+  it("returns 400 when routeId param missing", async () => {
+    const res = await handler(baseEvent);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("returns 404 when route not found", async () => {
+    mockFindById.mockResolvedValueOnce(null);
+    const res = await handler({
+      ...baseEvent,
+      pathParameters: { routeId: "x" },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("sends finish metric and returns route", async () => {
+    const route = new Route({
+      routeId: UUID.generate(),
+      distanceKm: new DistanceKm(2),
+      duration: new Duration(100),
+      path: Path.fromCoordinates([
+        LatLng.fromNumbers(0, 0),
+        LatLng.fromNumbers(1, 1),
+      ]),
+    });
+    mockFindById.mockResolvedValueOnce(route);
+    mockSend.mockResolvedValueOnce({});
+
+    const res = await handler({
+      ...baseEvent,
+      pathParameters: { routeId: route.routeId.Value },
+    });
+
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    expect(payload.routeId).toBe(route.routeId.Value);
+    expect(payload.event).toBe("finished");
+    expect(mockPublishFinished).toHaveBeenCalledWith(
+      "test@example.com",
+      route.routeId.Value,
+      expect.any(String)
+    );
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body).toEqual({
+      routeId: route.routeId.Value,
+      distanceKm: 2,
+      duration: 100,
+      path: route.path!.Encoded,
+    });
   });
 });

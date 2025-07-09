@@ -1,12 +1,18 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-user-state-repository";
+import {
+  publishRouteStarted,
+  publishRouteFinished,
+} from "../appsync-client";
 import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 
 const dynamo = new DynamoDBClient({});
+const sqs = new SQSClient({});
 const routeRepository = new DynamoRouteRepository(
   dynamo,
   process.env.ROUTES_TABLE!
@@ -157,11 +163,97 @@ export const handler = async (
   }
 
   if (resource === "/telemetry/started" && httpMethod === "POST") {
+    let payload: any = {};
+    if (event.body) {
+      try {
+        payload = JSON.parse(event.body);
+      } catch {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: "Invalid JSON body" }),
+        };
+      }
+    }
+
+    const routeId = payload.routeId;
+    if (!routeId) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "routeId required" }),
+      };
+    }
+
+    await sqs.send(
+      new SendMessageCommand({
+        QueueUrl: process.env.METRICS_QUEUE!,
+        MessageBody: JSON.stringify({
+          event: "started",
+          routeId,
+          email,
+          timestamp: Date.now(),
+        }),
+      })
+    );
+
+    try {
+      await publishRouteStarted(email, routeId);
+    } catch (err) {
+      console.error("❌ Error publishing route started:", err);
+    }
+
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   }
 
   if (resource === "/routes/{routeId}/finish" && httpMethod === "POST") {
-    return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+    const routeId = pathParameters?.routeId;
+    if (!routeId) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "routeId parameter required" }),
+      };
+    }
+
+    const route = await getRouteDetails.execute(UUID.fromString(routeId));
+    if (!route) {
+      return { statusCode: 404, body: JSON.stringify({ error: "Not Found" }) };
+    }
+
+    await sqs.send(
+      new SendMessageCommand({
+        QueueUrl: process.env.METRICS_QUEUE!,
+        MessageBody: JSON.stringify({
+          event: "finished",
+          routeId,
+          email,
+          timestamp: Date.now(),
+        }),
+      })
+    );
+
+    try {
+      await publishRouteFinished(
+        email,
+        routeId,
+        JSON.stringify({
+          routeId: route.routeId.Value,
+          distanceKm: route.distanceKm?.Value,
+          duration: route.duration?.Value,
+          path: route.path?.Encoded,
+        })
+      );
+    } catch (err) {
+      console.error("❌ Error publishing route finished:", err);
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        routeId: route.routeId.Value,
+        distanceKm: route.distanceKm?.Value,
+        duration: route.duration?.Value,
+        path: route.path?.Encoded,
+      }),
+    };
   }
 
   return {
