@@ -1,14 +1,14 @@
-import { RouteId } from '../value-objects/route-id-value-object';
+import { UUID } from '../value-objects/uuid-value-object';
 import { Address } from '../value-objects/address-value-object';
 
 export interface RequestRoutesProps {
-  readonly routeId: RouteId;
+  readonly routeId: UUID;
   readonly origin: Address;
   readonly destination: Address;
 }
 
 export class RequestRoutesEvent {
-  readonly routeId: RouteId;
+  readonly routeId: UUID;
   readonly origin: Address;
   readonly destination: Address;
 

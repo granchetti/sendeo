@@ -16,26 +16,21 @@ const env = {
 
 const synthesizer = new DefaultStackSynthesizer({ qualifier: "tfm" });
 
-// 1) Tablas Dynamo
 const storage = new StorageStack(app, "SendeoStorageStack", {
   env,
   synthesizer,
 });
 
-// 2) Colas SQS
 const queues = new QueueStack(app, "SendeoQueuesStack", { env, synthesizer });
 
-// 3) Cognito User Pool
 const auth = new AuthStack(app, "SendeoAuthStack", { env, synthesizer });
 
-// 4) AppSync
 const appSync = new AppSyncStack(app, 'SendeoAppSyncStack', {
   env,
   synthesizer,
   userPool: auth.userPool,
 });
 
-// 5) Compute: Lambdas + API Gateway
 new ComputeStack(app, "SendeoComputeStack", {
   env,
   synthesizer,
@@ -50,7 +45,6 @@ new ComputeStack(app, "SendeoComputeStack", {
   appSyncRegion: env.region,
 });
 
-// 6) Frontend: Amplify App
 new FrontendStack(app, "SendeoFrontendStack", {
   repoOwner: "granchetti",
   repoName: "sendeo",

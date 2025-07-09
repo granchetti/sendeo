@@ -7,6 +7,8 @@ describe('RemoveFavouriteUseCase', () => {
       deleteFavourite: jest.fn(),
       putFavourite: jest.fn(),
       getFavourites: jest.fn(),
+      getProfile: jest.fn(),
+      putProfile: jest.fn(),
     } as any;
     const useCase = new RemoveFavouriteUseCase(repo);
     await useCase.execute('user@example.com', '1');

@@ -1,11 +1,11 @@
 import { GetRouteDetailsUseCase } from './get-route-details';
 import { RouteRepository } from '../../domain/repositories/route-repository';
 import { Route } from '../../domain/entities/route-entity';
-import { RouteId } from '../../domain/value-objects/route-id-value-object';
+import { UUID } from '../../domain/value-objects/uuid-value-object';
 
 describe('GetRouteDetailsUseCase', () => {
   it('retrieves route from repository', async () => {
-    const route = new Route({ routeId: RouteId.generate() });
+    const route = new Route({ routeId: UUID.generate() });
     const repo: RouteRepository = {
       findById: jest.fn().mockResolvedValue(route),
       findAll: jest.fn(),

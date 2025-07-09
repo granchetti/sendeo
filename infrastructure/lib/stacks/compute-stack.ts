@@ -67,6 +67,8 @@ export class ComputeStack extends cdk.Stack {
       ),
       handler: "worker-routes.handler",
       queue: props.routeJobsQueue,
+      memorySize: 1024,
+      timeout: cdk.Duration.seconds(30),
       environment: {
         ROUTES_TABLE: props.routesTable.tableName,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
@@ -88,11 +90,11 @@ export class ComputeStack extends cdk.Stack {
       })
     );
 
-    // 3) FavouriteRoutes → POST /favourites & DELETE /favourites/{routeId}
+    // 3) FavouriteRoutes → GET/POST /favourites & DELETE /favourites/{routeId}
     const favoriteRoutes = new HttpLambda(this, "FavoriteRoutes", {
       entry: path.join(
         __dirname,
-        "../../../src/backend/src/routes/interfaces/http"
+        "../../../src/backend/src/users/interfaces/http"
       ),
       handler: "favourite-routes.handler",
       environment: {
@@ -103,7 +105,7 @@ export class ComputeStack extends cdk.Stack {
       },
       api,
       routes: [
-        { path: "favourites", methods: ["POST"], authorizer },
+        { path: "favourites", methods: ["GET", "POST"], authorizer },
         { path: "favourites/{routeId}", methods: ["DELETE"], authorizer },
       ],
     });
@@ -114,7 +116,30 @@ export class ComputeStack extends cdk.Stack {
       })
     );
 
-    // 4) PageRouter → multiple routes
+    // 4) ProfileRoutes → GET/PUT /profile
+    const profileRoutes = new HttpLambda(this, "ProfileRoutes", {
+      entry: path.join(
+        __dirname,
+        "../../../src/backend/src/users/interfaces/http"
+      ),
+      handler: "profile-routes.handler",
+      environment: {
+        USER_STATE_TABLE: props.userStateTable.tableName,
+        ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
+        ...(props.appSyncApiKey ? { APPSYNC_API_KEY: props.appSyncApiKey } : {}),
+        ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
+      },
+      api,
+      routes: [{ path: "profile", methods: ["GET", "PUT"], authorizer }],
+    });
+    profileRoutes.fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:GetItem", "dynamodb:PutItem"],
+        resources: [props.userStateTable.tableArn],
+      })
+    );
+
+    // 5) PageRouter → multiple routes
     const pageRouter = new HttpLambda(this, "PageRouter", {
       entry: path.join(
         __dirname,
@@ -126,13 +151,15 @@ export class ComputeStack extends cdk.Stack {
         ROUTES_TABLE: props.routesTable.tableName,
         USER_STATE_TABLE: props.userStateTable.tableName,
         METRICS_QUEUE: props.metricsQueue.queueUrl,
+        ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
+        ...(props.appSyncApiKey ? { APPSYNC_API_KEY: props.appSyncApiKey } : {}),
+        ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
       },
       api,
       routes: [
-        { path: "profile", methods: ["GET", "PUT"], authorizer },
-        { path: "favourites", methods: ["GET"], authorizer },
         { path: "routes", methods: ["GET"], authorizer },
         { path: "routes/{routeId}", methods: ["GET"], authorizer },
+        { path: "jobs/{jobId}/routes", methods: ["GET"], authorizer },
         { path: "telemetry/started", methods: ["POST"], authorizer },
         { path: "routes/{routeId}/finish", methods: ["POST"], authorizer },
       ],
@@ -140,18 +167,40 @@ export class ComputeStack extends cdk.Stack {
     pageRouter.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:Scan"],
-        resources: [props.routesTable.tableArn],
+        resources: [
+          props.routesTable.tableArn,
+          `${props.routesTable.tableArn}/index/*`,
+        ],
       })
     );
     pageRouter.fn.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query"],
+        actions: [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+        ],
         resources: [props.userStateTable.tableArn],
       })
     );
     props.metricsQueue.grantSendMessages(pageRouter.fn);
+    pageRouter.fn.addToRolePolicy(
+      new iam.PolicyStatement({ actions: ["appsync:GraphQL"], resources: ["*"] })
+    );
 
-    // 5) SwaggerDocs → GET /swagger & GET /swagger.json
+    // 5) MetricsConsumer
+    new SqsConsumer(this, "MetricsConsumer", {
+      entry: path.join(
+        __dirname,
+        "../../../src/backend/src/routes/interfaces/sqs"
+      ),
+
+      handler: "metrics-processor.handler",
+      queue: props.metricsQueue,
+    });
+    
+    // 6) SwaggerDocs → GET /swagger & GET /swagger.json
     new HttpLambda(this, "SwaggerDocs", {
       entry: path.join(
         __dirname,
@@ -163,17 +212,6 @@ export class ComputeStack extends cdk.Stack {
         { path: "swagger", methods: ["GET"] },
         { path: "swagger.json", methods: ["GET"] },
       ],
-    });
-
-    // 6) MetricsConsumer
-    new SqsConsumer(this, "MetricsConsumer", {
-      entry: path.join(
-        __dirname,
-        "../../../src/backend/src/routes/interfaces/sqs"
-      ),
-
-      handler: "metrics-processor.handler",
-      queue: props.metricsQueue,
     });
   }
 }

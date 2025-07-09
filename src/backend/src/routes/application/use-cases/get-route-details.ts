@@ -1,11 +1,11 @@
 import { RouteRepository } from '../../domain/repositories/route-repository';
 import { Route } from '../../domain/entities/route-entity';
-import { RouteId } from '../../domain/value-objects/route-id-value-object';
+import { UUID } from '../../domain/value-objects/uuid-value-object';
 
 export class GetRouteDetailsUseCase {
   constructor(private repository: RouteRepository) {}
 
-  async execute(id: RouteId): Promise<Route | null> {
+  async execute(id: UUID): Promise<Route | null> {
     return this.repository.findById(id);
   }
 }
