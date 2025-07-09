@@ -73,4 +73,16 @@ describe("ComputeStack", () => {
       },
     });
   });
+
+  test("grants PageRouter permission to delete items in UserState", () => {
+    template.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: Match.arrayWith(["dynamodb:DeleteItem"]),
+          }),
+        ]),
+      },
+    });
+  });
 });
