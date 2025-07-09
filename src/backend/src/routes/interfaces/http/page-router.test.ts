@@ -4,6 +4,9 @@ const mockFindByJobId = jest.fn();
 const mockGetFavourites = jest.fn();
 const mockGetProfile = jest.fn();
 const mockPutProfile = jest.fn();
+const mockPutRouteStart = jest.fn();
+const mockGetRouteStart = jest.fn();
+const mockDeleteRouteStart = jest.fn();
 let mockSend: jest.Mock;
 const mockPublishStarted = jest.fn();
 const mockPublishFinished = jest.fn();
@@ -25,6 +28,9 @@ jest.mock("../../../users/infrastructure/dynamodb/dynamo-user-state-repository",
     getFavourites: mockGetFavourites,
     getProfile: mockGetProfile,
     putProfile: mockPutProfile,
+    putRouteStart: (...args: any[]) => mockPutRouteStart(...args),
+    getRouteStart: (...args: any[]) => mockGetRouteStart(...args),
+    deleteRouteStart: (...args: any[]) => mockDeleteRouteStart(...args),
   })),
 }));
 
@@ -64,6 +70,9 @@ beforeEach(() => {
   mockGetFavourites.mockReset();
   mockGetProfile.mockReset();
   mockPutProfile.mockReset();
+  mockPutRouteStart.mockReset();
+  mockGetRouteStart.mockReset();
+  mockDeleteRouteStart.mockReset();
   mockSend.mockReset();
   mockPublishStarted.mockReset();
   mockPublishFinished.mockReset();
@@ -298,6 +307,11 @@ describe("telemetry started", () => {
       body: JSON.stringify({ routeId }),
     });
     expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockPutRouteStart).toHaveBeenCalledWith(
+      "test@example.com",
+      routeId,
+      expect.any(Number)
+    );
     const sent = mockSend.mock.calls[0][0];
     const payload = JSON.parse(sent.MessageBody);
     expect(payload).toMatchObject({
@@ -342,6 +356,7 @@ describe("finish route", () => {
       ]),
     });
     mockFindById.mockResolvedValueOnce(route);
+    mockGetRouteStart.mockResolvedValueOnce(1000);
     mockSend.mockResolvedValueOnce({});
 
     const res = await handler({
@@ -349,10 +364,19 @@ describe("finish route", () => {
       pathParameters: { routeId: route.routeId.Value },
     });
 
+    expect(mockGetRouteStart).toHaveBeenCalledWith(
+      "test@example.com",
+      route.routeId.Value
+    );
+    expect(mockDeleteRouteStart).toHaveBeenCalledWith(
+      "test@example.com",
+      route.routeId.Value
+    );
     expect(mockSend).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
     expect(payload.routeId).toBe(route.routeId.Value);
     expect(payload.event).toBe("finished");
+    expect(payload).toHaveProperty("actualDuration");
     expect(mockPublishFinished).toHaveBeenCalledWith(
       "test@example.com",
       route.routeId.Value,
@@ -365,6 +389,7 @@ describe("finish route", () => {
       distanceKm: 2,
       duration: 100,
       path: route.path!.Encoded,
+      actualDuration: expect.any(Number),
     });
   });
 });

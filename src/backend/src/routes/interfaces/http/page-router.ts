@@ -185,6 +185,8 @@ export const handler = async (
       };
     }
 
+    const ts = Date.now();
+    await userStateRepository.putRouteStart(email, routeId, ts);
     await sqs.send(
       new SendMessageCommand({
         QueueUrl: process.env.METRICS_QUEUE!,
@@ -192,7 +194,7 @@ export const handler = async (
           event: "started",
           routeId,
           email,
-          timestamp: Date.now(),
+          timestamp: ts,
         }),
       })
     );
@@ -220,6 +222,12 @@ export const handler = async (
       return { statusCode: 404, body: JSON.stringify({ error: "Not Found" }) };
     }
 
+    const finishTs = Date.now();
+    const startTs = await userStateRepository.getRouteStart(email, routeId);
+    if (startTs != null) {
+      await userStateRepository.deleteRouteStart(email, routeId);
+    }
+    const actualDuration = startTs != null ? finishTs - startTs : undefined;
     await sqs.send(
       new SendMessageCommand({
         QueueUrl: process.env.METRICS_QUEUE!,
@@ -227,7 +235,8 @@ export const handler = async (
           event: "finished",
           routeId,
           email,
-          timestamp: Date.now(),
+          timestamp: finishTs,
+          ...(actualDuration != null ? { actualDuration } : {}),
         }),
       })
     );
@@ -241,6 +250,7 @@ export const handler = async (
           distanceKm: route.distanceKm?.Value,
           duration: route.duration?.Value,
           path: route.path?.Encoded,
+          ...(actualDuration != null ? { actualDuration } : {}),
         })
       );
     } catch (err) {
@@ -254,6 +264,7 @@ export const handler = async (
         distanceKm: route.distanceKm?.Value,
         duration: route.duration?.Value,
         path: route.path?.Encoded,
+        ...(actualDuration != null ? { actualDuration } : {}),
       }),
     };
   }
