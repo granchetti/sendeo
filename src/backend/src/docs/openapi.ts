@@ -5,6 +5,17 @@ export const openApiSpec = {
     version: "1.0.0",
   },
   servers: [{ url: "/prod" }],
+  components: {
+    securitySchemes: {
+      cognitoAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+      },
+    },
+  },
+  // Require the Cognito bearer token for all operations except Swagger itself.
+  security: [{ cognitoAuth: [] }],
   paths: {
     "/routes": {
       get: {
