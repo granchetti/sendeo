@@ -4,6 +4,7 @@ export const openApiSpec = {
     title: "Sendeo API",
     version: "1.0.0",
   },
+  servers: [{ url: "/prod" }],
   paths: {
     "/routes": {
       get: {
