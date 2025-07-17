@@ -38,6 +38,9 @@ export class AuthStack extends cdk.Stack {
         adminUserPassword: true,
         userSrp: true,
       },
+      accessTokenValidity: cdk.Duration.hours(2), // up to 24 hours
+      idTokenValidity: cdk.Duration.hours(2), // up to 24 hours
+      refreshTokenValidity: cdk.Duration.days(90), // up to 10 years
       // For Hosted UI:
       // oAuth: {
       //   flows: { authorizationCodeGrant: true },
