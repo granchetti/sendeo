@@ -1,5 +1,3 @@
-// src/routes/interfaces/http/swagger.ts
-
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { openApiSpec } from "../../openapi";
 
@@ -16,8 +14,6 @@ const html = `<!DOCTYPE html>
     <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
     <script>
       window.onload = () => {
-        // construye dinámicamente la URL del JSON
-        // si estás en "/prod/swagger" -> specUrl será "/prod/swagger.json"
         const specUrl = window.location.pathname + '.json';
         SwaggerUIBundle({
           url: specUrl,
@@ -31,7 +27,6 @@ const html = `<!DOCTYPE html>
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  // usa event.path (la URL real) en lugar de event.resource
   if (event.path.endsWith("/swagger.json")) {
     return {
       statusCode: 200,
@@ -39,8 +34,7 @@ export const handler = async (
       body: JSON.stringify(openApiSpec),
     };
   }
-
-  // cualquier otra ruta (incluido "/swagger")
+  
   return {
     statusCode: 200,
     headers: { "Content-Type": "text/html" },
