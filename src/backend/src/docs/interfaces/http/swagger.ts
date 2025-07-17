@@ -17,7 +17,8 @@ const html = `<!DOCTYPE html>
         const specUrl = window.location.pathname + '.json';
         SwaggerUIBundle({
           url: specUrl,
-          dom_id: '#swagger-ui'
+          dom_id: '#swagger-ui',
+          persistAuthorization: true
         });
       };
     </script>

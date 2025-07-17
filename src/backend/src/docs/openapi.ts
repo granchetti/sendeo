@@ -4,6 +4,20 @@ export const openApiSpec = {
     title: "Sendeo API",
     version: "1.0.0",
   },
+  // API Gateway uses the default "prod" stage when no stage name is provided.
+  // Specify it here so Swagger UI generates the correct base URLs.
+  servers: [{ url: "/prod" }],
+  components: {
+    securitySchemes: {
+      cognitoAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+      },
+    },
+  },
+  // Require the Cognito bearer token for all operations except Swagger itself.
+  security: [{ cognitoAuth: [] }],
   paths: {
     "/routes": {
       get: {
