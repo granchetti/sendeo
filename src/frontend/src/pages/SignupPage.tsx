@@ -14,8 +14,12 @@ const SignupPage = () => {
       await signUp(email, password);
       alert('Check your email for a confirmation code');
       navigate('/login');
-    } catch (err: any) {
-      alert(err.message || 'Error signing up');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert('Error signing up');
+      }
     }
   };
 

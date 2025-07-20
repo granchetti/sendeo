@@ -2,8 +2,8 @@ import { useState, useContext } from 'react';
 import { Box, Button, FormControl, FormLabel, Heading, Input, Stack } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { signIn } from '../auth/cognito';
-import { AuthContext } from '../auth/AuthContext';
 import { api } from '../services/api';
+import { AuthContext } from '../contexts/AuthContext';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -18,8 +18,12 @@ const LoginPage = () => {
       setToken(token);
       await api.get('/profile');
       navigate('/');
-    } catch (err: any) {
-      alert(err.message || 'Error signing in');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert('Error signing in');
+      }
     }
   };
 

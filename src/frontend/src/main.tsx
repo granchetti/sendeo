@@ -1,14 +1,15 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ReactDOM from 'react-dom/client';
-import { ChakraProvider } from '@chakra-ui/react';
-import { BrowserRouter } from 'react-router-dom';
-import App from './App';
-import { AuthProvider } from './auth/AuthContext';
+import * as ReactDOM from "react-dom/client";
+import { ChakraProvider, extendTheme } from "@chakra-ui/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
+import { AuthProvider } from "./auth/AuthProvider";
 
 const qc = new QueryClient();
+const theme = extendTheme({ /* your overrides */ });
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <ChakraProvider>
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <ChakraProvider theme={theme}>
     <QueryClientProvider client={qc}>
       <BrowserRouter>
         <AuthProvider>

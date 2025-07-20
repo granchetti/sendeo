@@ -4,7 +4,7 @@ import { Box, Button, HStack } from '@chakra-ui/react';
 import HomePage from './pages/HomePage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
-import { AuthContext } from './auth/AuthContext';
+import { AuthContext } from './contexts/AuthContext';
 
 function App() {
   const { token, setToken } = useContext(AuthContext);
