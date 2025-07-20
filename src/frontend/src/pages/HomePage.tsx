@@ -1,29 +1,29 @@
-import { useState } from 'react';
-import reactLogo from '../assets/react.svg';
-import viteLogo from '/vite.svg';
+import { useContext } from 'react';
+import { Box, Button, Heading, Text } from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext';
 import '../App.css';
 
 const HomePage = () => {
-  const [count, setCount] = useState(0);
+  const { token } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const handleStart = () => {
+    if (token) {
+      navigate('/');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((c) => c + 1)}>count is {count}</button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
-    </>
+    <Box textAlign="center" py={20}>
+      <Heading mb={4}>Welcome to Sendeo</Heading>
+      <Text mb={8}>Manage your deliveries with ease.</Text>
+      <Button colorScheme="blue" size="lg" onClick={handleStart}>
+        Start Now
+      </Button>
+    </Box>
   );
 };
 
