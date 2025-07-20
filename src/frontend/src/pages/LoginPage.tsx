@@ -1,6 +1,15 @@
 import { useState, useContext } from 'react';
-import { Box, Button, FormControl, FormLabel, Heading, Input, Stack } from '@chakra-ui/react';
-import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  FormControl,
+  FormLabel,
+  Heading,
+  Input,
+  Stack,
+  Text,
+} from '@chakra-ui/react';
+import { Link, useNavigate } from 'react-router-dom';
 import { signIn } from '../auth/cognito';
 import { api } from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
@@ -34,15 +43,35 @@ const LoginPage = () => {
         <Stack spacing={3}>
           <FormControl>
             <FormLabel>Email</FormLabel>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </FormControl>
           <FormControl>
             <FormLabel>Password</FormLabel>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </FormControl>
-          <Button type="submit" colorScheme="blue">Login</Button>
+          <Button type="submit" colorScheme="blue">
+            Login
+          </Button>
         </Stack>
       </form>
+      <Text mt={4}>
+        Haven’t you registered yet?{' '}
+        <Link to="/signup">
+          <b>
+        <u>Register now</u>
+          </b>
+        </Link>
+      </Text>
     </Box>
   );
 };
