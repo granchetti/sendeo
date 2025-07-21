@@ -7,6 +7,7 @@ import {
 } from "../../../routes/interfaces/appsync-client";
 import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../application/use-cases/add-favourite";
 import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
+import { corsHeaders } from "../../../http/cors";
 
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoUserStateRepository(
@@ -21,7 +22,7 @@ export const handler = async (
 ): Promise<APIGatewayProxyResult> => {
   const email = (event.requestContext as any).authorizer?.claims?.email;
   if (!email) {
-    return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
   }
 
   const { httpMethod } = event;
@@ -32,12 +33,14 @@ export const handler = async (
       const favourites = items.map((s) => (s.startsWith("FAV#") ? s.slice(4) : s));
       return {
         statusCode: 200,
+        headers: corsHeaders,
         body: JSON.stringify({ favourites }),
       };
     } catch (err) {
       console.error("❌ Error reading favourites:", err);
       return {
         statusCode: 500,
+        headers: corsHeaders,
         body: JSON.stringify({ error: "Could not fetch favourites" }),
       };
     }
@@ -50,6 +53,7 @@ export const handler = async (
     } catch {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ error: "Invalid JSON body" }),
       };
     }
@@ -58,6 +62,7 @@ export const handler = async (
     if (!routeId) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ error: "routeId required" }),
       };
     }
@@ -68,13 +73,14 @@ export const handler = async (
       if (err instanceof FavouriteAlreadyExistsError) {
         return {
           statusCode: 409,
+          headers: corsHeaders,
           body: JSON.stringify({ error: "Route already in favourites" }),
         };
       }
       throw err;
     }
     await publishFavouriteSaved(email, routeId);
-    return { statusCode: 200, body: JSON.stringify({ saved: true }) };
+    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ saved: true }) };
   }
 
   if (httpMethod === "DELETE") {
@@ -82,16 +88,18 @@ export const handler = async (
     if (!routeId) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ error: "routeId parameter required" }),
       };
     }
     await removeFavourite.execute(email, routeId);
     await publishFavouriteDeleted(email, routeId);
-    return { statusCode: 200, body: JSON.stringify({ deleted: true }) };
+    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ deleted: true }) };
   }
 
   return {
     statusCode: 501,
+    headers: corsHeaders,
     body: JSON.stringify({ error: "Not Implemented" }),
   };
 };

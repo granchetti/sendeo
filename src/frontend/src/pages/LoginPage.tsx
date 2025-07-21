@@ -13,6 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { signIn } from '../auth/cognito';
 import axios from 'axios';
 import { AuthContext } from '../contexts/AuthContext';
+import { api } from '../services/api';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -26,7 +27,10 @@ const LoginPage = () => {
       const token = await signIn(email, password);
       setToken(token);
       localStorage.setItem('token', token);
-      //await api.get('/profile');
+      // Create the user's profile after obtaining a token.
+      // This cannot be done during sign up because the profile
+      // endpoint requires authentication.
+      await api.put('/profile', { email });
       navigate('/routes');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {

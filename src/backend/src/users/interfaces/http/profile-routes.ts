@@ -5,6 +5,7 @@ import { GetUserProfileUseCase } from "../../application/use-cases/get-user-prof
 import { UpdateUserProfileUseCase } from "../../application/use-cases/update-user-profile";
 import { Email } from "../../../routes/domain/value-objects/email-value-object";
 import { UserProfile } from "../../domain/entities/user-profile";
+import { corsHeaders } from "../../../http/cors";
 
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoUserStateRepository(
@@ -19,13 +20,13 @@ export const handler = async (
 ): Promise<APIGatewayProxyResult> => {
   const email = (event.requestContext as any).authorizer?.claims?.email;
   if (!email) {
-    return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
   }
   const { httpMethod } = event;
 
   if (httpMethod === "GET") {
     const profile = await getUserProfile.execute(Email.fromString(email));
-    return { statusCode: 200, body: JSON.stringify(profile.toPrimitives()) };
+    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(profile.toPrimitives()) };
   }
 
   if (httpMethod === "PUT") {
@@ -34,7 +35,7 @@ export const handler = async (
       try {
         payload = JSON.parse(event.body);
       } catch {
-        return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON body" }) };
+        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid JSON body" }) };
       }
     }
     const profile = UserProfile.fromPrimitives({
@@ -46,8 +47,8 @@ export const handler = async (
       unit: payload.unit,
     });
     await updateUserProfile.execute(profile);
-    return { statusCode: 200, body: JSON.stringify({ updated: true }) };
+    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ updated: true }) };
   }
 
-  return { statusCode: 501, body: JSON.stringify({ error: "Not Implemented" }) };
+  return { statusCode: 501, headers: corsHeaders, body: JSON.stringify({ error: "Not Implemented" }) };
 };

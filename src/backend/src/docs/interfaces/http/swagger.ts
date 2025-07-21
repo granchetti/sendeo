@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { openApiSpec } from "../../openapi";
+import { corsHeaders } from "../../../http/cors";
 
 const html = `<!DOCTYPE html>
 <html>
@@ -31,14 +32,14 @@ export const handler = async (
   if (event.path.endsWith("/swagger.json")) {
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       body: JSON.stringify(openApiSpec),
     };
   }
   
   return {
     statusCode: 200,
-    headers: { "Content-Type": "text/html" },
+    headers: { ...corsHeaders, "Content-Type": "text/html" },
     body: html,
   };
 };

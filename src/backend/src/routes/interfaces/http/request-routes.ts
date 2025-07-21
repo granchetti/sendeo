@@ -1,6 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { UUID } from "../../domain/value-objects/uuid-value-object";
+import { corsHeaders } from "../../../http/cors";
 
 const sqs = new SQSClient({});
 
@@ -14,6 +15,7 @@ export const handler = async (
     } catch (err) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ error: "Invalid JSON body" }),
       };
     }
@@ -25,6 +27,7 @@ export const handler = async (
   ) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         error: "Must provide origin and (destination OR distanceKm)",
       }),
@@ -62,6 +65,7 @@ export const handler = async (
 
   return {
     statusCode: 202,
+    headers: corsHeaders,
     body: JSON.stringify({ enqueued: true, jobId: data.jobId }),
   };
 };
