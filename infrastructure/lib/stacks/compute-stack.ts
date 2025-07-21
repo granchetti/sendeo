@@ -38,6 +38,7 @@ export class ComputeStack extends cdk.Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: ["*"],
         allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowHeaders: ["Content-Type", "Authorization"],
       },
     });
     const authorizer = new apigw.CognitoUserPoolsAuthorizer(
@@ -72,7 +73,9 @@ export class ComputeStack extends cdk.Stack {
       environment: {
         ROUTES_TABLE: props.routesTable.tableName,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
-        ...(props.appSyncApiKey ? { APPSYNC_API_KEY: props.appSyncApiKey } : {}),
+        ...(props.appSyncApiKey
+          ? { APPSYNC_API_KEY: props.appSyncApiKey }
+          : {}),
         ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
       },
     });
@@ -86,7 +89,7 @@ export class ComputeStack extends cdk.Stack {
     workerRoutes.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["appsync:GraphQL"],
-        resources: ["*"]
+        resources: ["*"],
       })
     );
 
@@ -100,7 +103,9 @@ export class ComputeStack extends cdk.Stack {
       environment: {
         USER_STATE_TABLE: props.userStateTable.tableName,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
-        ...(props.appSyncApiKey ? { APPSYNC_API_KEY: props.appSyncApiKey } : {}),
+        ...(props.appSyncApiKey
+          ? { APPSYNC_API_KEY: props.appSyncApiKey }
+          : {}),
         ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
       },
       api,
@@ -126,7 +131,9 @@ export class ComputeStack extends cdk.Stack {
       environment: {
         USER_STATE_TABLE: props.userStateTable.tableName,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
-        ...(props.appSyncApiKey ? { APPSYNC_API_KEY: props.appSyncApiKey } : {}),
+        ...(props.appSyncApiKey
+          ? { APPSYNC_API_KEY: props.appSyncApiKey }
+          : {}),
         ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
       },
       api,
@@ -152,7 +159,9 @@ export class ComputeStack extends cdk.Stack {
         USER_STATE_TABLE: props.userStateTable.tableName,
         METRICS_QUEUE: props.metricsQueue.queueUrl,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
-        ...(props.appSyncApiKey ? { APPSYNC_API_KEY: props.appSyncApiKey } : {}),
+        ...(props.appSyncApiKey
+          ? { APPSYNC_API_KEY: props.appSyncApiKey }
+          : {}),
         ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
       },
       api,
@@ -186,7 +195,10 @@ export class ComputeStack extends cdk.Stack {
     );
     props.metricsQueue.grantSendMessages(pageRouter.fn);
     pageRouter.fn.addToRolePolicy(
-      new iam.PolicyStatement({ actions: ["appsync:GraphQL"], resources: ["*"] })
+      new iam.PolicyStatement({
+        actions: ["appsync:GraphQL"],
+        resources: ["*"],
+      })
     );
 
     // 6) MetricsConsumer
@@ -199,7 +211,7 @@ export class ComputeStack extends cdk.Stack {
       handler: "metrics-processor.handler",
       queue: props.metricsQueue,
     });
-    
+
     // 7) SwaggerDocs → GET /swagger & GET /swagger.json
     new HttpLambda(this, "SwaggerDocs", {
       entry: path.join(
