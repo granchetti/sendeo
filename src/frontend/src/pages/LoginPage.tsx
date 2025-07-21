@@ -26,7 +26,7 @@ const LoginPage = () => {
       const token = await signIn(email, password);
       setToken(token);
       await api.get('/profile');
-      navigate('/');
+      navigate('/routes');
     } catch (err: unknown) {
       if (err instanceof Error) {
         alert(err.message);
