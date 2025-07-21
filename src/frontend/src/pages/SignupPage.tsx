@@ -13,7 +13,7 @@ const SignupPage = () => {
     try {
       await signUp(email, password);
       alert('Check your email for a confirmation code');
-      navigate('/login');
+      navigate('/confirm-signup');
     } catch (err: unknown) {
       if (err instanceof Error) {
         alert(err.message);
