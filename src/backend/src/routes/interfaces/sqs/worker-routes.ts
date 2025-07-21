@@ -158,7 +158,11 @@ async function computeRoutes(
     })
     .filter(
       (
-        x
+        x: {
+          distanceMeters: number;
+          durationSeconds: number;
+          encoded?: string;
+        } | null
       ): x is {
         distanceMeters: number;
         durationSeconds: number;

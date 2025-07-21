@@ -106,7 +106,7 @@ describe("worker routes handler", () => {
     expect(saved.distanceKm.Value).toBe(1.5);
     expect(saved.duration.Value).toBe(600);
     expect(
-      saved.path!.Coordinates.map((c) => ({ lat: c.Lat, lng: c.Lng }))
+      saved.path!.Coordinates.map((c: any) => ({ lat: c.Lat, lng: c.Lng }))
     ).toEqual([
       { lat: 38.5, lng: -120.2 },
       { lat: 40.7, lng: -120.95 },
@@ -230,7 +230,7 @@ describe("worker routes handler", () => {
     expect(saved.distanceKm.Value).toBe(3);
     expect(saved.duration.Value).toBe(1200);
     expect(
-      saved.path!.Coordinates.map((c) => ({ lat: c.Lat, lng: c.Lng }))
+      saved.path!.Coordinates.map((c: any) => ({ lat: c.Lat, lng: c.Lng }))
     ).toEqual([
       { lat: 38.5, lng: -120.2 },
       { lat: 40.7, lng: -120.95 },
