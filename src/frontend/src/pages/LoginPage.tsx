@@ -11,7 +11,6 @@ import {
 } from '@chakra-ui/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signIn } from '../auth/cognito';
-import { api } from '../services/api';
 import axios from 'axios';
 import { AuthContext } from '../contexts/AuthContext';
 
@@ -27,7 +26,7 @@ const LoginPage = () => {
       const token = await signIn(email, password);
       setToken(token);
       localStorage.setItem('token', token);
-      await api.get('/profile');
+      //await api.get('/profile');
       navigate('/routes');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {

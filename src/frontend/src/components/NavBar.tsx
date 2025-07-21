@@ -52,17 +52,6 @@ const NavBar = () => {
             Home
           </Link>
 
-          {token && (
-            <Link
-              as={RouterLink}
-              to="/routes"
-              _hover={{ color: linkHover }}
-              color={linkColor}
-            >
-              Routes
-            </Link>
-          )}
-
           {!token && (
             <>
               <Link
