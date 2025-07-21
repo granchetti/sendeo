@@ -25,6 +25,7 @@ const LoginPage = () => {
     try {
       const token = await signIn(email, password);
       setToken(token);
+      localStorage.setItem('token', token);
       await api.get('/profile');
       navigate('/');
     } catch (err: unknown) {

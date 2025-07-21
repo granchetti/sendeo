@@ -1,4 +1,8 @@
-import { CognitoUserPool, CognitoUser, AuthenticationDetails } from 'amazon-cognito-identity-js';
+import {
+  CognitoUserPool,
+  CognitoUser,
+  AuthenticationDetails,
+} from 'amazon-cognito-identity-js';
 
 const pool = new CognitoUserPool({
   UserPoolId: import.meta.env.VITE_USER_POOL_ID!,
@@ -26,11 +30,14 @@ export function confirmSignUp(email: string, code: string): Promise<unknown> {
 
 export function signIn(email: string, password: string): Promise<string> {
   const user = new CognitoUser({ Username: email, Pool: pool });
-  const details = new AuthenticationDetails({ Username: email, Password: password });
+  const details = new AuthenticationDetails({
+    Username: email,
+    Password: password,
+  });
   return new Promise((resolve, reject) => {
     user.authenticateUser(details, {
       onSuccess: (session) => {
-        resolve(session.getAccessToken().getJwtToken());
+        resolve(session.getIdToken().getJwtToken());
       },
       onFailure: (err) => reject(err),
     });
