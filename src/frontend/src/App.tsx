@@ -7,6 +7,8 @@ import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import RoutesPage from './pages/RoutesPage';
 import ConfirmSignupPage from './pages/ConfirmSignupPage';
+import UserProfilePage from './pages/UserProfilePage';
+import FavouritesPage from './pages/FavouritesPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 
@@ -25,6 +27,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <RoutesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <UserProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/favourites"
+            element={
+              <ProtectedRoute>
+                <FavouritesPage />
               </ProtectedRoute>
             }
           />
