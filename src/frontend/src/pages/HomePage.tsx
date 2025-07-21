@@ -34,7 +34,7 @@ const HomePage = () => {
   return (
     <Box
       minH="100vh"
-      bgGradient="linear(to-br, lime.200 0%, brand.100 100%)"
+      bgGradient="linear(to-br, lime.100 0%, brand.300 100%)"
       position="relative"
       overflow="hidden"
     >

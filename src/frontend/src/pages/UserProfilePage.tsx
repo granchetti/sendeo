@@ -93,7 +93,7 @@ const UserProfilePage = () => {
   }
 
   return (
-    <Box maxW={['full', 'md', 'lg', '2xl']} mx="auto" pt={12} pb={24} px={[2, 4, 8]}>
+    <Box maxW="1000px" mx="auto" pt={12} pb={24} px={[2, 4, 8]} bg="white">
       <Flex align="center" gap={6} mb={8}>
       <Avatar
         size="xl"
