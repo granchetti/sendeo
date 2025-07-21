@@ -14,18 +14,3 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
-backend:
-  phases:
-    preBuild:
-      commands:
-        - cd src/backend
-        - npm ci
-    build:
-      commands:
-        - npm run build
-  artifacts:
-    baseDirectory: .
-    files: []
-  cache:
-    paths:
-      - node_modules/**/*
