@@ -12,6 +12,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { signIn } from '../auth/cognito';
 import { api } from '../services/api';
+import axios from 'axios';
 import { AuthContext } from '../contexts/AuthContext';
 
 const LoginPage = () => {
@@ -29,9 +30,18 @@ const LoginPage = () => {
       await api.get('/profile');
       navigate('/routes');
     } catch (err: unknown) {
-      if (err instanceof Error) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 401) {
+          alert('Invalid email or password');
+        } else {
+          console.error(err);
+          alert('An unexpected error occurred');
+        }
+      } else if (err instanceof Error) {
+        console.error(err);
         alert(err.message);
       } else {
+        console.error(err);
         alert('Error signing in');
       }
     }
