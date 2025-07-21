@@ -8,7 +8,13 @@ import {
   Link,
   Image,
   useColorModeValue,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  IconButton,
 } from '@chakra-ui/react';
+import { FaUserCircle } from 'react-icons/fa';
 import { useContext } from 'react';
 import logoSrc from '../assets/logo.png';
 import { AuthContext } from '../contexts/AuthContext';
@@ -74,14 +80,20 @@ const NavBar = () => {
           )}
 
           {token && (
-            <Button
-              size="sm"
-              colorScheme="brand"
-              variant="outline"
-              onClick={() => setToken(null)}
-            >
-              Logout
-            </Button>
+            <Menu>
+              <MenuButton
+                as={IconButton}
+                aria-label="User menu"
+                icon={<FaUserCircle />}
+                variant="ghost"
+                size="lg"
+              />
+              <MenuList>
+                <MenuItem as={RouterLink} to="/profile">Profile Settings</MenuItem>
+                <MenuItem as={RouterLink} to="/favourites">Favourite Routes</MenuItem>
+                <MenuItem onClick={() => setToken(null)}>Logout</MenuItem>
+              </MenuList>
+            </Menu>
           )}
         </HStack>
       </Flex>
