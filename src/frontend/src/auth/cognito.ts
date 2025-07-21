@@ -45,3 +45,14 @@ export function signIn(email: string, password: string): Promise<string> {
     });
   });
 }
+
+export function forgotPassword(email: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const user = new CognitoUser({ Username: email, Pool: pool });
+    user.forgotPassword({
+      onSuccess: () => resolve(),
+      onFailure: (err) => reject(err),
+      inputVerificationCode: () => resolve(), // Optional, if you want to handle verification code UI
+    });
+  });
+}
