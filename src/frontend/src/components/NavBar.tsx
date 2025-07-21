@@ -1,51 +1,93 @@
-import { Flex, HStack, Link, Box, Button, Image, useColorModeValue } from '@chakra-ui/react'
-import { Link as RouterLink } from 'react-router-dom'
-import logoSrc from '../assets/logo.svg'
+import { Link as RouterLink } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  Flex,
+  HStack,
+  Spacer,
+  Link,
+  Image,
+  useColorModeValue,
+} from '@chakra-ui/react';
+import { useContext } from 'react';
+import logoSrc from '../assets/logo.png';
+import { AuthContext } from '../contexts/AuthContext';
 
-export const NavBar = () => {
-  const bg = useColorModeValue('white', 'gray.800')
-  const borderColor = useColorModeValue('gray.200', 'gray.700')
+const NavBar = () => {
+  const { token, setToken } = useContext(AuthContext);
+  const linkColor = useColorModeValue('gray.600', 'gray.300');
+  const linkHover = useColorModeValue('brand.600', 'brand.400');
 
   return (
-    <Box
-      as="nav"
-      w="100%"
-      bg={bg}
-      borderBottom="1px"
-      borderColor={borderColor}
-      px={{ base: 4, md: 8 }}
-      py={3}
-    >
-      <Flex maxW="7xl" mx="auto" align="center" justify="space-between">
-        {/* Logo a la izquierda */}
-        <Link as={RouterLink} to="/">
-          <Image
-            src={logoSrc}
-            alt="Sendeo Logo"
-            h={8}               
-            objectFit="contain"
-          />
-        </Link>
+    <Box>
+      {/* NAVBAR */}
+      <Flex
+        as="nav"
+        px={{ base: 4, md: 8 }}
+        py={3}
+        align="center"
+        borderBottom="1px"
+        borderColor={useColorModeValue('gray.200', 'gray.700')}
+      >
+        <Box fontWeight="bold" color="brand.500">
+          <Link as={RouterLink} to="/">
+            <Image
+              src={logoSrc}
+              alt="Sendeo Logo"
+              h={100}
+              objectFit="contain"
+            />
+          </Link>
+        </Box>
 
-        {/* Enlaces a la derecha */}
+        <Spacer />
+
         <HStack spacing={6}>
-          <Link as={RouterLink} to="/" _hover={{ color: 'brand.600' }}>
+          <Link
+            as={RouterLink}
+            to="/"
+            _hover={{ color: linkHover }}
+            color={linkColor}
+          >
             Home
           </Link>
-          <Link as={RouterLink} to="/login" _hover={{ color: 'brand.600' }}>
-            Login
-          </Link>
-          <Button
-            as={RouterLink}
-            to="/signup"
-            size="sm"
-            colorScheme="brand"
-            variant="solid"
-          >
-            Sign Up
-          </Button>
+
+          {!token && (
+            <>
+              <Link
+                as={RouterLink}
+                to="/login"
+                _hover={{ color: linkHover }}
+                color={linkColor}
+              >
+                Login
+              </Link>
+              <Link
+                as={RouterLink}
+                to="/signup"
+                _hover={{ color: linkHover }}
+                color={linkColor}
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
+
+          {token && (
+            <Button
+              size="sm"
+              colorScheme="brand"
+              variant="outline"
+              onClick={() => setToken(null)}
+            >
+              Logout
+            </Button>
+          )}
         </HStack>
       </Flex>
     </Box>
-  )
-}
+    
+  );
+};
+
+export default NavBar;

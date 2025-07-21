@@ -11,8 +11,11 @@ import {
   Image,
 } from '@chakra-ui/react';
 import { FaRoute } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+
+const MotionCircle = motion(Circle);
 
 const HomePage = () => {
   const { token } = useContext(AuthContext);
@@ -25,26 +28,30 @@ const HomePage = () => {
   return (
     <Box
       minH="100vh"
-      bgGradient="linear(to-br, brand.50, brand.100)"
+      bgGradient="linear(to-br, lime.50, lime.100)"
       position="relative"
       overflow="hidden"
     >
-      {/* Formas decorativas */}
-      <Circle
+
+      <MotionCircle
         size="600px"
-        bg="blue.100"
+        bg="darkGreen.200"
         opacity={0.3}
         position="absolute"
-        top="-200px"
-        left="-200px"
+        top="-250px"
+        left="-250px"
+        animate={{ x: [0, 20, 0], y: [0, 10, 0] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
       />
-      <Circle
-        size="400px"
-        bg="teal.100"
+      <MotionCircle
+        size="500px"
+        bg="darkGreen.500"
         opacity={0.3}
         position="absolute"
-        bottom="-150px"
-        right="-150px"
+        bottom="-200px"
+        right="-200px"
+        animate={{ x: [0, -15, 0], y: [0, -10, 0] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       <Container maxW="container.xl" py={20}>
@@ -54,19 +61,12 @@ const HomePage = () => {
           justify="space-between"
           gap={8}
         >
-          <Stack spacing={6} flex="1">
-            <Heading
-              as="h1"
-              size="2xl"
-              lineHeight="short"
-              position="relative"
-              zIndex={2}
-            >
-              <Text as="span" color="black">
+          <Stack spacing={8} flex="1">
+
+            <Heading as="h1" size="2xl" color="brand.500">
               Welcome to Sendeo
-              </Text>
             </Heading>
-            <Text fontSize="xl" color="black">
+            <Text fontSize="xl" color="gray.700">
               Find personalized routes tailored to you in just seconds.
             </Text>
             <Button
@@ -89,7 +89,7 @@ const HomePage = () => {
             />
           </Box>
         </Flex>
-      </Container>ac
+      </Container>
     </Box>
   );
 };
