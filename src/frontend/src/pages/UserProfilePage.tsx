@@ -103,8 +103,9 @@ const UserProfilePage = () => {
       />
       <Box flex="1">
         <Heading size="md" mb={1}>
-        {profile?.displayName ||
-          profile?.firstName + ' ' + profile?.lastName}
+          {profile?.displayName && profile.displayName.trim() !== ''
+            ? profile.displayName
+            : profile?.email}
         </Heading>
         <Text color="gray.500" fontSize="md" mb={1}>
         {profile?.email}
