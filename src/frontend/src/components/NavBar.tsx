@@ -1,7 +1,6 @@
 import { Link as RouterLink } from 'react-router-dom';
 import {
   Box,
-  Button,
   Flex,
   HStack,
   Spacer,
