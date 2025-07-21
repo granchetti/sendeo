@@ -27,7 +27,7 @@ const LoginPage = () => {
       setToken(token);
       localStorage.setItem('token', token);
       await api.get('/profile');
-      navigate('/');
+      navigate('/routes');
     } catch (err: unknown) {
       if (err instanceof Error) {
         alert(err.message);
