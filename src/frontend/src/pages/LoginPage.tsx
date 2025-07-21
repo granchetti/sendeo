@@ -27,9 +27,6 @@ const LoginPage = () => {
       const token = await signIn(email, password);
       setToken(token);
       localStorage.setItem('token', token);
-      // Create the user's profile after obtaining a token.
-      // This cannot be done during sign up because the profile
-      // endpoint requires authentication.
       await api.put('/profile', { email });
       navigate('/routes');
     } catch (err: unknown) {
