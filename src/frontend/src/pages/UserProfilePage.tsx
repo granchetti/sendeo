@@ -1,43 +1,51 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   Box,
   Heading,
   Text,
-  Spinner,
-  Stack,
   Avatar,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  Stack,
   Flex,
-  Icon,
-  Divider,
-  Alert,
-  AlertIcon,
-} from '@chakra-ui/react';
-import { FaUserCircle } from 'react-icons/fa';
-import { api } from '../services/api';
+  Input,
+  Select,
+  IconButton,
+  useToast,
+} from "@chakra-ui/react";
+import { FaEdit, FaCheck, FaTimes, FaUserEdit } from "react-icons/fa";
+import { api } from "../services/api";
 
-interface Profile {
+export interface UserProfileProps {
   email: string;
   firstName?: string;
   lastName?: string;
   displayName?: string;
   age?: number;
-  unit?: string;
+  unit?: "km" | "mi";
 }
 
+const distanceUnitOptions = [
+  { label: "Kilometers", value: "km" },
+  { label: "Miles", value: "mi" },
+];
+
 const UserProfilePage = () => {
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<UserProfileProps | null>(null);
+  const [editField, setEditField] = useState<keyof UserProfileProps | null>(null);
+  const [editValue, setEditValue] = useState<string | number>("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const { data } = await api.get('/profile');
+        const { data } = await api.get("/profile");
         setProfile(data);
-        setError(false);
-      } catch {
-        setError(true);
-        setProfile(null);
       } finally {
         setLoading(false);
       }
@@ -45,110 +53,192 @@ const UserProfilePage = () => {
     fetchProfile();
   }, []);
 
-  if (loading) {
-    return (
-      <Flex minH="50vh" align="center" justify="center">
-        <Spinner size="xl" color="brand.800" />
-      </Flex>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box maxW="md" mx="auto" mt={14} p={6}>
-        <Alert status="error" variant="left-accent" borderRadius="lg">
-          <AlertIcon />
-          Failed to load profile information. Please try again later.
-        </Alert>
-      </Box>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <Box maxW="md" mx="auto" mt={14} p={6}>
-        <Alert status="info" variant="left-accent" borderRadius="lg">
-          <AlertIcon />
-          Profile not found.
-        </Alert>
-      </Box>
-    );
-  }
-
-  // Get user initials for avatar
-  const getInitials = () => {
-    if (profile.displayName) return profile.displayName[0];
-    if (profile.firstName || profile.lastName) {
-      return `${profile.firstName?.[0] || ''}${profile.lastName?.[0] || ''}`;
-    }
-    return profile.email[0];
+  const startEdit = (field: keyof UserProfileProps) => {
+    setEditField(field);
+    setEditValue(profile?.[field] ?? "");
   };
 
+  const cancelEdit = () => {
+    setEditField(null);
+    setEditValue("");
+  };
+
+  const saveEdit = async () => {
+    if (!profile || editField === null) return;
+    const updated = { ...profile, [editField]: editField === "age" ? Number(editValue) : editValue };
+    setSaving(true);
+    try {
+      await api.put("/profile", updated);
+      setProfile(updated);
+      toast({
+        title: "Profile updated.",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+        position: "top",
+      });
+    } finally {
+      setSaving(false);
+      setEditField(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Text textAlign="center" py={32}>
+        Loading...
+      </Text>
+    );
+  }
+
   return (
-    <Flex align="center" justify="center" minH="70vh" bg="brand.50">
-      <Box
-        w="100%"
-        maxW="md"
-        bg="white"
-        borderRadius="2xl"
-        boxShadow="lg"
-        p={{ base: 6, md: 8 }}
-      >
-        <Flex direction="column" align="center" mb={4}>
-          <Avatar
-            size="xl"
-            bg="brand.700"
-            color="white"
-            name={profile.displayName || profile.firstName || profile.email}
-            icon={<Icon as={FaUserCircle} boxSize={14} />}
-            mb={2}
-          >
-            {getInitials()}
-          </Avatar>
-          <Heading size="lg" color="brand.700" mb={1}>
-            {profile.displayName || `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User'}
+    <Box maxW="4xl" mx="auto" pt={12} pb={24} px={4}>
+      <Flex align="center" gap={6}>
+        <Avatar
+          size="xl"
+          icon={<FaUserEdit fontSize="2.5rem" />}
+          bg="brand.600"
+          color="white"
+        />
+        <Box flex="1">
+          <Heading size="md" mb={1}>
+            {profile?.displayName ||
+              profile?.firstName + " " + profile?.lastName}
           </Heading>
-          <Text color="darkGreen.700">{profile.email}</Text>
-        </Flex>
+          <Text color="gray.500" fontSize="md" mb={1}>
+            {profile?.email}
+          </Text>
+        </Box>
+      </Flex>
 
-        <Divider my={4} borderColor="brand.100" />
-
-        <Stack spacing={3} px={2}>
-          {profile.firstName && (
-            <Flex>
-              <Text w={28} color="brand.600" fontWeight="bold">
-                First Name:
-              </Text>
-              <Text color="darkGreen.900">{profile.firstName}</Text>
-            </Flex>
-          )}
-          {profile.lastName && (
-            <Flex>
-              <Text w={28} color="brand.600" fontWeight="bold">
-                Last Name:
-              </Text>
-              <Text color="darkGreen.900">{profile.lastName}</Text>
-            </Flex>
-          )}
-          {profile.age != null && (
-            <Flex>
-              <Text w={28} color="brand.600" fontWeight="bold">
-                Age:
-              </Text>
-              <Text color="darkGreen.900">{profile.age}</Text>
-            </Flex>
-          )}
-          {profile.unit && (
-            <Flex>
-              <Text w={28} color="brand.600" fontWeight="bold">
-                Unit:
-              </Text>
-              <Text color="darkGreen.900">{profile.unit}</Text>
-            </Flex>
-          )}
-        </Stack>
-      </Box>
-    </Flex>
+      <Tabs variant="enclosed" mt={10} colorScheme="brand">
+        <TabList>
+          <Tab>Profile</Tab>
+          <Tab>Settings</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel>
+            <Heading size="sm" mb={6} mt={4}>
+              Personal Info
+            </Heading>
+            <Stack spacing={4} fontSize="md">
+              {[
+                {
+                  label: "Display Name",
+                  field: "displayName",
+                  type: "text",
+                },
+                {
+                  label: "First Name",
+                  field: "firstName",
+                  type: "text",
+                },
+                {
+                  label: "Last Name",
+                  field: "lastName",
+                  type: "text",
+                },
+                {
+                  label: "Email",
+                  field: "email",
+                  type: "text",
+                  readonly: true,
+                },
+                {
+                  label: "Age",
+                  field: "age",
+                  type: "number",
+                },
+                {
+                  label: "Distance Unit",
+                  field: "unit",
+                  type: "select",
+                },
+              ].map(({ label, field, type, readonly }) => (
+                <Flex key={field as string} align="center">
+                  <Box w={44} fontWeight="semibold" color="gray.600">
+                    {label}
+                  </Box>
+                  {editField === field ? (
+                    <>
+                      {type === "select" ? (
+                        <Select
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          size="sm"
+                          maxW={48}
+                          isDisabled={saving}
+                        >
+                          {distanceUnitOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </Select>
+                      ) : (
+                        <Input
+                          value={editValue}
+                          type={type}
+                          size="sm"
+                          maxW={48}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          isDisabled={saving}
+                        />
+                      )}
+                      <IconButton
+                        aria-label="Save"
+                        icon={<FaCheck />}
+                        colorScheme="green"
+                        size="sm"
+                        ml={2}
+                        isLoading={saving}
+                        onClick={saveEdit}
+                      />
+                      <IconButton
+                        aria-label="Cancel"
+                        icon={<FaTimes />}
+                        size="sm"
+                        ml={1}
+                        onClick={cancelEdit}
+                        isDisabled={saving}
+                      />
+                    </>
+                  ) : (
+                    <Flex align="center" gap={2}>
+                      <Text color={readonly ? "gray.500" : "darkGreen.900"}>
+                        {type === "select"
+                          ? profile?.[field as keyof UserProfileProps] === "km"
+                            ? "Kilometers"
+                            : profile?.[field as keyof UserProfileProps] === "mi"
+                            ? "Miles"
+                            : "—"
+                          : profile?.[field as keyof UserProfileProps] ?? <span style={{ color: "#aaa" }}>—</span>}
+                      </Text>
+                      {!readonly && (
+                        <IconButton
+                          aria-label="Edit"
+                          icon={<FaEdit />}
+                          size="xs"
+                          variant="ghost"
+                          color="brand.700"
+                          onClick={() => startEdit(field as keyof UserProfileProps)}
+                        />
+                      )}
+                    </Flex>
+                  )}
+                </Flex>
+              ))}
+            </Stack>
+          </TabPanel>
+          <TabPanel>
+            <Heading size="sm" mb={6} mt={4}>
+              Settings
+            </Heading>
+            <Text color="gray.400">...future settings here...</Text>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
+    </Box>
   );
 };
 

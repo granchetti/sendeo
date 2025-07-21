@@ -19,7 +19,13 @@ const RoutesPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data: Record<string, any> = { origin };
+    const data: {
+      origin: string;
+      destination?: string;
+      distanceKm?: number;
+      maxDeltaKm?: number;
+      routesCount?: number;
+    } = { origin };
     if (destination) data.destination = destination;
     if (distanceKm) data.distanceKm = Number(distanceKm);
     if (maxDeltaKm) data.maxDeltaKm = Number(maxDeltaKm);
