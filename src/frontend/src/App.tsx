@@ -7,6 +7,8 @@ import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import RoutesPage from './pages/RoutesPage';
 import ConfirmSignupPage from './pages/ConfirmSignupPage';
+import ProtectedRoute from './components/ProtectedRoute';
+
 
 function App() {
   return (
@@ -18,7 +20,14 @@ function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/confirm-signup" element={<ConfirmSignupPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/routes" element={<RoutesPage />} />
+          <Route
+            path="/routes"
+            element={
+              <ProtectedRoute>
+                <RoutesPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Box>
     </Box>
