@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import {
   Box,
   Heading,
@@ -13,11 +13,11 @@ import {
   Flex,
   Input,
   Select,
-  IconButton,
+  Button,
   useToast,
-} from "@chakra-ui/react";
-import { FaEdit, FaCheck, FaTimes, FaUserEdit } from "react-icons/fa";
-import { api } from "../services/api";
+} from '@chakra-ui/react';
+import { FaUserEdit } from 'react-icons/fa';
+import { api } from '../services/api';
 
 export interface UserProfileProps {
   email: string;
@@ -25,18 +25,17 @@ export interface UserProfileProps {
   lastName?: string;
   displayName?: string;
   age?: number;
-  unit?: "km" | "mi";
+  unit?: 'km' | 'mi';
 }
 
 const distanceUnitOptions = [
-  { label: "Kilometers", value: "km" },
-  { label: "Miles", value: "mi" },
+  { label: 'Kilometers', value: 'km' },
+  { label: 'Miles', value: 'mi' },
 ];
 
 const UserProfilePage = () => {
   const [profile, setProfile] = useState<UserProfileProps | null>(null);
-  const [editField, setEditField] = useState<keyof UserProfileProps | null>(null);
-  const [editValue, setEditValue] = useState<string | number>("");
+  const [form, setForm] = useState<UserProfileProps | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
@@ -44,8 +43,9 @@ const UserProfilePage = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const { data } = await api.get("/profile");
+        const { data } = await api.get('/profile');
         setProfile(data);
+        setForm(data);
       } finally {
         setLoading(false);
       }
@@ -53,35 +53,36 @@ const UserProfilePage = () => {
     fetchProfile();
   }, []);
 
-  const startEdit = (field: keyof UserProfileProps) => {
-    setEditField(field);
-    setEditValue(profile?.[field] ?? "");
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev!,
+      [name]:
+        name === 'age' ? (value === '' ? undefined : Number(value)) : value,
+    }));
   };
 
-  const cancelEdit = () => {
-    setEditField(null);
-    setEditValue("");
-  };
-
-  const saveEdit = async () => {
-    if (!profile || editField === null) return;
-    const updated = { ...profile, [editField]: editField === "age" ? Number(editValue) : editValue };
+  const handleSave = async () => {
+    if (!form) return;
     setSaving(true);
     try {
-      await api.put("/profile", updated);
-      setProfile(updated);
+      await api.put('/profile', form);
+      setProfile(form);
       toast({
-        title: "Profile updated.",
-        status: "success",
+        title: 'Profile updated.',
+        status: 'success',
         duration: 2000,
         isClosable: true,
-        position: "top",
+        position: 'top',
       });
     } finally {
       setSaving(false);
-      setEditField(null);
     }
   };
+
+  const hasChanged = JSON.stringify(profile) !== JSON.stringify(form);
 
   if (loading) {
     return (
@@ -92,151 +93,122 @@ const UserProfilePage = () => {
   }
 
   return (
-    <Box maxW="4xl" mx="auto" pt={12} pb={24} px={4}>
-      <Flex align="center" gap={6}>
-        <Avatar
-          size="xl"
-          icon={<FaUserEdit fontSize="2.5rem" />}
-          bg="brand.600"
-          color="white"
-        />
-        <Box flex="1">
-          <Heading size="md" mb={1}>
-            {profile?.displayName ||
-              profile?.firstName + " " + profile?.lastName}
-          </Heading>
-          <Text color="gray.500" fontSize="md" mb={1}>
-            {profile?.email}
-          </Text>
-        </Box>
+    <Box maxW={['full', 'md', 'lg', '2xl']} mx="auto" pt={12} pb={24} px={[2, 4, 8]}>
+      <Flex align="center" gap={6} mb={8}>
+      <Avatar
+        size="xl"
+        icon={<FaUserEdit fontSize="2.5rem" />}
+        bg="brand.600"
+        color="white"
+      />
+      <Box flex="1">
+        <Heading size="md" mb={1}>
+        {profile?.displayName ||
+          profile?.firstName + ' ' + profile?.lastName}
+        </Heading>
+        <Text color="gray.500" fontSize="md" mb={1}>
+        {profile?.email}
+        </Text>
+      </Box>
       </Flex>
 
-      <Tabs variant="enclosed" mt={10} colorScheme="brand">
-        <TabList>
-          <Tab>Profile</Tab>
-          <Tab>Settings</Tab>
-        </TabList>
-        <TabPanels>
-          <TabPanel>
-            <Heading size="sm" mb={6} mt={4}>
-              Personal Info
-            </Heading>
-            <Stack spacing={4} fontSize="md">
-              {[
-                {
-                  label: "Display Name",
-                  field: "displayName",
-                  type: "text",
-                },
-                {
-                  label: "First Name",
-                  field: "firstName",
-                  type: "text",
-                },
-                {
-                  label: "Last Name",
-                  field: "lastName",
-                  type: "text",
-                },
-                {
-                  label: "Email",
-                  field: "email",
-                  type: "text",
-                  readonly: true,
-                },
-                {
-                  label: "Age",
-                  field: "age",
-                  type: "number",
-                },
-                {
-                  label: "Distance Unit",
-                  field: "unit",
-                  type: "select",
-                },
-              ].map(({ label, field, type, readonly }) => (
-                <Flex key={field as string} align="center">
-                  <Box w={44} fontWeight="semibold" color="gray.600">
-                    {label}
-                  </Box>
-                  {editField === field ? (
-                    <>
-                      {type === "select" ? (
-                        <Select
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          size="sm"
-                          maxW={48}
-                          isDisabled={saving}
-                        >
-                          {distanceUnitOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </Select>
-                      ) : (
-                        <Input
-                          value={editValue}
-                          type={type}
-                          size="sm"
-                          maxW={48}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          isDisabled={saving}
-                        />
-                      )}
-                      <IconButton
-                        aria-label="Save"
-                        icon={<FaCheck />}
-                        colorScheme="green"
-                        size="sm"
-                        ml={2}
-                        isLoading={saving}
-                        onClick={saveEdit}
-                      />
-                      <IconButton
-                        aria-label="Cancel"
-                        icon={<FaTimes />}
-                        size="sm"
-                        ml={1}
-                        onClick={cancelEdit}
-                        isDisabled={saving}
-                      />
-                    </>
-                  ) : (
-                    <Flex align="center" gap={2}>
-                      <Text color={readonly ? "gray.500" : "darkGreen.900"}>
-                        {type === "select"
-                          ? profile?.[field as keyof UserProfileProps] === "km"
-                            ? "Kilometers"
-                            : profile?.[field as keyof UserProfileProps] === "mi"
-                            ? "Miles"
-                            : "—"
-                          : profile?.[field as keyof UserProfileProps] ?? <span style={{ color: "#aaa" }}>—</span>}
-                      </Text>
-                      {!readonly && (
-                        <IconButton
-                          aria-label="Edit"
-                          icon={<FaEdit />}
-                          size="xs"
-                          variant="ghost"
-                          color="brand.700"
-                          onClick={() => startEdit(field as keyof UserProfileProps)}
-                        />
-                      )}
-                    </Flex>
-                  )}
-                </Flex>
+      <Tabs variant="enclosed" colorScheme="brand">
+      <TabList>
+        <Tab>Profile</Tab>
+        <Tab>Settings</Tab>
+      </TabList>
+      <TabPanels>
+        <TabPanel>
+        <Heading size="sm" mb={6} mt={4}>
+          Personal Info
+        </Heading>
+        <Stack spacing={7} fontSize="md">
+          {[
+          { label: 'Display Name', field: 'displayName', type: 'text' },
+          { label: 'First Name', field: 'firstName', type: 'text' },
+          { label: 'Last Name', field: 'lastName', type: 'text' },
+          {
+            label: 'Email',
+            field: 'email',
+            type: 'text',
+            readonly: true,
+          },
+          { label: 'Age', field: 'age', type: 'number' },
+          { label: 'Distance Unit', field: 'unit', type: 'select' },
+          ].map(({ label, field, type, readonly }) => (
+          <Box key={field as string}>
+            <Text
+            mb={2}
+            fontWeight="semibold"
+            color="gray.600"
+            fontSize="sm"
+            >
+            {label}
+            </Text>
+            {type === 'select' ? (
+            <Select
+              name={field}
+              value={form?.[field as keyof UserProfileProps] ?? ''}
+              onChange={handleChange}
+              maxW="full"
+              bg="gray.50"
+              color="darkGreen.900"
+              fontSize="md"
+              isDisabled={readonly}
+            >
+              {distanceUnitOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
               ))}
-            </Stack>
-          </TabPanel>
-          <TabPanel>
-            <Heading size="sm" mb={6} mt={4}>
-              Settings
-            </Heading>
-            <Text color="gray.400">...future settings here...</Text>
-          </TabPanel>
-        </TabPanels>
+            </Select>
+            ) : (
+            <Input
+              name={field}
+              type={type}
+              value={form?.[field as keyof UserProfileProps] ?? ''}
+              onChange={handleChange}
+              maxW="full"
+              bg="gray.50"
+              color={readonly ? 'gray.500' : 'darkGreen.900'}
+              fontSize="md"
+              isReadOnly={!!readonly}
+            />
+            )}
+          </Box>
+          ))}
+        </Stack>
+        <Button
+          mt={10}
+          colorScheme="brand"
+          bg="brand.800"
+          color="white"
+          size="lg"
+          fontSize="lg"
+          px={12}
+          py={6}
+          fontWeight="bold"
+          letterSpacing="wide"
+          shadow="md"
+          onClick={handleSave}
+          isLoading={saving}
+          isDisabled={!hasChanged || saving}
+          _hover={{
+          bg: 'brand.900',
+          transform: 'scale(1.04)',
+          boxShadow: '0 0 24px lime.100',
+          }}
+        >
+          Save
+        </Button>
+        </TabPanel>
+        <TabPanel>
+        <Heading size="sm" mb={6} mt={4}>
+          Settings
+        </Heading>
+        <Text color="gray.400">...future settings here...</Text>
+        </TabPanel>
+      </TabPanels>
       </Tabs>
     </Box>
   );
