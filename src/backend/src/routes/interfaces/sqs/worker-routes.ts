@@ -341,6 +341,7 @@ export const handler: SQSHandler = async (event) => {
       routes.length < routesCount &&
       attempts++ < routesCount * maxAttempts
     ) {
+      
       let totalDistance = 0;
       let totalDuration = 0;
       let encoded: string | undefined;
