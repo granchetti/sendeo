@@ -10,6 +10,7 @@ import {
   Text,
   useToast,
   Spinner,
+  Checkbox,
 } from '@chakra-ui/react';
 import {
   GoogleMap,
@@ -42,7 +43,8 @@ type Route = {
  * We keep coordinates as objects for map interactions but serialize them when
  * sending requests.
  */
-const toCoordinateString = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
+const toCoordinateString = (p: { lat: number; lng: number }) =>
+  `${p.lat},${p.lng}`;
 
 export default function RoutesPage() {
   const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(
@@ -53,6 +55,7 @@ export default function RoutesPage() {
     lng: number;
   } | null>(null);
   const [distanceKm, setDistanceKm] = useState('');
+  const [roundTrip, setRoundTrip] = useState(false);
   const [maxDeltaKm, setMaxDeltaKm] = useState('');
   const [routesCount, setRoutesCount] = useState('');
   const [mode, setMode] = useState<'points' | 'distance'>('points');
@@ -91,6 +94,8 @@ export default function RoutesPage() {
           ? toCoordinateString(destination)
           : undefined,
       distanceKm: mode === 'distance' ? Number(distanceKm) : undefined,
+      // Round trip only applies when generating by distance.
+      roundTrip: mode === 'distance' ? roundTrip : undefined,
       maxDeltaKm: maxDeltaKm ? Number(maxDeltaKm) : undefined,
       routesCount: routesCount ? Number(routesCount) : undefined,
     };
@@ -221,6 +226,17 @@ export default function RoutesPage() {
                   placeholder="e.g. 5"
                   bg="gray.50"
                 />
+              </FormControl>
+            )}
+            {mode === 'distance' && (
+              <FormControl>
+                {/* Whether the generated route should return to the origin */}
+                <Checkbox
+                  isChecked={roundTrip}
+                  onChange={(e) => setRoundTrip(e.target.checked)}
+                >
+                  Round Trip
+                </Checkbox>
               </FormControl>
             )}
             <FormControl>
