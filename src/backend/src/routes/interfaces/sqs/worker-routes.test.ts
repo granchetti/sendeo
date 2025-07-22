@@ -283,6 +283,91 @@ describe("worker routes handler", () => {
     ]);
   });
 
+  it("generates circular route when circle option provided", async () => {
+    const makeLegPayload = (poly: string) =>
+      JSON.stringify({
+        routes: [
+          {
+            legs: [
+              {
+                distanceMeters: 1000,
+                duration: { seconds: 600 },
+                polyline: { encodedPolyline: poly },
+              },
+            ],
+          },
+        ],
+      });
+
+    const seg1 = "???_ibE";
+    const seg2 = "?_ibE_ibE?";
+    const seg3 = "_ibE_ibE?~hbE";
+    const seg4 = "_ibE?~hbE?";
+
+    const makeReq = (payload: string) =>
+      (opts: string | any, cb: (res: any) => void) => {
+        const res = new EventEmitter();
+        res.on = res.addListener;
+        cb(res);
+        return {
+          on: jest.fn(),
+          write: jest.fn(),
+          end: jest.fn(() => {
+            const data = typeof opts === "string"
+              ? JSON.stringify({
+                  results: [
+                    { geometry: { location: { lat: 0, lng: 0 } } },
+                  ],
+                })
+              : payload;
+            res.emit("data", data);
+            res.emit("end");
+          }),
+        };
+      };
+
+    httpsRequest
+      .mockImplementationOnce(makeReq(""))
+      .mockImplementationOnce(makeReq(makeLegPayload(seg1)))
+      .mockImplementationOnce(makeReq(makeLegPayload(seg2)))
+      .mockImplementationOnce(makeReq(makeLegPayload(seg3)))
+      .mockImplementationOnce(makeReq(makeLegPayload(seg4)));
+
+    const handler = loadHandler();
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({
+            jobId: "550e8400-e29b-41d4-a716-44665544000c",
+            origin: "a",
+            distanceKm: 4,
+            roundTrip: true,
+            circle: true,
+            routesCount: 1,
+          }),
+        },
+      ],
+    } as any;
+
+    await handler(event);
+
+    const routeCalls = httpsRequest.mock.calls.filter(
+      ([opts]) => typeof opts === "object" && (opts as any).host === "routes.googleapis.com"
+    );
+    expect(routeCalls).toHaveLength(4);
+
+    const saved = mockSave.mock.calls[0][0];
+    expect(saved.distanceKm.Value).toBe(4);
+    expect(saved.duration.Value).toBe(2400);
+    expect(saved.path!.Coordinates.map((c: any) => ({ lat: c.Lat, lng: c.Lng }))).toEqual([
+      { lat: 0, lng: 0 },
+      { lat: 0, lng: 1 },
+      { lat: 1, lng: 1 },
+      { lat: 1, lng: 0 },
+      { lat: 0, lng: 0 },
+    ]);
+  });
+
   it("skips save when distance difference exceeds maxDeltaKm", async () => {
     responseDataHolder.data = JSON.stringify({
       routes: [

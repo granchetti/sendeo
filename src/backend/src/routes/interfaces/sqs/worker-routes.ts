@@ -199,6 +199,47 @@ function offsetCoordinate(
   return { lat: (φ2 * 180) / Math.PI, lng: (λ2 * 180) / Math.PI };
 }
 
+async function computeCircularRoute(
+  origin: { lat: number; lng: number },
+  distanceKm: number,
+  segments: number,
+  apiKey: string
+): Promise<{
+  distanceMeters: number;
+  durationSeconds: number;
+  encoded?: string;
+} | null> {
+  const radius = distanceKm / (2 * Math.PI);
+  const points: { lat: number; lng: number }[] = [];
+  for (let i = 0; i < segments; i++) {
+    points.push(offsetCoordinate(origin.lat, origin.lng, radius, (360 / segments) * i));
+  }
+
+  let totalDistance = 0;
+  let totalDuration = 0;
+  let encoded: string | undefined;
+
+  for (let i = 0; i < segments; i++) {
+    const start = points[i];
+    const end = points[(i + 1) % segments];
+    const [leg] = await computeRoutes(start, end, apiKey);
+    if (!leg) return null;
+    totalDistance += leg.distanceMeters;
+    totalDuration += leg.durationSeconds;
+    if (leg.encoded && encoded) {
+      const c1 = new Path(encoded).Coordinates;
+      const c2 = new Path(leg.encoded).Coordinates.slice();
+      encoded = Path.fromCoordinates([...c1, ...c2.slice(1)]).Encoded;
+    } else if (leg.encoded) {
+      encoded = leg.encoded;
+    } else {
+      encoded = undefined;
+    }
+  }
+
+  return { distanceMeters: totalDistance, durationSeconds: totalDuration, ...(encoded ? { encoded } : {}) };
+}
+
 async function getGoogleKey(): Promise<string> {
   const envKey = process.env.GOOGLE_API_KEY;
   if (envKey) {
@@ -224,6 +265,7 @@ export const handler: SQSHandler = async (event) => {
       destination,
       distanceKm,
       roundTrip = false,
+      circle = false,
       maxDeltaKm = 1,
       routesCount = 3,
       jobId,
@@ -299,28 +341,46 @@ export const handler: SQSHandler = async (event) => {
       routes.length < routesCount &&
       attempts++ < routesCount * maxAttempts
     ) {
-      const bearing = Math.random() * 360;
-      const dist = roundTrip ? distanceKm! / 2 : distanceKm!;
-      const dest = offsetCoordinate(oCoords.lat, oCoords.lng, dist, bearing);
+      
+      let totalDistance = 0;
+      let totalDuration = 0;
+      let encoded: string | undefined;
 
-      const [outLeg] = await computeRoutes(oCoords, dest, googleKey);
-      if (!outLeg) continue;
+      if (roundTrip && circle) {
+        const circleLeg = await computeCircularRoute(
+          oCoords,
+          distanceKm!,
+          8,
+          googleKey
+        );
+        if (!circleLeg) continue;
+        totalDistance = circleLeg.distanceMeters;
+        totalDuration = circleLeg.durationSeconds;
+        encoded = circleLeg.encoded;
+      } else {
+        const bearing = Math.random() * 360;
+        const dist = roundTrip ? distanceKm! / 2 : distanceKm!;
+        const dest = offsetCoordinate(oCoords.lat, oCoords.lng, dist, bearing);
 
-      let totalDistance = outLeg.distanceMeters;
-      let totalDuration = outLeg.durationSeconds;
-      let encoded = outLeg.encoded;
+        const [outLeg] = await computeRoutes(oCoords, dest, googleKey);
+        if (!outLeg) continue;
 
-      if (roundTrip) {
-        const [backLeg] = await computeRoutes(dest, oCoords, googleKey);
-        if (!backLeg) continue;
-        totalDistance += backLeg.distanceMeters;
-        totalDuration += backLeg.durationSeconds;
-        if (encoded && backLeg.encoded) {
-          const c1 = new Path(encoded).Coordinates;
-          const c2 = new Path(backLeg.encoded).Coordinates.slice();
-          encoded = Path.fromCoordinates([...c1, ...c2.slice(1)]).Encoded;
-        } else {
-          encoded = undefined;
+        totalDistance = outLeg.distanceMeters;
+        totalDuration = outLeg.durationSeconds;
+        encoded = outLeg.encoded;
+
+        if (roundTrip) {
+          const [backLeg] = await computeRoutes(dest, oCoords, googleKey);
+          if (!backLeg) continue;
+          totalDistance += backLeg.distanceMeters;
+          totalDuration += backLeg.durationSeconds;
+          if (encoded && backLeg.encoded) {
+            const c1 = new Path(encoded).Coordinates;
+            const c2 = new Path(backLeg.encoded).Coordinates.slice();
+            encoded = Path.fromCoordinates([...c1, ...c2.slice(1)]).Encoded;
+          } else {
+            encoded = undefined;
+          }
         }
       }
 
