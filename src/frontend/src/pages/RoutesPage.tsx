@@ -20,6 +20,13 @@ const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const mapContainerStyle = { width: '100%', height: '300px', borderRadius: '16px' };
 const center = { lat: 41.3851, lng: 2.1734 };
 
+/**
+ * Convert a lat/lng object to the "lat,lng" string that the backend API expects.
+ * We keep coordinates as objects for map interactions but serialize them when
+ * sending requests.
+ */
+const toCoordinateString = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
+
 export default function RoutesPage() {
   const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(null);
   const [destination, setDestination] = useState<{ lat: number; lng: number } | null>(null);
@@ -52,9 +59,14 @@ export default function RoutesPage() {
       toast({ title: 'Select an origin on the map.', status: 'warning' });
       return;
     }
+    // Serialize coordinates for the backend. The API expects "lat,lng" strings
+    // but we store them as objects while interacting with the map.
     const data = {
-      origin,
-      destination: mode === 'points' ? destination ?? undefined : undefined,
+      origin: toCoordinateString(origin),
+      destination:
+        mode === 'points' && destination
+          ? toCoordinateString(destination)
+          : undefined,
       distanceKm: mode === 'distance' ? Number(distanceKm) : undefined,
       maxDeltaKm: maxDeltaKm ? Number(maxDeltaKm) : undefined,
       routesCount: routesCount ? Number(routesCount) : undefined,
