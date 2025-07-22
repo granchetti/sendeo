@@ -11,24 +11,47 @@ import {
   useToast,
   Spinner,
 } from '@chakra-ui/react';
-import { GoogleMap, Marker, Polyline, useLoadScript } from '@react-google-maps/api';
+import {
+  GoogleMap,
+  Marker,
+  Polyline,
+  useLoadScript,
+} from '@react-google-maps/api';
 import { FaLocationArrow } from 'react-icons/fa';
 import { api } from '../services/api';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-const mapContainerStyle = { width: '100%', height: '300px', borderRadius: '16px' };
+const mapContainerStyle = {
+  width: '100%',
+  height: '300px',
+  borderRadius: '16px',
+};
 const center = { lat: 41.3851, lng: 2.1734 };
 
+type Route = {
+  routeId: string | number;
+  path?: string;
+  distanceKm?: number;
+  duration?: number;
+  // add other fields as needed
+};
+
 export default function RoutesPage() {
-  const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(null);
-  const [destination, setDestination] = useState<{ lat: number; lng: number } | null>(null);
+  const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(
+    null,
+  );
+  const [destination, setDestination] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [distanceKm, setDistanceKm] = useState('');
   const [maxDeltaKm, setMaxDeltaKm] = useState('');
   const [routesCount, setRoutesCount] = useState('');
   const [mode, setMode] = useState<'points' | 'distance'>('points');
   const [jobId, setJobId] = useState<string | null>(null);
-  const [routes, setRoutes] = useState<any[]>([]);
+
+  const [routes, setRoutes] = useState<Route[]>([]);
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const toast = useToast();
 
@@ -66,8 +89,13 @@ export default function RoutesPage() {
       setRoutes([]);
       setLoadingRoutes(true);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'An unknown error occurred';
-      toast({ title: 'Error requesting routes', status: 'error', description: message });
+      const message =
+        err instanceof Error ? err.message : 'An unknown error occurred';
+      toast({
+        title: 'Error requesting routes',
+        status: 'error',
+        description: message,
+      });
     }
   };
 
@@ -90,8 +118,14 @@ export default function RoutesPage() {
     return () => clearInterval(timer);
   }, [jobId]);
 
-  if (loadError) return <Box color="red.500">Map cannot be loaded right now.</Box>;
-  if (!isLoaded) return <Flex justify="center" mt={12}><Spinner size="xl" /></Flex>;
+  if (loadError)
+    return <Box color="red.500">Map cannot be loaded right now.</Box>;
+  if (!isLoaded)
+    return (
+      <Flex justify="center" mt={12}>
+        <Spinner size="xl" />
+      </Flex>
+    );
 
   return (
     <Flex minH="100vh" align="center" justify="center" bg="gray.50" py={10}>
@@ -120,7 +154,10 @@ export default function RoutesPage() {
           <Button
             colorScheme={mode === 'distance' ? 'orange' : 'gray'}
             variant={mode === 'distance' ? 'solid' : 'ghost'}
-            onClick={() => { setMode('distance'); setDestination(null); }}
+            onClick={() => {
+              setMode('distance');
+              setDestination(null);
+            }}
             size="sm"
             borderRadius="lg"
             fontWeight="semibold"
@@ -136,9 +173,13 @@ export default function RoutesPage() {
               <FormLabel fontWeight="bold">Origin</FormLabel>
               <Input
                 placeholder="Select on map"
-                value={origin ? `${origin.lat.toFixed(5)}, ${origin.lng.toFixed(5)}` : ''}
+                value={
+                  origin
+                    ? `${origin.lat.toFixed(5)}, ${origin.lng.toFixed(5)}`
+                    : ''
+                }
                 readOnly
-                bg={origin ? "orange.50" : "gray.50"}
+                bg={origin ? 'orange.50' : 'gray.50'}
               />
             </FormControl>
             {mode === 'points' && (
@@ -146,9 +187,15 @@ export default function RoutesPage() {
                 <FormLabel fontWeight="bold">Destination</FormLabel>
                 <Input
                   placeholder="Select on map"
-                  value={destination ? `${destination.lat.toFixed(5)}, ${destination.lng.toFixed(5)}` : ''}
+                  value={
+                    destination
+                      ? `${destination.lat.toFixed(
+                          5,
+                        )}, ${destination.lng.toFixed(5)}`
+                      : ''
+                  }
                   readOnly
-                  bg={destination ? "orange.50" : "gray.50"}
+                  bg={destination ? 'orange.50' : 'gray.50'}
                 />
               </FormControl>
             )}
@@ -206,8 +253,10 @@ export default function RoutesPage() {
             onClick={handleMapClick}
           >
             {origin && <Marker position={origin} label="A" />}
-            {mode === 'points' && destination && <Marker position={destination} label="B" />}
-            {routes.map((r, idx) => (
+            {mode === 'points' && destination && (
+              <Marker position={destination} label="B" />
+            )}
+            {routes.map((r, idx) =>
               r.path ? (
                 <Polyline
                   key={r.routeId}
@@ -218,12 +267,18 @@ export default function RoutesPage() {
                     strokeWeight: 4,
                   }}
                 />
-              ) : null
-            ))}
+              ) : null,
+            )}
           </GoogleMap>
         </Box>
         <Text fontSize="sm" color="gray.500" mt={-1}>
-          Click on the map to set {origin ? (mode === 'points' && !destination ? 'destination' : 'origin') : 'origin'}.
+          Click on the map to set{' '}
+          {origin
+            ? mode === 'points' && !destination
+              ? 'destination'
+              : 'origin'
+            : 'origin'}
+          .
         </Text>
         {loadingRoutes && (
           <Flex justify="center" my={4}>
