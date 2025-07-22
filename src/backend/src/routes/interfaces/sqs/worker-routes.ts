@@ -317,7 +317,7 @@ export const handler: SQSHandler = async (event) => {
         totalDuration += backLeg.durationSeconds;
         if (encoded && backLeg.encoded) {
           const c1 = new Path(encoded).Coordinates;
-          const c2 = new Path(backLeg.encoded).Coordinates.slice().reverse();
+          const c2 = new Path(backLeg.encoded).Coordinates.slice();
           encoded = Path.fromCoordinates([...c1, ...c2.slice(1)]).Encoded;
         } else {
           encoded = undefined;

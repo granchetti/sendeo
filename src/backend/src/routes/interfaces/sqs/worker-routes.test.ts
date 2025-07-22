@@ -186,7 +186,7 @@ describe("worker routes handler", () => {
   });
 
   it("generates round trip when distanceKm provided", async () => {
-    responseDataHolder.data = JSON.stringify({
+    const forward = JSON.stringify({
       routes: [
         {
           legs: [
@@ -201,6 +201,49 @@ describe("worker routes handler", () => {
         },
       ],
     });
+
+    const back = JSON.stringify({
+      routes: [
+        {
+          legs: [
+            {
+              distanceMeters: 1500,
+              duration: { seconds: 600 },
+              polyline: {
+                encodedPolyline: "_t~fGfzxbW~lqNwxq`@~tlLonqC",
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const makeReq = (payload: string) =>
+      (opts: string | any, cb: (res: any) => void) => {
+        const res = new EventEmitter();
+        res.on = res.addListener;
+        cb(res);
+        return {
+          on: jest.fn(),
+          write: jest.fn(),
+          end: jest.fn(() => {
+            const data = typeof opts === "string"
+              ? JSON.stringify({
+                  results: [
+                    { geometry: { location: { lat: 0, lng: 0 } } },
+                  ],
+                })
+              : payload;
+            res.emit("data", data);
+            res.emit("end");
+          }),
+        };
+      };
+
+    httpsRequest
+      .mockImplementationOnce(makeReq(""))
+      .mockImplementationOnce(makeReq(forward))
+      .mockImplementationOnce(makeReq(back));
 
     const handler = loadHandler();
     const event = {
