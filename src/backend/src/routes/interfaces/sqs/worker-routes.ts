@@ -122,8 +122,13 @@ async function computeRoutes(
         latLng: { latitude: destination.lat, longitude: destination.lng },
       },
     },
-    travelMode: "WALK",
-    computeAlternativeRoutes: true
+    travelMode: "WALKING",
+    computeAlternativeRoutes: true,
+    routeModifiers: {
+      avoidHighways: true,
+      avoidTolls: true,
+      avoidFerries: true,
+    },
   };
   console.info("🌐 Calling Routes API with coords…", body);
   let resp: any;
@@ -289,8 +294,11 @@ export const handler: SQSHandler = async (event) => {
 
     let attempts = 0;
     const maxAttempts = 10;
-    
-    while (routes.length < routesCount && attempts++ < routesCount * maxAttempts) {
+
+    while (
+      routes.length < routesCount &&
+      attempts++ < routesCount * maxAttempts
+    ) {
       const bearing = Math.random() * 360;
       const dist = roundTrip ? distanceKm! / 2 : distanceKm!;
       const dest = offsetCoordinate(oCoords.lat, oCoords.lng, dist, bearing);
