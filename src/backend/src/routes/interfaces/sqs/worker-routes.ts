@@ -214,6 +214,26 @@ function offsetCoordinate(
   return { lat: (φ2 * 180) / Math.PI, lng: (λ2 * 180) / Math.PI };
 }
 
+// Snap a coordinate to the nearest road so routes always follow walkable paths
+async function snapToRoad(
+  point: { lat: number; lng: number },
+  apiKey: string
+): Promise<{ lat: number; lng: number }> {
+  const url =
+    `https://roads.googleapis.com/v1/nearestRoads?points=${point.lat},${point.lng}` +
+    `&key=${apiKey}`;
+  try {
+    const data: any = await fetchJson(url);
+    const loc = data?.snappedPoints?.[0]?.location;
+    if (loc) {
+      return { lat: loc.latitude ?? loc.lat, lng: loc.longitude ?? loc.lng };
+    }
+  } catch (err) {
+    console.warn("⚠️ Failed snapping to road:", err);
+  }
+  return point;
+}
+
 // PATCH 👇: Descarta circular route si falta cualquier encodedPolyline
 async function computeCircularRoute(
   origin: { lat: number; lng: number },
@@ -228,9 +248,13 @@ async function computeCircularRoute(
   const radius = distanceKm / (2 * Math.PI);
   const points: { lat: number; lng: number }[] = [];
   for (let i = 0; i < segments; i++) {
-    points.push(
-      offsetCoordinate(origin.lat, origin.lng, radius, (360 / segments) * i)
+    const raw = offsetCoordinate(
+      origin.lat,
+      origin.lng,
+      radius,
+      (360 / segments) * i
     );
+    points.push(await snapToRoad(raw, apiKey));
   }
 
   let totalDistance = 0;
@@ -393,7 +417,8 @@ export const handler: SQSHandler = async (event) => {
       } else {
         const bearing = Math.random() * 360;
         const dist = roundTrip ? distanceKm! / 2 : distanceKm!;
-        const dest = offsetCoordinate(oCoords.lat, oCoords.lng, dist, bearing);
+        const rawDest = offsetCoordinate(oCoords.lat, oCoords.lng, dist, bearing);
+        const dest = await snapToRoad(rawDest, googleKey);
 
         const [outLeg] = await computeRoutes(oCoords, dest, googleKey);
         if (!outLeg || !outLeg.encoded) {
