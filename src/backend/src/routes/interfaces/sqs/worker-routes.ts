@@ -322,9 +322,35 @@ export const handler: SQSHandler = async (event) => {
           durationSeconds: number;
           encoded: string;
         } | null = null;
-
         if (roundTrip && circle) {
-          leg = await computeCircularRoute(oCoords, distanceKm!, 8, key);
+          leg = await computeCircularRoute(oCoords, distanceKm!, 4, key);
+          if (!leg) {
+            console.warn(
+              "[handler] circular failed, fallback to simple round-trip"
+            );
+            // sacamos dos legs: ida y vuelta
+            const bearing = Math.random() * 360;
+            const half = distanceKm! / 2;
+            const rawDest = offsetCoordinate(
+              oCoords.lat,
+              oCoords.lng,
+              half,
+              bearing
+            );
+            const snapped = await snapToRoad(rawDest, key);
+            const [out] = await computeRoutes(oCoords, snapped, key);
+            const [back] = await computeRoutes(snapped, oCoords, key);
+            if (out?.encoded && back?.encoded) {
+              const c1 = new Path(out.encoded).Coordinates;
+              const c2 = new Path(back.encoded).Coordinates.slice(1);
+              const poly = Path.fromCoordinates([...c1, ...c2]).Encoded;
+              leg = {
+                distanceMeters: out.distanceMeters + back.distanceMeters,
+                durationSeconds: out.durationSeconds + back.durationSeconds,
+                encoded: poly,
+              };
+            }
+          }
         } else {
           // existing out‑and‑back
           const bearing = Math.random() * 360;
