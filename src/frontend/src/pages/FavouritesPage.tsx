@@ -37,11 +37,11 @@ const FavouritesPage = () => {
   return (
     <Box maxW="md" mx="auto" mt={10} p={4} borderWidth="1px" borderRadius="lg">
       <Heading mb={4}>Favourite Routes</Heading>
-      <List spacing={2}>
+      {/* <List spacing={2}>
         {favourites.map((f) => (
           <ListItem key={f}>{f}</ListItem>
         ))}
-      </List>
+      </List> */}
     </Box>
   );
 };
