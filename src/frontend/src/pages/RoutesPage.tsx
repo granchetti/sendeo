@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -64,6 +64,16 @@ export default function RoutesPage() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const toast = useToast();
+  const mapRef = useRef<google.maps.Map>();
+  const emptyCountRef = useRef(0);
+
+  if (!GOOGLE_MAPS_API_KEY) {
+    toast({
+      title: 'Map cannot load - missing Google Maps API key',
+      status: 'warning',
+    });
+    return null;
+  }
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -123,17 +133,54 @@ export default function RoutesPage() {
       try {
         const { data } = await api.get(`/jobs/${jobId}/routes`);
         if (Array.isArray(data) && data.length > 0) {
-          setRoutes(data);
-          setLoadingRoutes(false);
-          clearInterval(timer);
+          setRoutes((prev) => [...prev, ...data]);
+          emptyCountRef.current = 0;
+        } else {
+          emptyCountRef.current += 1;
+          if (emptyCountRef.current >= 5) {
+            toast({
+              title: 'Failed to load routes',
+              status: 'error',
+            });
+            setLoadingRoutes(false);
+            clearInterval(timer);
+          }
         }
       } catch (err) {
         console.error(err);
+        toast({ title: 'Error polling routes', status: 'error' });
+        setLoadingRoutes(false);
+        clearInterval(timer);
       }
     }, 2000);
 
-    return () => clearInterval(timer);
-  }, [jobId]);
+    const timeout = setTimeout(() => {
+      toast({ title: 'Route generation timed out', status: 'error' });
+      clearInterval(timer);
+      setLoadingRoutes(false);
+    }, 60000);
+
+    return () => {
+      clearInterval(timer);
+      clearTimeout(timeout);
+    };
+  }, [jobId, toast]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (routes.length === 0 && !origin && !destination) return;
+
+    const bounds = new google.maps.LatLngBounds();
+    routes.forEach((r) => {
+      if (r.path) {
+        const decoded = google.maps.geometry.encoding.decodePath(r.path);
+        decoded.forEach((p) => bounds.extend(p));
+      }
+    });
+    if (origin) bounds.extend(origin);
+    if (destination) bounds.extend(destination);
+    mapRef.current.fitBounds(bounds);
+  }, [routes, origin, destination]);
 
   if (loadError)
     return <Box color="red.500">Map cannot be loaded right now.</Box>;
@@ -276,9 +323,12 @@ export default function RoutesPage() {
         <Box mt={6} mb={2} borderRadius="xl" overflow="hidden" boxShadow="md">
           <GoogleMap
             mapContainerStyle={mapContainerStyle}
-            zoom={13}
-            center={origin || center}
+            defaultZoom={13}
+            defaultCenter={center}
             onClick={handleMapClick}
+            onLoad={(map) => {
+              mapRef.current = map;
+            }}
           >
             {origin && <Marker position={origin} label="A" />}
             {mode === 'points' && destination && (
