@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react';
 import {
   Box,
   Heading,
-  List,
-  ListItem,
   Spinner,
 } from '@chakra-ui/react';
 import { api } from '../services/api';
 
 const FavouritesPage = () => {
-  const [favourites, setFavourites] = useState<string[]>([]);
+  const [, setFavourites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,11 +35,6 @@ const FavouritesPage = () => {
   return (
     <Box maxW="md" mx="auto" mt={10} p={4} borderWidth="1px" borderRadius="lg">
       <Heading mb={4}>Favourite Routes</Heading>
-      {/* <List spacing={2}>
-        {favourites.map((f) => (
-          <ListItem key={f}>{f}</ListItem>
-        ))}
-      </List> */}
     </Box>
   );
 };
