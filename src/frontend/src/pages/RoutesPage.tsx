@@ -11,6 +11,15 @@ import {
   useToast,
   Spinner,
   Checkbox,
+  Heading,
+  Divider,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Icon,
+  HStack,
 } from '@chakra-ui/react';
 import {
   GoogleMap,
@@ -18,33 +27,12 @@ import {
   Polyline,
   useLoadScript,
 } from '@react-google-maps/api';
-import { FaLocationArrow } from 'react-icons/fa';
+import { FaLocationArrow, FaRedo } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 import { api } from '../services/api';
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
-const mapContainerStyle = {
-  width: '100%',
-  height: '300px',
-  borderRadius: '16px',
-};
+const MotionBox = motion(Box);
 const center = { lat: 41.3851, lng: 2.1734 };
-
-type Route = {
-  routeId: string | number;
-  path?: string;
-  distanceKm?: number;
-  duration?: number;
-  // add other fields as needed
-};
-
-/**
- * Convert a lat/lng object to the "lat,lng" string accepted by the backend API.
- * We keep coordinates as objects for map interactions but serialize them when
- * sending requests.
- */
-const toCoordinateString = (p: { lat: number; lng: number }) =>
-  `${p.lat},${p.lng}`;
 
 export default function RoutesPage() {
   const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(
@@ -56,299 +44,310 @@ export default function RoutesPage() {
   } | null>(null);
   const [distanceKm, setDistanceKm] = useState('');
   const [roundTrip, setRoundTrip] = useState(false);
+  const [circle, setCircle] = useState(false);
   const [maxDeltaKm, setMaxDeltaKm] = useState('');
   const [routesCount, setRoutesCount] = useState('');
   const [mode, setMode] = useState<'points' | 'distance'>('points');
   const [jobId, setJobId] = useState<string | null>(null);
-  const [circle, setCircle] = useState(false);
-  const [routes, setRoutes] = useState<Route[]>([]);
-  const [loadingRoutes, setLoadingRoutes] = useState(false);
+  const [routes, setRoutes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
     libraries: ['geometry'],
   });
 
+  const toCoord = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
+
   const handleMapClick = (e: google.maps.MapMouseEvent) => {
     if (!e.latLng) return;
-    if (!origin) {
-      setOrigin({ lat: e.latLng.lat(), lng: e.latLng.lng() });
-    } else if (!destination && mode === 'points') {
+    if (!origin) setOrigin({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+    else if (!destination && mode === 'points')
       setDestination({ lat: e.latLng.lat(), lng: e.latLng.lng() });
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!origin) {
-      toast({ title: 'Select an origin on the map.', status: 'warning' });
-      return;
-    }
-    // Serialize coordinates for the backend. The API accepts "lat,lng" strings
-    // or addresses, but we store them as objects while interacting with the map.
-    const data = {
-      origin: toCoordinateString(origin),
+    if (!origin)
+      return toast({
+        title: 'Select an origin on the map.',
+        status: 'warning',
+      });
+
+    const payload = {
+      origin: toCoord(origin),
       destination:
-        mode === 'points' && destination
-          ? toCoordinateString(destination)
-          : undefined,
-      distanceKm: mode === 'distance' ? Number(distanceKm) : undefined,
-      // Round trip only applies when generating by distance.
+        mode === 'points' && destination ? toCoord(destination) : undefined,
+      distanceKm: mode === 'distance' ? +distanceKm : undefined,
       roundTrip: mode === 'distance' ? roundTrip : undefined,
       circle: mode === 'distance' ? circle : undefined,
-      maxDeltaKm: maxDeltaKm ? Number(maxDeltaKm) : undefined,
-      routesCount: routesCount ? Number(routesCount) : undefined,
+      maxDeltaKm: +maxDeltaKm,
+      routesCount: +routesCount,
     };
+
+    setLoading(true);
     try {
-      const { data: resp } = await api.post('/routes', data);
-      toast({ title: 'Route request submitted', status: 'success' });
-      setJobId(resp.jobId);
-      setRoutes([]);
-      setLoadingRoutes(true);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'An unknown error occurred';
-      toast({
-        title: 'Error requesting routes',
-        status: 'error',
-        description: message,
-      });
+      const { data } = await api.post('/routes', payload);
+      setJobId(data.jobId);
+      toast({ title: 'Route request submitted.', status: 'success' });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, status: 'error' });
+      setLoading(false);
     }
+  };
+
+  const handleReset = () => {
+    setOrigin(null);
+    setDestination(null);
+    setDistanceKm('');
+    setRoundTrip(false);
+    setCircle(false);
+    setMaxDeltaKm('');
+    setRoutesCount('');
+    setJobId(null);
+    setRoutes([]);
+    setLoading(false);
   };
 
   useEffect(() => {
     if (!jobId) return;
-
-    const timer = setInterval(async () => {
-      try {
-        const { data } = await api.get(`/jobs/${jobId}/routes`);
-        if (Array.isArray(data) && data.length > 0) {
-          setRoutes(data);
-          setLoadingRoutes(false);
-          clearInterval(timer);
-        }
-      } catch (err) {
-        console.error(err);
+    const iv = setInterval(async () => {
+      const { data } = await api.get(`/jobs/${jobId}/routes`);
+      if (data.length) {
+        setRoutes(data);
+        setLoading(false);
+        clearInterval(iv);
       }
     }, 2000);
-
-    return () => clearInterval(timer);
+    return () => clearInterval(iv);
   }, [jobId]);
 
   if (loadError)
-    return <Box color="red.500">Map cannot be loaded right now.</Box>;
+    return <Text color="red.500">Map cannot be loaded right now.</Text>;
   if (!isLoaded)
     return (
-      <Flex justify="center" mt={12}>
+      <Flex justify="center">
         <Spinner size="xl" />
       </Flex>
     );
 
   return (
-    <Flex minH="100vh" align="center" justify="center" bg="gray.50" py={10}>
-      <Box
-        maxW="1000px"
-        w="full"
-        bg="white"
-        p={[4, 8]}
-        mx="auto"
-        display="flex"
-        flexDirection="column"
-        gap={6}
-      >
-        {/* Top controls */}
-        <Stack direction="row" justify="center" spacing={2} mb={1}>
-          <Button
-            colorScheme={mode === 'points' ? 'orange' : 'gray'}
-            variant={mode === 'points' ? 'solid' : 'ghost'}
-            onClick={() => setMode('points')}
-            size="sm"
-            borderRadius="lg"
-            fontWeight="semibold"
-          >
-            By Points
-          </Button>
-          <Button
-            colorScheme={mode === 'distance' ? 'orange' : 'gray'}
-            variant={mode === 'distance' ? 'solid' : 'ghost'}
-            onClick={() => {
-              setMode('distance');
-              setDestination(null);
-            }}
-            size="sm"
-            borderRadius="lg"
-            fontWeight="semibold"
-          >
-            By Distance
-          </Button>
-        </Stack>
+    <Flex direction="column" align="center" py={8} bg="gray.50" minH="100vh">
+      {/* Header */}
+      <Flex align="center" mb={6}>
+        <Icon as={FaLocationArrow} boxSize={8} color="orange.500" mr={2} />
+        <Heading size="xl" color="orange.500">
+          Plan Your Perfect Route
+        </Heading>
+      </Flex>
 
-        {/* Fields */}
-        <form onSubmit={handleSubmit}>
-          <Stack spacing={3}>
-            <FormControl isRequired>
-              <FormLabel fontWeight="bold">Origin</FormLabel>
-              <Input
-                placeholder="Select on map"
-                value={
-                  origin
-                    ? `${origin.lat.toFixed(5)}, ${origin.lng.toFixed(5)}`
-                    : ''
-                }
-                readOnly
-                bg={origin ? 'orange.50' : 'gray.50'}
-              />
-            </FormControl>
-            {mode === 'points' && (
-              <FormControl>
-                <FormLabel fontWeight="bold">Destination</FormLabel>
+      {/* Unified Card */}
+      <MotionBox
+        bg="white"
+        p={6}
+        rounded="lg"
+        boxShadow="md"
+        w={['90%', '900px']}
+        mb={6}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Stack spacing={4}>
+          {/* Mode Toggle */}
+          <Flex>
+            <Button
+              flex={1}
+              mr={2}
+              colorScheme={mode === 'points' ? 'orange' : 'gray'}
+              onClick={() => setMode('points')}
+            >
+              By Points
+            </Button>
+            <Button
+              flex={1}
+              colorScheme={mode === 'distance' ? 'orange' : 'gray'}
+              onClick={() => {
+                setMode('distance');
+                setDestination(null);
+              }}
+            >
+              By Distance
+            </Button>
+          </Flex>
+
+          <Divider />
+
+          <form onSubmit={handleSubmit}>
+            <Stack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>Origin</FormLabel>
                 <Input
-                  placeholder="Select on map"
+                  readOnly
+                  placeholder="Click on map"
                   value={
-                    destination
-                      ? `${destination.lat.toFixed(
-                          5,
-                        )}, ${destination.lng.toFixed(5)}`
+                    origin
+                      ? `${origin.lat.toFixed(5)}, ${origin.lng.toFixed(5)}`
                       : ''
                   }
-                  readOnly
-                  bg={destination ? 'orange.50' : 'gray.50'}
+                  bg={origin ? 'orange.50' : 'gray.50'}
                 />
               </FormControl>
-            )}
-            {mode === 'distance' && (
-              <>
+
+              {mode === 'points' && (
                 <FormControl>
-                  <FormLabel fontWeight="bold">Distance (km)</FormLabel>
+                  <FormLabel>Destination</FormLabel>
+                  <Input
+                    readOnly
+                    placeholder="Click on map"
+                    value={
+                      destination
+                        ? `${destination.lat.toFixed(
+                            5,
+                          )}, ${destination.lng.toFixed(5)}`
+                        : ''
+                    }
+                    bg={destination ? 'orange.50' : 'gray.50'}
+                  />
+                </FormControl>
+              )}
+
+              {mode === 'distance' && (
+                <FormControl>
+                  <FormLabel>Distance (km)</FormLabel>
                   <Input
                     type="number"
                     value={distanceKm}
                     onChange={(e) => setDistanceKm(e.target.value)}
-                    placeholder="e.g. 5"
-                    bg="gray.50"
                   />
                 </FormControl>
-                <FormControl>
-                  <Checkbox
-                    isChecked={roundTrip}
-                    onChange={(e) => setRoundTrip(e.target.checked)}
-                  >
-                    Round Trip
-                  </Checkbox>
-                </FormControl>
-                <FormControl>
-                  <Checkbox
-                    isChecked={circle}
-                    onChange={(e) => setCircle(e.target.checked)}
-                  >
-                    Circular Loop
-                  </Checkbox>
-                </FormControl>
-              </>
-            )}
-            <FormControl>
-              <FormLabel fontWeight="bold">Max Delta Km</FormLabel>
-              <Input
-                type="number"
-                value={maxDeltaKm}
-                onChange={(e) => setMaxDeltaKm(e.target.value)}
-                placeholder="e.g. 0.5"
-                bg="gray.50"
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel fontWeight="bold">Routes Count</FormLabel>
-              <Input
-                type="number"
-                value={routesCount}
-                onChange={(e) => setRoutesCount(e.target.value)}
-                placeholder="e.g. 3"
-                bg="gray.50"
-              />
-            </FormControl>
-            <Button
-              type="submit"
-              colorScheme="orange"
-              fontWeight="bold"
-              size="lg"
-              mt={2}
-              leftIcon={<FaLocationArrow />}
-            >
-              Submit
-            </Button>
-          </Stack>
-        </form>
+              )}
 
-        {/* Google Map inside card */}
-        <Box mt={6} mb={2} borderRadius="xl" overflow="hidden" boxShadow="md">
-          <GoogleMap
-            mapContainerStyle={mapContainerStyle}
-            zoom={13}
-            center={origin || center}
-            onClick={handleMapClick}
-          >
-            {origin && <Marker position={origin} label="A" />}
-            {mode === 'points' && destination && (
-              <Marker position={destination} label="B" />
-            )}
-            {routes.map((r, idx) =>
-              r.path && r.path.length > 0 ? (
-                <Polyline
-                  key={r.routeId}
-                  path={google.maps.geometry.encoding.decodePath(r.path)}
-                  options={{
-                    // 1) Color distinto por ruta:
-                    strokeColor: ['#ff6f00', '#388e3c', '#1976d2'][idx % 3],
-                    strokeOpacity: 0.8,
-                    strokeWeight: 4,
-                    // 2) Añade un patrón de líneas discontinuas para rutas solapadas:
-                    icons: [
-                      {
-                        icon: {
-                          path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-                          scale: 2,
-                        },
-                        offset: '0',
-                        repeat: '40px',
-                      },
-                    ],
-                  }}
+              <FormControl>
+                <FormLabel>Routes Count</FormLabel>
+                <Input
+                  type="number"
+                  value={routesCount}
+                  onChange={(e) => setRoutesCount(e.target.value)}
                 />
-              ) : null,
-            )}
-          </GoogleMap>
-        </Box>
-        <Text fontSize="sm" color="gray.500" mt={-1}>
-          Click on the map to set{' '}
-          {origin
-            ? mode === 'points' && !destination
-              ? 'destination'
-              : 'origin'
-            : 'origin'}
-          .
-        </Text>
-        {loadingRoutes && (
-          <Flex justify="center" my={4}>
-            <Spinner />
-          </Flex>
-        )}
-        {routes.length > 0 && (
-          <Stack spacing={3} mt={4}>
+              </FormControl>
+
+              <Accordion allowToggle>
+                <AccordionItem>
+                  <AccordionButton
+                    color="orange.500"
+                    _hover={{ bg: 'orange.50' }}
+                    _expanded={{ bg: 'orange.100' }}
+                  >
+                    <Box flex="1" textAlign="left">
+                      Advanced Options
+                    </Box>
+                    <AccordionIcon />
+                  </AccordionButton>
+                  <AccordionPanel pb={4}>
+                    <HStack spacing={6} mb={4}>
+                      <Checkbox
+                        isChecked={roundTrip}
+                        onChange={(e) => setRoundTrip(e.target.checked)}
+                      >
+                        Round Trip
+                      </Checkbox>
+                      <Checkbox
+                        isChecked={circle}
+                        onChange={(e) => setCircle(e.target.checked)}
+                      >
+                        Circular Loop
+                      </Checkbox>
+                    </HStack>
+                    <FormControl>
+                      <FormLabel>Max Delta Km</FormLabel>
+                      <Input
+                        type="number"
+                        value={maxDeltaKm}
+                        onChange={(e) => setMaxDeltaKm(e.target.value)}
+                      />
+                    </FormControl>
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+
+              {/* Map right below the form */}
+              <Box mt={4} borderRadius="md" overflow="hidden">
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '500px' }}
+                  center={origin || center}
+                  zoom={13}
+                  onClick={handleMapClick}
+                >
+                  {origin && <Marker position={origin} label="A" />}
+                  {mode === 'points' && destination && (
+                    <Marker position={destination} label="B" />
+                  )}
+                  {routes.map((r, i) => (
+                    <Polyline
+                      key={r.routeId}
+                      path={google.maps.geometry.encoding.decodePath(r.path!)}
+                      options={{
+                        strokeColor: ['#ff6f00', '#388e3c', '#1976d2'][i % 3],
+                        strokeOpacity: 0.8,
+                        strokeWeight: 4,
+                      }}
+                    />
+                  ))}
+                </GoogleMap>
+              </Box>
+
+              {/* Submit + Reset */}
+              <HStack mt={4} spacing={3} justify="flex-end">
+                <Button
+                  onClick={handleReset}
+                  leftIcon={<FaRedo />}
+                  size="lg"
+                  variant="outline"
+                  colorScheme="gray"
+                  minW="150px"
+                >
+                  Reset
+                </Button>
+
+                <Button
+                  type="submit"
+                  colorScheme="orange"
+                  leftIcon={<FaLocationArrow />}
+                  size="lg"
+                  isLoading={loading}
+                  loadingText="Requesting…"
+                  minW="150px"
+                  flex={0.5}
+                >
+                  Submit
+                </Button>
+              </HStack>
+            </Stack>
+          </form>
+        </Stack>
+      </MotionBox>
+
+      {/* Results */}
+      {loading && <Spinner size="lg" mb={4} />}
+      {!loading && routes.length > 0 && (
+        <Box bg="white" p={4} rounded="lg" boxShadow="md" w={['90%', '800px']}>
+          <Heading size="md" mb={2}>
+            Found Routes
+          </Heading>
+          <Stack spacing={2}>
             {routes.map((r) => (
-              <Box key={r.routeId} p={3} borderWidth="1px" borderRadius="md">
-                <Text fontWeight="bold">Route {r.routeId}</Text>
-                {r.distanceKm != null && (
-                  <Text>Distance: {r.distanceKm.toFixed(2)} km</Text>
-                )}
-                {r.duration != null && (
-                  <Text>Duration: {Math.round(r.duration / 60)} min</Text>
-                )}
+              <Box key={r.routeId} p={2} borderWidth="1px" rounded="md">
+                <Text>Route {r.routeId}</Text>
+                <Text fontSize="sm">
+                  Distance: {r.distanceKm?.toFixed(2)} km
+                </Text>
               </Box>
             ))}
           </Stack>
-        )}
-      </Box>
+        </Box>
+      )}
     </Flex>
   );
 }
