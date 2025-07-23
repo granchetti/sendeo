@@ -199,6 +199,7 @@ function offsetCoordinate(
   return { lat: (φ2 * 180) / Math.PI, lng: (λ2 * 180) / Math.PI };
 }
 
+// PATCH 👇: Descarta circular route si falta cualquier encodedPolyline
 async function computeCircularRoute(
   origin: { lat: number; lng: number },
   distanceKm: number,
@@ -212,7 +213,9 @@ async function computeCircularRoute(
   const radius = distanceKm / (2 * Math.PI);
   const points: { lat: number; lng: number }[] = [];
   for (let i = 0; i < segments; i++) {
-    points.push(offsetCoordinate(origin.lat, origin.lng, radius, (360 / segments) * i));
+    points.push(
+      offsetCoordinate(origin.lat, origin.lng, radius, (360 / segments) * i)
+    );
   }
 
   let totalDistance = 0;
@@ -223,21 +226,27 @@ async function computeCircularRoute(
     const start = points[i];
     const end = points[(i + 1) % segments];
     const [leg] = await computeRoutes(start, end, apiKey);
-    if (!leg) return null;
+    if (!leg || !leg.encoded) {
+      // PATCH 👈 descartar si falta cualquier tramo
+      console.warn("⚠️ Discarded circular route: missing encodedPolyline on segment");
+      return null;
+    }
     totalDistance += leg.distanceMeters;
     totalDuration += leg.durationSeconds;
-    if (leg.encoded && encoded) {
+    if (encoded) {
       const c1 = new Path(encoded).Coordinates;
       const c2 = new Path(leg.encoded).Coordinates.slice();
       encoded = Path.fromCoordinates([...c1, ...c2.slice(1)]).Encoded;
-    } else if (leg.encoded) {
-      encoded = leg.encoded;
     } else {
-      encoded = undefined;
+      encoded = leg.encoded;
     }
   }
 
-  return { distanceMeters: totalDistance, durationSeconds: totalDuration, ...(encoded ? { encoded } : {}) };
+  return {
+    distanceMeters: totalDistance,
+    durationSeconds: totalDuration,
+    ...(encoded ? { encoded } : {}),
+  };
 }
 
 async function getGoogleKey(): Promise<string> {
@@ -303,12 +312,18 @@ export const handler: SQSHandler = async (event) => {
             continue;
           }
 
+          // PATCH 👇: Solo acepta rutas con encodedPolyline
+          if (!alt.encoded) {
+            console.warn("⚠️ Discarded route: missing encodedPolyline");
+            continue;
+          }
+
           const route = new Route({
             routeId: UUID.generate(),
             jobId: UUID.fromString(jobId),
             distanceKm: new DistanceKm(km),
             duration: new Duration(alt.durationSeconds),
-            ...(alt.encoded ? { path: new Path(alt.encoded) } : {}),
+            path: new Path(alt.encoded),
           });
 
           console.info("💾 Saving route to DynamoDB:", route);
@@ -341,7 +356,6 @@ export const handler: SQSHandler = async (event) => {
       routes.length < routesCount &&
       attempts++ < routesCount * maxAttempts
     ) {
-      
       let totalDistance = 0;
       let totalDuration = 0;
       let encoded: string | undefined;
@@ -353,7 +367,11 @@ export const handler: SQSHandler = async (event) => {
           8,
           googleKey
         );
-        if (!circleLeg) continue;
+        if (!circleLeg || !circleLeg.encoded) {
+          // PATCH 👈 Discard circular if missing polyline
+          console.warn("⚠️ Discarded circular route: missing encodedPolyline");
+          continue;
+        }
         totalDistance = circleLeg.distanceMeters;
         totalDuration = circleLeg.durationSeconds;
         encoded = circleLeg.encoded;
@@ -363,7 +381,10 @@ export const handler: SQSHandler = async (event) => {
         const dest = offsetCoordinate(oCoords.lat, oCoords.lng, dist, bearing);
 
         const [outLeg] = await computeRoutes(oCoords, dest, googleKey);
-        if (!outLeg) continue;
+        if (!outLeg || !outLeg.encoded) {
+          console.warn("⚠️ Discarded route: missing encodedPolyline (outLeg)");
+          continue;
+        }
 
         totalDistance = outLeg.distanceMeters;
         totalDuration = outLeg.durationSeconds;
@@ -371,7 +392,10 @@ export const handler: SQSHandler = async (event) => {
 
         if (roundTrip) {
           const [backLeg] = await computeRoutes(dest, oCoords, googleKey);
-          if (!backLeg) continue;
+          if (!backLeg || !backLeg.encoded) {
+            console.warn("⚠️ Discarded route: missing encodedPolyline (backLeg)");
+            continue;
+          }
           totalDistance += backLeg.distanceMeters;
           totalDuration += backLeg.durationSeconds;
           if (encoded && backLeg.encoded) {
@@ -379,7 +403,7 @@ export const handler: SQSHandler = async (event) => {
             const c2 = new Path(backLeg.encoded).Coordinates.slice();
             encoded = Path.fromCoordinates([...c1, ...c2.slice(1)]).Encoded;
           } else {
-            encoded = undefined;
+            encoded = backLeg.encoded;
           }
         }
       }
@@ -397,14 +421,21 @@ export const handler: SQSHandler = async (event) => {
         continue;
       }
 
+      if (!encoded) {
+        console.warn("⚠️ Discarded route: missing encodedPolyline (final)");
+        continue;
+      }
+
       const route = new Route({
         routeId: UUID.generate(),
         jobId: UUID.fromString(jobId),
         distanceKm: new DistanceKm(km),
         duration: new Duration(totalDuration),
-        ...(encoded ? { path: new Path(encoded) } : {}),
+        path: new Path(encoded),
       });
 
+      if (!encoded) continue;
+      
       console.info("💾 Saving route to DynamoDB:", route);
       try {
         await repository.save(route);
