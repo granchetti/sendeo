@@ -144,11 +144,6 @@ async function computeRoutes(
     },
     travelMode: "WALK",
     computeAlternativeRoutes: true,
-    routeModifiers: {
-      avoidHighways: true,
-      avoidTolls: true,
-      avoidFerries: true,
-    },
   };
   const resp: any = await postJson(
     "routes.googleapis.com",
