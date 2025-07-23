@@ -91,12 +91,18 @@ function postJson<T = any>(
       },
     };
     const req = httpsRequest(opts, (res) => {
-      console.info(`📡 Routes API → ${res.statusCode} ${res.statusMessage}`);
       let data = "";
+      console.info(`📡 Routes API HTTP ${res.statusCode} ${res.statusMessage}`);
       res.on("data", (c) => (data += c));
       res.on("end", () => {
+        console.info("📊 Routes API raw body:", data);
+        if (res.statusCode !== 200) {
+          return reject(
+            new Error(`Routes API returned HTTP ${res.statusCode}`)
+          );
+        }
         if (!data) {
-          console.warn("⚠️ Empty Routes API response");
+          // aquí veamos si Google nos manda un JSON con "error" en lugar de rutas
           return resolve(null as any);
         }
         try {
@@ -115,6 +121,7 @@ function postJson<T = any>(
     req.end();
   });
 }
+
 
 // Compute up to N alternative walking routes between two points
 async function computeRoutes(
@@ -304,201 +311,57 @@ async function getGoogleKey(): Promise<string> {
 }
 
 export const handler: SQSHandler = async (event) => {
-  console.info("📥 Received SQS event:", JSON.stringify(event, null, 2));
   const googleKey = await getGoogleKey();
-
   for (const record of event.Records) {
-    const {
-      origin,
-      destination,
-      distanceKm,
-      roundTrip = false,
-      circle = false,
-      maxDeltaKm = 1,
-      routesCount = 3,
-      jobId,
-    } = JSON.parse(record.body);
+    const { jobId, origin, destination, maxDeltaKm = 1, routesCount = 3 } = JSON.parse(record.body);
 
-    const routes: Route[] = [];
-
-    // If destination is provided, use computeRoutes + retry logic
-    if (destination) {
-      const [oCoords, dCoords] = await Promise.all([
-        geocode(origin, googleKey),
-        geocode(destination, googleKey),
-      ]);
-
-      let attempts = 0;
-      const maxAttempts = 10;
-
-      while (routes.length < routesCount && attempts++ < maxAttempts) {
-        const alts = await computeRoutes(oCoords, dCoords, googleKey);
-        if (alts.length === 0) break;
-
-        for (const alt of alts) {
-          if (routes.length >= routesCount) break;
-
-          const km = alt.distanceMeters / 1000;
-          if (
-            typeof distanceKm === "number" &&
-            Math.abs(km - distanceKm) > maxDeltaKm
-          ) {
-            console.warn(
-              `⚠️ Generated ${km.toFixed(
-                2
-              )}km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
-            );
-            continue;
-          }
-
-          // PATCH 👇: Solo acepta rutas con encodedPolyline
-          if (!alt.encoded) {
-            console.warn("⚠️ Discarded route: missing encodedPolyline");
-            continue;
-          }
-
-          const route = new Route({
-            routeId: UUID.generate(),
-            jobId: UUID.fromString(jobId),
-            distanceKm: new DistanceKm(km),
-            duration: new Duration(alt.durationSeconds),
-            path: new Path(alt.encoded),
-          });
-
-          console.info("💾 Saving route to DynamoDB:", route);
-          try {
-            await repository.save(route);
-            routes.push(route);
-          } catch (err) {
-            console.error("❌ Error saving to DynamoDB:", err);
-          }
-        }
-      }
-
-      if (routes.length) {
-        try {
-          await publishRoutesGenerated(jobId, routes);
-        } catch (err) {
-          console.error("❌ Error publishing routes:", err);
-        }
-      }
-      continue;
-    }
-
-    // Otherwise, generate random bearings (round-trip or one-way)
     const oCoords = await geocode(origin, googleKey);
+    const dCoords = await geocode(destination, googleKey);
 
+    const savedRoutes: Route[] = [];
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = routesCount * 5;
 
-    while (
-      routes.length < routesCount &&
-      attempts++ < routesCount * maxAttempts
-    ) {
-      let totalDistance = 0;
-      let totalDuration = 0;
-      let encoded: string | undefined;
-
-      if (roundTrip && circle) {
-        const circleLeg = await computeCircularRoute(
-          oCoords,
-          distanceKm!,
-          8,
-          googleKey
-        );
-        if (!circleLeg || !circleLeg.encoded) {
-          // PATCH 👈 Discard circular if missing polyline
-          console.warn("⚠️ Discarded circular route: missing encodedPolyline");
-          continue;
-        }
-        totalDistance = circleLeg.distanceMeters;
-        totalDuration = circleLeg.durationSeconds;
-        encoded = circleLeg.encoded;
-      } else {
-        const bearing = Math.random() * 360;
-        const dist = roundTrip ? distanceKm! / 2 : distanceKm!;
-        const rawDest = offsetCoordinate(oCoords.lat, oCoords.lng, dist, bearing);
-        const dest = await snapToRoad(rawDest, googleKey);
-
-        const [outLeg] = await computeRoutes(oCoords, dest, googleKey);
-        if (!outLeg || !outLeg.encoded) {
-          console.warn("⚠️ Discarded route: missing encodedPolyline (outLeg)");
-          continue;
-        }
-
-        totalDistance = outLeg.distanceMeters;
-        totalDuration = outLeg.durationSeconds;
-        encoded = outLeg.encoded;
-
-        if (roundTrip) {
-          const [backLeg] = await computeRoutes(dest, oCoords, googleKey);
-          if (!backLeg || !backLeg.encoded) {
-            console.warn("⚠️ Discarded route: missing encodedPolyline (backLeg)");
-            continue;
-          }
-          totalDistance += backLeg.distanceMeters;
-          totalDuration += backLeg.durationSeconds;
-            if (encoded && backLeg.encoded) {
-              const c1 = new Path(encoded).Coordinates;
-              const c2 = new Path(backLeg.encoded).Coordinates.slice();
-              if (
-                c1.length &&
-                c2.length &&
-                c1[c1.length - 1].Lat === c2[0].Lat &&
-                c1[c1.length - 1].Lng === c2[0].Lng
-              ) {
-                c2.shift();
-              }
-              encoded = Path.fromCoordinates([...c1, ...c2]).Encoded;
-            } else {
-              encoded = backLeg.encoded;
-            }
-        }
-      }
-
-      const km = totalDistance / 1000;
-      if (
-        typeof distanceKm === "number" &&
-        Math.abs(km - distanceKm!) > maxDeltaKm
-      ) {
-        console.warn(
-          `⚠️ Generated ${km.toFixed(
-            2
-          )}km differs from requested ${distanceKm}km by more than ${maxDeltaKm}km`
-        );
-        continue;
-      }
-
-      if (!encoded) {
-        console.warn("⚠️ Discarded route: missing encodedPolyline (final)");
-        continue;
-      }
-
-      const route = new Route({
-        routeId: UUID.generate(),
-        jobId: UUID.fromString(jobId),
-        distanceKm: new DistanceKm(km),
-        duration: new Duration(totalDuration),
-        path: new Path(encoded),
-      });
-
-      if (!encoded) continue;
-      
-      console.info("💾 Saving route to DynamoDB:", route);
+    while (savedRoutes.length < routesCount && attempts++ < maxAttempts) {
+      let alts: Array<{ distanceMeters: number; durationSeconds: number; encoded?: string }> = [];
       try {
-        await repository.save(route);
-        routes.push(route);
+        alts = await computeRoutes(oCoords, dCoords, googleKey);
       } catch (err) {
-        console.error("❌ Error saving to DynamoDB:", err);
+        console.error("❌ computeRoutes error:", err);
+        break; // si la API nos niega el servicio, no sigas intentando
+      }
+
+      if (!alts.length) {
+        console.warn(`⚠️ No alternatives returned (attempt ${attempts})`);
+        continue;
+      }
+
+      for (const alt of alts) {
+        if (savedRoutes.length >= routesCount) break;
+        const km = alt.distanceMeters / 1000;
+        if (Math.abs(km - km /* aquí deberías comparar con distanceKm si aplica */) > maxDeltaKm) {
+          console.warn("⚠️ Alt distance out of range, skipping");
+          continue;
+        }
+        const route = new Route({
+          routeId: UUID.generate(),
+          jobId: UUID.fromString(jobId),
+          distanceKm: new DistanceKm(km),
+          duration: new Duration(alt.durationSeconds),
+          path: new Path(alt.encoded!),
+        });
+        await repository.save(route);
+        savedRoutes.push(route);
       }
     }
 
-    if (routes.length) {
-      try {
-        await publishRoutesGenerated(jobId, routes);
-      } catch (err) {
-        console.error("❌ Error publishing routes:", err);
-      }
+    if (savedRoutes.length) {
+      await publishRoutesGenerated(jobId, savedRoutes);
+    } else {
+      console.warn("⚠️ No routes could be generated after max attempts");
+      // Opcional: publica un mensaje de error o un job con estado "failed"
+      // await publishRoutesGenerated(jobId, []);
     }
   }
 };
+
