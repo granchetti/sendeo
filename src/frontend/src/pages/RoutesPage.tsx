@@ -290,20 +290,21 @@ export default function RoutesPage() {
                   key={r.routeId}
                   path={google.maps.geometry.encoding.decodePath(r.path)}
                   options={{
-                    strokeColor: [
-                      '#ff6f00', // orange
-                      '#388e3c', // green
-                      '#1976d2', // blue
-                      '#d32f2f', // red
-                      '#7b1fa2', // purple
-                      '#0288d1', // light blue
-                      '#c2185b', // pink
-                      '#fbc02d', // yellow
-                      '#512da8', // deep purple
-                      '#00796b', // teal
-                    ][idx % 10],
+                    // 1) Color distinto por ruta:
+                    strokeColor: ['#ff6f00', '#388e3c', '#1976d2'][idx % 3],
                     strokeOpacity: 0.8,
                     strokeWeight: 4,
+                    // 2) Añade un patrón de líneas discontinuas para rutas solapadas:
+                    icons: [
+                      {
+                        icon: {
+                          path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                          scale: 2,
+                        },
+                        offset: '0',
+                        repeat: '40px',
+                      },
+                    ],
                   }}
                 />
               ) : null,
