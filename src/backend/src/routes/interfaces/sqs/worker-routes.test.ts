@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import polyline from "@mapbox/polyline";
 
 const mockSave = jest.fn();
 
@@ -276,6 +277,101 @@ describe("worker routes handler", () => {
     const saved = mockSave.mock.calls[0][0];
     expect(saved.distanceKm.Value).toBe(3);
     expect(saved.duration.Value).toBe(1200);
+    expect(
+      saved.path!.Coordinates.map((c: any) => ({ lat: c.Lat, lng: c.Lng }))
+    ).toEqual([
+      { lat: 38.5, lng: -120.2 },
+      { lat: 40.7, lng: -120.95 },
+      { lat: 43.252, lng: -126.453 },
+      { lat: 40.7, lng: -120.95 },
+      { lat: 38.5, lng: -120.2 },
+    ]);
+  });
+
+  it("merges back leg coordinates with minor differences", async () => {
+    const forwardCoords = [
+      [38.5, -120.2],
+      [40.7, -120.95],
+      [43.252, -126.453],
+    ];
+    const backCoords = [
+      [43.252001, -126.453001],
+      [40.7, -120.95],
+      [38.5, -120.2],
+    ];
+    const forward = JSON.stringify({
+      routes: [
+        {
+          legs: [
+            {
+              distanceMeters: 1500,
+              duration: { seconds: 600 },
+              polyline: { encodedPolyline: polyline.encode(forwardCoords) },
+            },
+          ],
+        },
+      ],
+    });
+
+    const back = JSON.stringify({
+      routes: [
+        {
+          legs: [
+            {
+              distanceMeters: 1500,
+              duration: { seconds: 600 },
+              polyline: { encodedPolyline: polyline.encode(backCoords) },
+            },
+          ],
+        },
+      ],
+    });
+
+    const makeReq = (payload: string) =>
+      (opts: string | any, cb: (res: any) => void) => {
+        const res = new EventEmitter();
+        res.on = res.addListener;
+        cb(res);
+        return {
+          on: jest.fn(),
+          write: jest.fn(),
+          end: jest.fn(() => {
+            const data = typeof opts === "string"
+              ? JSON.stringify({
+                  results: [
+                    { geometry: { location: { lat: 0, lng: 0 } } },
+                  ],
+                })
+              : payload;
+            res.emit("data", data);
+            res.emit("end");
+          }),
+        };
+      };
+
+    httpsRequest
+      .mockImplementationOnce(makeReq(""))
+      .mockImplementationOnce(makeReq(forward))
+      .mockImplementationOnce(makeReq(back));
+
+    const handler = loadHandler();
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({
+            jobId: "550e8400-e29b-41d4-a716-446655440013",
+            origin: "a",
+            distanceKm: 3,
+            roundTrip: true,
+            routesCount: 1,
+          }),
+        },
+      ],
+    } as any;
+
+    await handler(event);
+
+    const saved = mockSave.mock.calls[0][0];
     expect(
       saved.path!.Coordinates.map((c: any) => ({ lat: c.Lat, lng: c.Lng }))
     ).toEqual([
