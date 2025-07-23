@@ -211,8 +211,10 @@ async function computeCircularRoute(
   segments: number,
   apiKey: string
 ) {
+  console.info("[computeCircularRoute] start", origin, "dKm=", dKm);
   const radius = dKm / (2 * Math.PI),
     pts = [];
+  // build & snap waypoints
   for (let i = 0; i < segments; i++) {
     const raw = offsetCoordinate(
       origin.lat,
@@ -222,6 +224,7 @@ async function computeCircularRoute(
     );
     pts.push(await snapToRoad(raw, apiKey));
   }
+  // stitch legs
   let totalDist = 0,
     totalDur = 0,
     encoded: string | undefined;
@@ -231,7 +234,7 @@ async function computeCircularRoute(
     const legs = await computeRoutes(a, b, apiKey);
     const leg = legs[0];
     if (!leg) {
-      console.warn("[computeCircular] missing leg");
+      console.warn("[computeCircularRoute] missing leg at segment", i);
       return null;
     }
     totalDist += leg.distanceMeters;
@@ -244,9 +247,8 @@ async function computeCircularRoute(
       encoded = leg.encoded;
     }
   }
-  return encoded
-    ? { distanceMeters: totalDist, durationSeconds: totalDur, encoded }
-    : null;
+  if (!encoded) return null;
+  return { distanceMeters: totalDist, durationSeconds: totalDur, encoded };
 }
 
 /** Persist a single Route entity */
@@ -300,7 +302,7 @@ export const handler: SQSHandler = async (event) => {
       );
 
       if (dCoords) {
-        // ————— point→point —————
+        // ——— point→point ———
         const alts = await computeRoutes(oCoords, dCoords, key);
         for (const alt of alts) {
           if (saved.length >= routesCount) break;
@@ -314,16 +316,17 @@ export const handler: SQSHandler = async (event) => {
           );
         }
       } else {
-        // ————— distance‑only —————
-        let leg = null as null | {
+        // ——— distance‑only ———
+        let leg: {
           distanceMeters: number;
           durationSeconds: number;
           encoded: string;
-        };
+        } | null = null;
 
         if (roundTrip && circle) {
           leg = await computeCircularRoute(oCoords, distanceKm!, 8, key);
         } else {
+          // existing out‑and‑back
           const bearing = Math.random() * 360;
           console.info("[handler] random bearing", bearing);
           const half = roundTrip ? distanceKm! / 2 : distanceKm!;
@@ -344,11 +347,10 @@ export const handler: SQSHandler = async (event) => {
             if (!back) continue;
             const c1 = new Path(out.encoded).Coordinates;
             const c2 = new Path(back.encoded).Coordinates.slice(1);
-            const poly = Path.fromCoordinates([...c1, ...c2]).Encoded;
             leg = {
               distanceMeters: out.distanceMeters + back.distanceMeters,
               durationSeconds: out.durationSeconds + back.durationSeconds,
-              encoded: poly,
+              encoded: Path.fromCoordinates([...c1, ...c2]).Encoded,
             };
           }
         }

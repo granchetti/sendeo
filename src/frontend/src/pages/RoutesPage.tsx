@@ -60,7 +60,7 @@ export default function RoutesPage() {
   const [routesCount, setRoutesCount] = useState('');
   const [mode, setMode] = useState<'points' | 'distance'>('points');
   const [jobId, setJobId] = useState<string | null>(null);
-
+  const [circle, setCircle] = useState(false);
   const [routes, setRoutes] = useState<Route[]>([]);
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const toast = useToast();
@@ -96,6 +96,7 @@ export default function RoutesPage() {
       distanceKm: mode === 'distance' ? Number(distanceKm) : undefined,
       // Round trip only applies when generating by distance.
       roundTrip: mode === 'distance' ? roundTrip : undefined,
+      circle: mode === 'distance' ? circle : undefined,
       maxDeltaKm: maxDeltaKm ? Number(maxDeltaKm) : undefined,
       routesCount: routesCount ? Number(routesCount) : undefined,
     };
@@ -217,27 +218,34 @@ export default function RoutesPage() {
               </FormControl>
             )}
             {mode === 'distance' && (
-              <FormControl>
-                <FormLabel fontWeight="bold">Distance (km)</FormLabel>
-                <Input
-                  type="number"
-                  value={distanceKm}
-                  onChange={(e) => setDistanceKm(e.target.value)}
-                  placeholder="e.g. 5"
-                  bg="gray.50"
-                />
-              </FormControl>
-            )}
-            {mode === 'distance' && (
-              <FormControl>
-                {/* Whether the generated route should return to the origin */}
-                <Checkbox
-                  isChecked={roundTrip}
-                  onChange={(e) => setRoundTrip(e.target.checked)}
-                >
-                  Round Trip
-                </Checkbox>
-              </FormControl>
+              <>
+                <FormControl>
+                  <FormLabel fontWeight="bold">Distance (km)</FormLabel>
+                  <Input
+                    type="number"
+                    value={distanceKm}
+                    onChange={(e) => setDistanceKm(e.target.value)}
+                    placeholder="e.g. 5"
+                    bg="gray.50"
+                  />
+                </FormControl>
+                <FormControl>
+                  <Checkbox
+                    isChecked={roundTrip}
+                    onChange={(e) => setRoundTrip(e.target.checked)}
+                  >
+                    Round Trip
+                  </Checkbox>
+                </FormControl>
+                <FormControl>
+                  <Checkbox
+                    isChecked={circle}
+                    onChange={(e) => setCircle(e.target.checked)}
+                  >
+                    Circular Loop
+                  </Checkbox>
+                </FormControl>
+              </>
             )}
             <FormControl>
               <FormLabel fontWeight="bold">Max Delta Km</FormLabel>
