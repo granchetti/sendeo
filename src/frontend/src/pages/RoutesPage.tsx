@@ -314,10 +314,10 @@ export default function RoutesPage() {
           </Flex>
         )}
         {routes.length > 0 && (
-          <Stack spacing={3} mt={4}>
-            {routes.map((r) => (
+            <Stack spacing={3} mt={4}>
+            {routes.map((r, idx) => (
               <Box key={r.routeId} p={3} borderWidth="1px" borderRadius="md">
-                <Text fontWeight="bold">Route {r.routeId}</Text>
+              <Text fontWeight="bold">Route {idx + 1}</Text>
                 {r.distanceKm != null && (
                   <Text>Distance: {r.distanceKm.toFixed(2)} km</Text>
                 )}
