@@ -275,15 +275,7 @@ async function computeCircularRoute(
     if (encoded) {
       const c1 = new Path(encoded).Coordinates;
       const c2 = new Path(leg.encoded).Coordinates.slice();
-      if (
-        c1.length &&
-        c2.length &&
-        Math.abs(c1[c1.length - 1].Lat - c2[0].Lat) < 1e-5 &&
-        Math.abs(c1[c1.length - 1].Lng - c2[0].Lng) < 1e-5
-      ) {
-        c2.shift();
-      }
-      encoded = Path.fromCoordinates([...c1, ...c2]).Encoded;
+      encoded = Path.fromCoordinates([...c1, ...c2.slice(1)]).Encoded;
     } else {
       encoded = leg.encoded;
     }
@@ -452,8 +444,8 @@ export const handler: SQSHandler = async (event) => {
               if (
                 c1.length &&
                 c2.length &&
-                Math.abs(c1[c1.length - 1].Lat - c2[0].Lat) < 1e-5 &&
-                Math.abs(c1[c1.length - 1].Lng - c2[0].Lng) < 1e-5
+                c1[c1.length - 1].Lat === c2[0].Lat &&
+                c1[c1.length - 1].Lng === c2[0].Lng
               ) {
                 c2.shift();
               }
