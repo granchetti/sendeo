@@ -39,7 +39,7 @@ type Route = {
 };
 
 /**
- * Convert a lat/lng object to the "lat,lng" string that the backend API expects.
+ * Convert a lat/lng object to the "lat,lng" string accepted by the backend API.
  * We keep coordinates as objects for map interactions but serialize them when
  * sending requests.
  */
@@ -85,8 +85,8 @@ export default function RoutesPage() {
       toast({ title: 'Select an origin on the map.', status: 'warning' });
       return;
     }
-    // Serialize coordinates for the backend. The API expects "lat,lng" strings
-    // but we store them as objects while interacting with the map.
+    // Serialize coordinates for the backend. The API accepts "lat,lng" strings
+    // or addresses, but we store them as objects while interacting with the map.
     const data = {
       origin: toCoordinateString(origin),
       destination:

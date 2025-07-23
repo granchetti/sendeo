@@ -37,10 +37,25 @@ function fetchJson<T = any>(url: string): Promise<T> {
   });
 }
 
-async function geocode(
+/**
+ * Geocode an address or parse provided coordinates.
+ *
+ * The function accepts plain address strings as well as "lat,lng" coordinate
+ * pairs. When the input matches a coordinate pattern it is returned directly
+ * without calling the Google Geocode API.
+ */
+export async function geocode(
   address: string,
   apiKey: string
 ): Promise<{ lat: number; lng: number }> {
+  const coordRegex = /^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$/;
+  if (coordRegex.test(address)) {
+    const [latStr, lngStr] = address.split(/\s*,\s*/);
+    const lat = parseFloat(latStr);
+    const lng = parseFloat(lngStr);
+    return { lat, lng };
+  }
+
   const url =
     `https://maps.googleapis.com/maps/api/geocode/json` +
     `?address=${encodeURIComponent(address)}` +
@@ -50,7 +65,7 @@ async function geocode(
   const loc = res?.results?.[0]?.geometry?.location;
   if (!loc) {
     console.warn("⚠️ No geocoding result for", address, res);
-    throw new Error(`Geocoding failed for "${address}"`);
+    throw new Error(`Geocoding failed for \"${address}\"`);
   }
   return { lat: loc.lat, lng: loc.lng };
 }
