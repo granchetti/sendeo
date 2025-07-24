@@ -12,126 +12,167 @@ import { Path } from "../../domain/value-objects/path-value-object";
 import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { publishRoutesGenerated } from "../appsync-client";
-import { LatLng } from "../../domain/value-objects/lat-lng-value-object";
 
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 const sm = new SecretsManagerClient({});
 
- 
-export async function getORSKey(): Promise<string> {
-  // 1) ENV override (para testing local)
-  if (process.env.ORS_API_KEY) {
-    console.info("[getORSKey] using ORS_API_KEY env var");
-    return process.env.ORS_API_KEY;
+/** FETCH Google key */
+async function getGoogleKey(): Promise<string> {
+  console.info("[getGoogleKey] start");
+  if (process.env.GOOGLE_API_KEY) {
+    console.info("[getGoogleKey] using ENV key");
+    return process.env.GOOGLE_API_KEY;
   }
-
-  // 2) Secrets Manager
-  const secretName = process.env.ORS_SECRET_NAME;
-  if (!secretName) throw new Error("Missing ORS_SECRET_NAME env var");
-
-  console.info("[getORSKey] fetching from Secrets Manager:", secretName);
+  console.info("[getGoogleKey] fetching from Secrets Manager");
   const resp = await sm.send(
-    new GetSecretValueCommand({ SecretId: secretName })
+    new GetSecretValueCommand({ SecretId: "google-api-key" })
   );
-  if (!resp.SecretString) {
-    throw new Error(`Secret ${secretName} has no SecretString`);
-  }
-  const raw = resp.SecretString.trim();
-
-  // intenta parsear JSON
-  try {
-    const json = JSON.parse(raw);
-    // si tiene UNA sola propiedad que es string, la usamos
-    const keys = Object.keys(json);
-    if (
-      keys.length === 1 &&
-      typeof (json as any)[keys[0]] === "string"
-    ) {
-      console.info(
-        `[getORSKey] found single JSON property "${keys[0]}" → using that`
-      );
-      return (json as any)[keys[0]];
-    }
-    // luego chequea nombres habituales
-    for (const name of ["ORS_API_KEY", "ORS_KEY", "api_key", "API_KEY"]) {
-      if (typeof (json as any)[name] === "string") {
-        console.info(`[getORSKey] found JSON.${name}`);
-        return (json as any)[name];
-      }
-    }
-    console.warn(
-      "[getORSKey] JSON parsed but no known property found, falling back to raw"
-    );
-  } catch {
-    // no era JSON, seguimos al fallback
-  }
-
-  // 3) Fallback: devolvemos el raw string (en caso que el secreto fuera plain-text)
-  return raw;
+  console.info("[getGoogleKey] retrieved key");
+  return JSON.parse(resp.SecretString!).GOOGLE_API_KEY;
 }
 
-
-
-async function orsLeg(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-  key: string,
-  profile = "foot-walking"
-) {
-  const body = {
-    coordinates: [
-      [a.lng, a.lat],
-      [b.lng, b.lat],
-    ],
-    instructions: false,
-  };
-  const payload = JSON.stringify(body);
-  const opts: RequestOptions = {
-    method: "POST",
-    host: "api.openrouteservice.org",
-    path: `/v2/directions/${profile}/geojson`,
-    headers: {
-      "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(payload),
-      Authorization: key,
-    },
-  };
-  const geo: any = await new Promise((resolve, reject) => {
-    const req = httpsRequest(opts, (res) => {
-      let d = "";
-      res.on("data", (c) => (d += c));
+/** HTTP GET → JSON */
+function fetchJson<T = any>(url: string): Promise<T> {
+  console.info(`[fetchJson] GET ${url}`);
+  return new Promise((resolve, reject) => {
+    const req = httpsRequest(url, (res) => {
+      let data = "";
+      res.on("data", (c) => (data += c));
       res.on("end", () => {
-        if (res.statusCode !== 200)
-          return reject(new Error(`ORS ${res.statusCode}`));
-        resolve(JSON.parse(d));
+        console.info(`[fetchJson] resp body: ${data}`);
+        try {
+          resolve(data ? JSON.parse(data) : null);
+        } catch (err) {
+          console.error("[fetchJson] JSON.parse error", data);
+          reject(err);
+        }
       });
     });
-    req.on("error", reject);
+    req.on("error", (err) => {
+      console.error("[fetchJson] HTTP error", err);
+      reject(err);
+    });
+    req.end();
+  });
+}
+
+/** Geocode or parse “lat,lng” */
+async function geocode(address: string, apiKey: string) {
+  console.info("[geocode] start:", address);
+  const coordRx = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
+  if (coordRx.test(address)) {
+    const [lat, lng] = address.split(/\s*,\s*/).map(Number);
+    console.info("[geocode] parsed coords:", lat, lng);
+    return { lat, lng };
+  }
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+    address
+  )}&key=${apiKey}`;
+  const res: any = await fetchJson(url);
+  const loc = res?.results?.[0]?.geometry?.location;
+  if (!loc) throw new Error(`Geocoding failed for "${address}"`);
+  console.info("[geocode] geocoded to:", loc.lat, loc.lng);
+  return { lat: loc.lat, lng: loc.lng };
+}
+
+/** POST → JSON for legacy Routes API */
+function postJson<T>(
+  host: string,
+  path: string,
+  apiKey: string,
+  body: any
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify(body);
+    const opts: RequestOptions = {
+      method: "POST",
+      host,
+      path,
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(payload),
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask":
+          "routes.legs.duration,routes.legs.distanceMeters,routes.legs.polyline.encodedPolyline",
+      },
+    };
+    console.info(`[postJson] POST https://${host}${path}`, body);
+    const req = httpsRequest(opts, (res) => {
+      let data = "";
+      res.on("data", (c) => (data += c));
+      res.on("end", () => {
+        console.info(`[postJson] HTTP ${res.statusCode}`, data);
+        if (res.statusCode !== 200) {
+          console.error("[postJson] non-200 status");
+          return reject(
+            new Error(`Routes API returned HTTP ${res.statusCode}`)
+          );
+        }
+        try {
+          resolve(data ? JSON.parse(data) : null);
+        } catch (err) {
+          console.error("[postJson] JSON.parse error", data);
+          reject(err);
+        }
+      });
+    });
+    req.on("error", (err) => {
+      console.error("[postJson] HTTP error", err);
+      reject(err);
+    });
     req.write(payload);
     req.end();
   });
-  const sum = geo.features[0].properties.summary;
-  const coords: [number, number][] = geo.features[0].geometry.coordinates;
-  const encoded = Path.fromCoordinates(
-    coords.map(([lng, lat]) => LatLng.fromNumbers(lat, lng))
-  ).Encoded;
-  return {
-    distanceMeters: sum.distance,
-    durationSeconds: sum.duration,
-    encoded,
-  };
 }
 
-function offsetCoordinate(
-  lat: number,
-  lng: number,
-  dKm: number,
-  bearing: number
+/** Compute alternative walking routes */
+async function computeRoutes(
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number },
+  apiKey: string
 ) {
+  console.info("[computeRoutes]", origin, "→", destination);
+  const body = {
+    origin: {
+      location: { latLng: { latitude: origin.lat, longitude: origin.lng } },
+    },
+    destination: {
+      location: {
+        latLng: { latitude: destination.lat, longitude: destination.lng },
+      },
+    },
+    travelMode: "WALK",
+    computeAlternativeRoutes: true,
+  };
+  const resp: any = await postJson(
+    "routes.googleapis.com",
+    "/directions/v2:computeRoutes",
+    apiKey,
+    body
+  );
+  return (resp.routes || [])
+    .map((r: any) => {
+      const leg = r.legs?.[0];
+      if (!leg?.polyline?.encodedPolyline) return null;
+      const seconds =
+        typeof leg.duration === "object"
+          ? leg.duration.seconds
+          : parseInt(leg.duration.replace(/\D/g, ""), 10);
+      return {
+        distanceMeters: leg.distanceMeters!,
+        durationSeconds: seconds,
+        encoded: leg.polyline.encodedPolyline,
+      };
+    })
+    .filter((x): x is any => !!x);
+}
+
+/** Offset a point by km & bearing */
+function offsetCoordinate(lat: number, lng: number, dKm: number, bDeg = 90) {
   const R = 6371,
     d = dKm / R,
-    θ = (bearing * Math.PI) / 180,
+    θ = (bDeg * Math.PI) / 180,
     φ1 = (lat * Math.PI) / 180,
     λ1 = (lng * Math.PI) / 180;
   const φ2 = Math.asin(
@@ -146,14 +187,34 @@ function offsetCoordinate(
   return { lat: (φ2 * 180) / Math.PI, lng: (λ2 * 180) / Math.PI };
 }
 
-async function computeCircularORS(
+/** Snap a point to the nearest road */
+async function snapToRoad(pt: { lat: number; lng: number }, apiKey: string) {
+  const url = `https://roads.googleapis.com/v1/nearestRoads?points=${pt.lat},${pt.lng}&key=${apiKey}`;
+  console.info("[snapToRoad]", pt);
+  try {
+    const data: any = await fetchJson(url);
+    const loc = data?.snappedPoints?.[0]?.location;
+    console.info("[snapToRoad] snapped:", loc);
+    return loc
+      ? { lat: loc.latitude ?? loc.lat, lng: loc.longitude ?? loc.lng }
+      : pt;
+  } catch (err) {
+    console.warn("[snapToRoad] failed:", err);
+    return pt;
+  }
+}
+
+/** Compute an 8‑segment loop */
+async function computeCircularRoute(
   origin: { lat: number; lng: number },
-  distanceKm: number,
+  dKm: number,
   segments: number,
-  key: string
+  apiKey: string
 ) {
-  const radius = distanceKm / (2 * Math.PI);
-  const pts: { lat: number; lng: number }[] = [];
+  console.info("[computeCircularRoute] start", origin, "dKm=", dKm);
+  const radius = dKm / (2 * Math.PI),
+    pts = [];
+  // build & snap waypoints
   for (let i = 0; i < segments; i++) {
     const raw = offsetCoordinate(
       origin.lat,
@@ -161,34 +222,61 @@ async function computeCircularORS(
       radius,
       (360 / segments) * i
     );
-    pts.push(raw);
+    pts.push(await snapToRoad(raw, apiKey));
   }
-  // 4.2 cose piernas y ensambla polilínea
-  let totalD = 0,
-    totalT = 0,
+  // stitch legs
+  let totalDist = 0,
+    totalDur = 0,
     encoded: string | undefined;
   for (let i = 0; i < segments; i++) {
     const a = pts[i],
       b = pts[(i + 1) % segments];
-    const leg = await orsLeg(a, b, key);
-    totalD += leg.distanceMeters;
-    totalT += leg.durationSeconds;
+    const legs = await computeRoutes(a, b, apiKey);
+    const leg = legs[0];
+    if (!leg) {
+      console.warn("[computeCircularRoute] missing leg at segment", i);
+      return null;
+    }
+    totalDist += leg.distanceMeters;
+    totalDur += leg.durationSeconds;
     if (encoded) {
       const c1 = new Path(encoded).Coordinates;
       const c2 = new Path(leg.encoded).Coordinates.slice(1);
       encoded = Path.fromCoordinates([...c1, ...c2]).Encoded;
-    } else encoded = leg.encoded;
+    } else {
+      encoded = leg.encoded;
+    }
   }
-  return encoded
-    ? { distanceMeters: totalD, durationSeconds: totalT, encoded }
-    : null;
+  if (!encoded) return null;
+  return { distanceMeters: totalDist, durationSeconds: totalDur, encoded };
 }
 
+/** Persist a single Route entity */
+async function persistRoute(
+  jobId: string,
+  km: number,
+  dur: number,
+  poly: string
+) {
+  const r = new Route({
+    routeId: UUID.generate(),
+    jobId: UUID.fromString(jobId),
+    distanceKm: new DistanceKm(km),
+    duration: new Duration(dur),
+    path: new Path(poly),
+  });
+  await repository.save(r);
+  console.info("[persistRoute] saved:", r);
+  return r;
+}
+
+/** MAIN LAMBDA HANDLER */
 export const handler: SQSHandler = async (event) => {
-  console.info("event", event);
-  const key = await getORSKey();
+  console.info("[handler] event", JSON.stringify(event, null, 2));
+  const key = await getGoogleKey();
 
   for (const { body } of event.Records) {
+    console.info("[handler] record", body);
     const {
       jobId,
       origin,
@@ -200,96 +288,117 @@ export const handler: SQSHandler = async (event) => {
       routesCount = 3,
     } = JSON.parse(body);
 
-    const [olng, olat] = origin.split(",").map(Number);
-    const oCoords = { lat: olat, lng: olng };
-    const dCoords = destination
-      ? (() => {
-          const [dlng, dlat] = destination.split(",").map(Number);
-          return { lat: dlat, lng: dlng };
-        })()
-      : undefined;
+    const oCoords = await geocode(origin, key);
+    const dCoords = destination ? await geocode(destination, key) : undefined;
 
     const saved: Route[] = [];
-    const maxAtt = routesCount * 5;
-    let attempts = 0;
+    let attempts = 0,
+      maxAt = routesCount * 10;
+    console.info(`[handler] max attempts: ${maxAt}`);
 
-    while (saved.length < routesCount && attempts++ < maxAtt) {
+    while (saved.length < routesCount && attempts++ < maxAt) {
+      console.info(
+        `[handler] attempt ${attempts}, have ${saved.length}/${routesCount}`
+      );
+
       if (dCoords) {
-        console.info(`p2p attempt #${attempts}`);
-        const alts = await Promise.all(
-          Array(routesCount)
-            .fill(null)
-            .map(() => orsLeg(oCoords, dCoords, key))
-        );
+        // ——— point→point ———
+        const alts = await computeRoutes(oCoords, dCoords, key);
         for (const alt of alts) {
           if (saved.length >= routesCount) break;
           const km = alt.distanceMeters / 1000;
-          if (Math.abs(km - (distanceKm ?? km)) > maxDeltaKm) continue;
-          const r = new Route({
-            routeId: UUID.generate(),
-            jobId: UUID.fromString(jobId),
-            distanceKm: new DistanceKm(km),
-            duration: new Duration(alt.durationSeconds),
-            path: new Path(alt.encoded),
-          });
-          await repository.save(r);
-          saved.push(r);
+          if (Math.abs(km - (distanceKm ?? km)) > maxDeltaKm) {
+            console.warn("[handler] p2p out of range", km);
+            continue;
+          }
+          saved.push(
+            await persistRoute(jobId, km, alt.durationSeconds, alt.encoded)
+          );
         }
-      } else if (distanceKm != null) {
-        console.info(`dist-only attempt #${attempts}`);
-        let legData = null;
-
+      } else {
+        // ——— distance‑only ———
+        let leg: {
+          distanceMeters: number;
+          durationSeconds: number;
+          encoded: string;
+        } | null = null;
         if (roundTrip && circle) {
-          legData = await computeCircularORS(oCoords, distanceKm, 8, key);
-        }
-
-        if (!legData) {
+          leg = await computeCircularRoute(oCoords, distanceKm!, 4, key);
+          if (!leg) {
+            console.warn(
+              "[handler] circular failed, fallback to simple round-trip"
+            );
+            // sacamos dos legs: ida y vuelta
+            const bearing = Math.random() * 360;
+            const half = distanceKm! / 2;
+            const rawDest = offsetCoordinate(
+              oCoords.lat,
+              oCoords.lng,
+              half,
+              bearing
+            );
+            const snapped = await snapToRoad(rawDest, key);
+            const [out] = await computeRoutes(oCoords, snapped, key);
+            const [back] = await computeRoutes(snapped, oCoords, key);
+            if (out?.encoded && back?.encoded) {
+              const c1 = new Path(out.encoded).Coordinates;
+              const c2 = new Path(back.encoded).Coordinates.slice(1);
+              const poly = Path.fromCoordinates([...c1, ...c2]).Encoded;
+              leg = {
+                distanceMeters: out.distanceMeters + back.distanceMeters,
+                durationSeconds: out.durationSeconds + back.durationSeconds,
+                encoded: poly,
+              };
+            }
+          }
+        } else {
+          // existing out‑and‑back
           const bearing = Math.random() * 360;
-          const half = roundTrip ? distanceKm / 2 : distanceKm!;
-          const dest = offsetCoordinate(
+          console.info("[handler] random bearing", bearing);
+          const half = roundTrip ? distanceKm! / 2 : distanceKm!;
+          const rawDest = offsetCoordinate(
             oCoords.lat,
             oCoords.lng,
             half,
             bearing
           );
-          const out = await orsLeg(oCoords, dest, key);
+          const snapped = await snapToRoad(rawDest, key);
+          const [out] = await computeRoutes(oCoords, snapped, key);
           if (!out) continue;
+
           if (!roundTrip) {
-            legData = out;
+            leg = out;
           } else {
-            const back = await orsLeg(dest, oCoords, key);
+            const [back] = await computeRoutes(snapped, oCoords, key);
+            if (!back) continue;
             const c1 = new Path(out.encoded).Coordinates;
             const c2 = new Path(back.encoded).Coordinates.slice(1);
-            const poly = Path.fromCoordinates([...c1, ...c2]).Encoded;
-            legData = {
+            leg = {
               distanceMeters: out.distanceMeters + back.distanceMeters,
               durationSeconds: out.durationSeconds + back.durationSeconds,
-              encoded: poly,
+              encoded: Path.fromCoordinates([...c1, ...c2]).Encoded,
             };
           }
         }
 
-        if (legData) {
-          const km = legData.distanceMeters / 1000;
-          if (Math.abs(km - distanceKm!) > maxDeltaKm) continue;
-          const r = new Route({
-            routeId: UUID.generate(),
-            jobId: UUID.fromString(jobId),
-            distanceKm: new DistanceKm(km),
-            duration: new Duration(legData.durationSeconds),
-            path: new Path(legData.encoded),
-          });
-          await repository.save(r);
-          saved.push(r);
+        if (leg) {
+          const km = leg.distanceMeters / 1000;
+          if (Math.abs(km - distanceKm!) > maxDeltaKm) {
+            console.warn("[handler] dist-only out of range", km);
+            continue;
+          }
+          saved.push(
+            await persistRoute(jobId, km, leg.durationSeconds, leg.encoded)
+          );
         }
       }
     }
 
     if (saved.length) {
-      console.info(`publishing ${saved.length} routes`);
+      console.info(`[handler] publishing ${saved.length} routes`);
       await publishRoutesGenerated(jobId, saved);
     } else {
-      console.warn(`no routes after ${maxAtt} attempts`);
+      console.warn(`[handler] no routes after ${maxAt} attempts`);
     }
   }
 };
