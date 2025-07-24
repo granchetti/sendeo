@@ -16,7 +16,7 @@ export interface ComputeStackProps extends cdk.StackProps {
   readonly routeJobsQueue: sqs.IQueue;
   readonly metricsQueue: sqs.IQueue;
   readonly userPool: IUserPool;
-  readonly googleApiKeySecretName: string;
+  readonly orsApiKeySecretName: string;
   readonly appSyncUrl?: string;
   readonly appSyncApiKey?: string;
   readonly appSyncRegion?: string;
@@ -26,10 +26,10 @@ export class ComputeStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ComputeStackProps) {
     super(scope, id, props);
 
-    const googleSecret = Secret.fromSecretNameV2(
+    const orsSecret = Secret.fromSecretNameV2(
       this,
-      "GoogleSecret",
-      "google-api-key"
+      "ORSSecret",
+      props.orsApiKeySecretName
     );
 
     // API Gateway + Cognito Authorizer
@@ -79,7 +79,8 @@ export class ComputeStack extends cdk.Stack {
         ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
       },
     });
-    googleSecret.grantRead(workerRoutes.fn);
+    orsSecret.grantRead(workerRoutes.fn);
+
     workerRoutes.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
