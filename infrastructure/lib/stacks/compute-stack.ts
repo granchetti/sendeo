@@ -72,6 +72,7 @@ export class ComputeStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
       environment: {
         ROUTES_TABLE: props.routesTable.tableName,
+        ORS_SECRET_NAME: props.orsApiKeySecretName,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
         ...(props.appSyncApiKey
           ? { APPSYNC_API_KEY: props.appSyncApiKey }
