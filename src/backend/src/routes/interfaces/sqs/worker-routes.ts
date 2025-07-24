@@ -18,21 +18,52 @@ const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 const sm = new SecretsManagerClient({});
 
-async function getORSKey(): Promise<string> {
+export async function getORSKey(): Promise<string> {
   if (process.env.ORS_API_KEY) {
+    console.info("[getORSKey] using ORS_API_KEY from env");
     return process.env.ORS_API_KEY;
   }
 
   const secretName = process.env.ORS_SECRET_NAME;
-  if (!secretName) throw new Error("Missing ORS_SECRET_NAME env var");
+  if (!secretName) {
+    throw new Error("Missing ORS_SECRET_NAME environment variable");
+  }
 
   console.info("[getORSKey] fetching from Secrets Manager:", secretName);
-  const resp = await sm.send(
-    new GetSecretValueCommand({ SecretId: secretName })
-  );
-  const json = JSON.parse(resp.SecretString!);
-  if (!json.ORS_KEY) throw new Error("Secret has no ORS_KEY property");
-  return json.ORS_KEY as string;
+
+  let resp;
+  try {
+    resp = await sm.send(
+      new GetSecretValueCommand({
+        SecretId: secretName,
+        VersionStage: "AWSCURRENT",
+      })
+    );
+  } catch (err) {
+    console.error("[getORSKey] error fetching secret", err);
+    throw err;
+  }
+
+  if (!resp.SecretString) {
+    throw new Error(`Secret ${secretName} has no SecretString`);
+  }
+
+  let data: Record<string, any>;
+  try {
+    data = JSON.parse(resp.SecretString);
+  } catch (e) {
+    throw new Error(`Cannot parse secret JSON from ${secretName}: ${e}`);
+  }
+
+  const key = data.ORS_API_KEY as string | undefined;
+  if (!key) {
+    throw new Error(
+      `Secret ${secretName} does not contain an "ORS_API_KEY" property`
+    );
+  }
+
+  console.info("[getORSKey] retrieved ORS_API_KEY from secret");
+  return key;
 }
 
 async function orsLeg(
