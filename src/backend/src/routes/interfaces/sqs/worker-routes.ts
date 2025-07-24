@@ -20,7 +20,7 @@ const sm = new SecretsManagerClient({});
 
  
 export async function getORSKey(): Promise<string> {
-  // 1) ENV override
+  // 1) ENV override (para testing local)
   if (process.env.ORS_API_KEY) {
     console.info("[getORSKey] using ORS_API_KEY env var");
     return process.env.ORS_API_KEY;
@@ -28,42 +28,49 @@ export async function getORSKey(): Promise<string> {
 
   // 2) Secrets Manager
   const secretName = process.env.ORS_SECRET_NAME;
-  if (!secretName) {
-    throw new Error("Missing ORS_SECRET_NAME env var");
-  }
+  if (!secretName) throw new Error("Missing ORS_SECRET_NAME env var");
+
   console.info("[getORSKey] fetching from Secrets Manager:", secretName);
   const resp = await sm.send(
     new GetSecretValueCommand({ SecretId: secretName })
   );
-
   if (!resp.SecretString) {
     throw new Error(`Secret ${secretName} has no SecretString`);
   }
+  const raw = resp.SecretString.trim();
 
   // intenta parsear JSON
-  let s = resp.SecretString.trim();
   try {
-    const json = JSON.parse(s);
-    // chequea varias keys posibles
-    const key =
-      json.ORS_API_KEY ??
-      json.ORS_KEY ??
-      json.ors_api_key ??
-      json.apiKey ??
-      json.API_KEY;
-    if (typeof key === "string" && key.length > 0) {
-      return key;
+    const json = JSON.parse(raw);
+    // si tiene UNA sola propiedad que es string, la usamos
+    const keys = Object.keys(json);
+    if (
+      keys.length === 1 &&
+      typeof (json as any)[keys[0]] === "string"
+    ) {
+      console.info(
+        `[getORSKey] found single JSON property "${keys[0]}" → using that`
+      );
+      return (json as any)[keys[0]];
+    }
+    // luego chequea nombres habituales
+    for (const name of ["ORS_API_KEY", "ORS_KEY", "api_key", "API_KEY"]) {
+      if (typeof (json as any)[name] === "string") {
+        console.info(`[getORSKey] found JSON.${name}`);
+        return (json as any)[name];
+      }
     }
     console.warn(
-      `[getORSKey] JSON parsed but no known property found, falling back to raw string`
+      "[getORSKey] JSON parsed but no known property found, falling back to raw"
     );
   } catch {
-    // no es JSON, caerá al final
+    // no era JSON, seguimos al fallback
   }
 
-  // si llegamos aquí, asumimos que SecretString es la key directamente
-  return s;
+  // 3) Fallback: devolvemos el raw string (en caso que el secreto fuera plain-text)
+  return raw;
 }
+
 
 
 async function orsLeg(
