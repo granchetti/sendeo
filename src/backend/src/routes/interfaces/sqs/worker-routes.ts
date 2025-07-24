@@ -18,14 +18,12 @@ const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 const sm = new SecretsManagerClient({});
 
-/** 1) Recupera tu ORS API key */
 async function getORSKey(): Promise<string> {
   if (process.env.ORS_API_KEY) return process.env.ORS_API_KEY;
-  const resp = await sm.send(new GetSecretValueCommand({ SecretId: "ors-api-key" }));
+  const resp = await sm.send(new GetSecretValueCommand({ SecretId: "ORS-key" }));
   return JSON.parse(resp.SecretString!).ORS_API_KEY;
 }
 
-/** 2) Pedir a ORS un solo tramo (la ruta entre dos puntos) */
 async function orsLeg(
   a: { lat:number; lng:number },
   b: { lat:number; lng:number },
@@ -63,7 +61,6 @@ async function orsLeg(
   return { distanceMeters: sum.distance, durationSeconds: sum.duration, encoded };
 }
 
-/** 3) Desplaza un punto dKm kilómetros en bearing grados */
 function offsetCoordinate(lat:number,lng:number,dKm:number,bearing:number){
   const R=6371,d=dKm/R,θ=bearing*Math.PI/180,
     φ1=lat*Math.PI/180,λ1=lng*Math.PI/180;
@@ -76,7 +73,6 @@ function offsetCoordinate(lat:number,lng:number,dKm:number,bearing:number){
   return { lat:φ2*180/Math.PI, lng:λ2*180/Math.PI };
 }
 
-/** 4) Construye un bucle circular de N segmentos */
 async function computeCircularORS(
   origin:{lat:number;lng:number},
   distanceKm:number,
@@ -84,11 +80,9 @@ async function computeCircularORS(
   key:string
 ) {
   const radius = distanceKm/(2*Math.PI);
-  // 4.1 genera y ajusta waypoints
   const pts: {lat:number;lng:number}[] = [];
   for(let i=0;i<segments;i++){
     const raw = offsetCoordinate(origin.lat,origin.lng,radius,360/segments*i);
-    // opcional: snapToRoad en ORS no existe -> lo omitimos
     pts.push(raw);
   }
   // 4.2 cose piernas y ensambla polilínea
@@ -107,7 +101,6 @@ async function computeCircularORS(
   return encoded ? { distanceMeters: totalD, durationSeconds: totalT, encoded } : null;
 }
 
-/** 5) Handler SQS */
 export const handler: SQSHandler = async (event) => {
   console.info("event",event);
   const key = await getORSKey();
@@ -119,7 +112,6 @@ export const handler: SQSHandler = async (event) => {
       circle=false, maxDeltaKm=1, routesCount=3
     } = JSON.parse(body);
 
-    // parse "lat,lng"
     const [olng,olat]=origin.split(",").map(Number);
     const oCoords={lat:olat,lng:olng};
     const dCoords = destination
@@ -131,7 +123,6 @@ export const handler: SQSHandler = async (event) => {
     let attempts = 0;
 
     while(saved.length<routesCount && attempts++<maxAtt){
-      // —– punto⇢punto —–
       if(dCoords){
         console.info(`p2p attempt #${attempts}`);
         const alts = await Promise.all(
@@ -152,16 +143,16 @@ export const handler: SQSHandler = async (event) => {
           saved.push(r);
         }
       }
-      // —– distancia‑solo —–
+
       else if(distanceKm!=null){
         console.info(`dist-only attempt #${attempts}`);
         let legData = null;
 
-        // 1) si quiere bucle circular
+
         if(roundTrip && circle){
           legData = await computeCircularORS(oCoords,distanceKm,8,key);
         }
-        // 2) sino, out‑and‑back
+  
         if(!legData){
           const bearing = Math.random()*360;
           const half = roundTrip ? distanceKm/2 : distanceKm!;
