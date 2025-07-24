@@ -39,7 +39,7 @@ new ComputeStack(app, "SendeoComputeStack", {
   routeJobsQueue: queues.routeJobsQueue,
   metricsQueue: queues.metricsQueue,
   userPool: auth.userPool,
-  orsApiKeySecretName: "ORS-key",
+  googleApiKeySecretName: 'google-api-key',
   appSyncUrl: appSync.api.graphqlUrl,
   appSyncApiKey: appSync.api.apiKey || undefined,
   appSyncRegion: env.region,
