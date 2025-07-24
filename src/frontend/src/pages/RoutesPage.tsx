@@ -332,20 +332,20 @@ export default function RoutesPage() {
       {/* Results */}
       {loading && <Spinner size="lg" mb={4} />}
       {!loading && routes.length > 0 && (
-        <Box bg="white" p={4} rounded="lg" boxShadow="md" w={['90%', '800px']}>
+        <Box bg="white" p={4} rounded="lg" boxShadow="md" w={['90%', '900px']}>
           <Heading size="md" mb={2}>
             Found Routes
           </Heading>
-          <Stack spacing={2}>
-            {routes.map((r) => (
+            <Stack spacing={2}>
+            {routes.map((r, idx) => (
               <Box key={r.routeId} p={2} borderWidth="1px" rounded="md">
-                <Text>Route {r.routeId}</Text>
-                <Text fontSize="sm">
-                  Distance: {r.distanceKm?.toFixed(2)} km
-                </Text>
+              <Text>Route {idx + 1}</Text>
+              <Text fontSize="sm">
+                Distance: {r.distanceKm?.toFixed(2)} km
+              </Text>
               </Box>
             ))}
-          </Stack>
+            </Stack>
         </Box>
       )}
     </Flex>
