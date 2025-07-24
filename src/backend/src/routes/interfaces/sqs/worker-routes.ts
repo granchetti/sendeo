@@ -18,53 +18,53 @@ const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 const sm = new SecretsManagerClient({});
 
+ 
 export async function getORSKey(): Promise<string> {
+  // 1) ENV override
   if (process.env.ORS_API_KEY) {
-    console.info("[getORSKey] using ORS_API_KEY from env");
+    console.info("[getORSKey] using ORS_API_KEY env var");
     return process.env.ORS_API_KEY;
   }
 
+  // 2) Secrets Manager
   const secretName = process.env.ORS_SECRET_NAME;
   if (!secretName) {
-    throw new Error("Missing ORS_SECRET_NAME environment variable");
+    throw new Error("Missing ORS_SECRET_NAME env var");
   }
-
   console.info("[getORSKey] fetching from Secrets Manager:", secretName);
-
-  let resp;
-  try {
-    resp = await sm.send(
-      new GetSecretValueCommand({
-        SecretId: secretName,
-        VersionStage: "AWSCURRENT",
-      })
-    );
-  } catch (err) {
-    console.error("[getORSKey] error fetching secret", err);
-    throw err;
-  }
+  const resp = await sm.send(
+    new GetSecretValueCommand({ SecretId: secretName })
+  );
 
   if (!resp.SecretString) {
     throw new Error(`Secret ${secretName} has no SecretString`);
   }
 
-  let data: Record<string, any>;
+  // intenta parsear JSON
+  let s = resp.SecretString.trim();
   try {
-    data = JSON.parse(resp.SecretString);
-  } catch (e) {
-    throw new Error(`Cannot parse secret JSON from ${secretName}: ${e}`);
-  }
-
-  const key = data.ORS_API_KEY as string | undefined;
-  if (!key) {
-    throw new Error(
-      `Secret ${secretName} does not contain an "ORS_API_KEY" property`
+    const json = JSON.parse(s);
+    // chequea varias keys posibles
+    const key =
+      json.ORS_API_KEY ??
+      json.ORS_KEY ??
+      json.ors_api_key ??
+      json.apiKey ??
+      json.API_KEY;
+    if (typeof key === "string" && key.length > 0) {
+      return key;
+    }
+    console.warn(
+      `[getORSKey] JSON parsed but no known property found, falling back to raw string`
     );
+  } catch {
+    // no es JSON, caerá al final
   }
 
-  console.info("[getORSKey] retrieved ORS_API_KEY from secret");
-  return key;
+  // si llegamos aquí, asumimos que SecretString es la key directamente
+  return s;
 }
+
 
 async function orsLeg(
   a: { lat: number; lng: number },
