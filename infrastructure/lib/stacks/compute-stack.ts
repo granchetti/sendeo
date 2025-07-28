@@ -20,6 +20,8 @@ export interface ComputeStackProps extends cdk.StackProps {
   readonly appSyncUrl?: string;
   readonly appSyncApiKey?: string;
   readonly appSyncRegion?: string;
+  readonly bedrockAgentId?: string;
+  readonly bedrockAgentAliasId?: string;
 }
 
 export class ComputeStack extends cdk.Stack {
@@ -224,6 +226,21 @@ export class ComputeStack extends cdk.Stack {
         { path: "swagger", methods: ["GET"] },
         { path: "swagger.json", methods: ["GET"] },
       ],
+    });
+
+    // 8) InvokeAgent → POST /agent
+    new HttpLambda(this, "InvokeAgent", {
+      entry: path.join(
+        __dirname,
+        "../../../src/backend/src/bedrock"
+      ),
+      handler: "invoke-agent.handler",
+      api,
+      environment: {
+        AGENT_ID: props.bedrockAgentId ?? "",
+        AGENT_ALIAS_ID: props.bedrockAgentAliasId ?? "",
+      },
+      routes: [{ path: "agent", methods: ["POST"], authorizer }],
     });
   }
 }
