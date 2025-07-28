@@ -16,6 +16,11 @@ import {
   Icon,
   HStack,
   Select,
+  NumberDecrementStepper,
+  NumberIncrementStepper,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
 } from '@chakra-ui/react';
 import {
   GoogleMap,
@@ -28,7 +33,11 @@ import { motion } from 'framer-motion';
 import { api } from '../services/api';
 
 const MotionBox = motion(Box);
+
 const DEFAULT_CENTER = { lat: 41.3851, lng: 2.1734 };
+const DEFAULT_DISTANCE_KM = '5';
+const DEFAULT_MAX_DELTA_KM = '1';
+const DEFAULT_ROUTES_COUNT = '3';
 
 export default function RoutesPage() {
   const [center, setCenter] = useState<{ lat: number; lng: number }>(
@@ -41,11 +50,11 @@ export default function RoutesPage() {
     lat: number;
     lng: number;
   } | null>(null);
-  const [distanceKm, setDistanceKm] = useState('5');
+  const [distanceKm, setDistanceKm] = useState(DEFAULT_DISTANCE_KM);
   const [roundTrip, setRoundTrip] = useState(false);
   const [circle, setCircle] = useState(false);
-  const [maxDeltaKm, setMaxDeltaKm] = useState('1');
-  const [routesCount, setRoutesCount] = useState('3');
+  const [maxDeltaKm, setMaxDeltaKm] = useState(DEFAULT_MAX_DELTA_KM);
+  const [routesCount, setRoutesCount] = useState(DEFAULT_ROUTES_COUNT);
   const [preference, setPreference] = useState('');
   const [mode, setMode] = useState<'points' | 'distance'>('points');
   const [jobId, setJobId] = useState<string | null>(null);
@@ -116,13 +125,13 @@ export default function RoutesPage() {
   };
 
   const handleReset = () => {
-    setOrigin(null);
+    setOrigin(center);
     setDestination(null);
-    setDistanceKm('');
+    setDistanceKm(DEFAULT_DISTANCE_KM);
     setRoundTrip(false);
     setCircle(false);
-    setMaxDeltaKm('');
-    setRoutesCount('');
+    setMaxDeltaKm(DEFAULT_MAX_DELTA_KM);
+    setRoutesCount(DEFAULT_ROUTES_COUNT);
     setPreference('');
     setJobId(null);
     setRoutes([]);
@@ -264,21 +273,36 @@ export default function RoutesPage() {
 
               <FormControl>
                 <FormLabel>Routes Count</FormLabel>
-                <Input
-                  type="number"
+                <NumberInput
+                  min={1}
+                  max={3}
                   value={routesCount}
                   bg={origin ? 'orange.50' : 'gray.50'}
-                  onChange={(e) => setRoutesCount(e.target.value)}
-                />
+                  onChange={(valueString) => setRoutesCount(valueString)}
+                >
+                  <NumberInputField />
+                  <NumberInputStepper>
+                    <NumberIncrementStepper />
+                    <NumberDecrementStepper />
+                  </NumberInputStepper>
+                </NumberInput>
               </FormControl>
+
               <FormControl>
                 <FormLabel>Max Tolerance (km)</FormLabel>
-                <Input
-                  type="number"
-                  bg={origin ? 'orange.50' : 'gray.50'}
+                <NumberInput
+                  min={1}
+                  max={10}
                   value={maxDeltaKm}
-                  onChange={(e) => setMaxDeltaKm(e.target.value)}
-                />
+                  bg={origin ? 'orange.50' : 'gray.50'}
+                  onChange={(valueString) => setMaxDeltaKm(valueString)}
+                >
+                  <NumberInputField />
+                  <NumberInputStepper>
+                    <NumberIncrementStepper />
+                    <NumberDecrementStepper />
+                  </NumberInputStepper>
+                </NumberInput>
               </FormControl>
 
               <FormControl mt={4}>
