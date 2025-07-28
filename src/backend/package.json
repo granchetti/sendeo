@@ -21,14 +21,14 @@
   "keywords": [],
   "description": "",
   "dependencies": {
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.848.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.540.0",
     "@aws-sdk/client-dynamodb": "^3.540.0",
     "@aws-sdk/client-secrets-manager": "^3.835.0",
     "@aws-sdk/client-sqs": "^3.540.0",
-    "@aws-sdk/client-bedrock-runtime": "^3.540.0",
     "@aws-sdk/protocol-http": "^3.370.0",
     "@aws-sdk/signature-v4": "^3.370.0",
     "@mapbox/polyline": "^1.2.1",
-    "uuid": "^11.1.0",
-    "@aws-sdk/client-bedrock-agent-runtime": "^3.835.0"
+    "uuid": "^11.1.0"
   }
 }

@@ -229,11 +229,8 @@ export class ComputeStack extends cdk.Stack {
     });
 
     // 8) InvokeAgent → POST /agent
-    new HttpLambda(this, "InvokeAgent", {
-      entry: path.join(
-        __dirname,
-        "../../../src/backend/src/bedrock"
-      ),
+    const invokeAgent = new HttpLambda(this, "InvokeAgent", {
+      entry: path.join(__dirname, "../../../src/backend/src/bedrock"),
       handler: "invoke-agent.handler",
       api,
       environment: {
@@ -242,5 +239,15 @@ export class ComputeStack extends cdk.Stack {
       },
       routes: [{ path: "agent", methods: ["POST"], authorizer }],
     });
+    // Grant permissions to the InvokeAgent function
+    invokeAgent.fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["bedrock:InvokeAgent"],
+        resources: [
+          `arn:aws:bedrock:${this.region}:${this.account}:agent/${props.bedrockAgentId}`,
+          `arn:aws:bedrock:${this.region}:${this.account}:agent-alias/${props.bedrockAgentAliasId}`,
+        ],
+      })
+    );
   }
 }
