@@ -28,9 +28,12 @@ import { motion } from 'framer-motion';
 import { api } from '../services/api';
 
 const MotionBox = motion(Box);
-const center = { lat: 41.3851, lng: 2.1734 };
+const DEFAULT_CENTER = { lat: 41.3851, lng: 2.1734 };
 
 export default function RoutesPage() {
+  const [center, setCenter] = useState<{ lat: number; lng: number }>(
+    DEFAULT_CENTER,
+  );
   const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(
     null,
   );
@@ -54,6 +57,23 @@ export default function RoutesPage() {
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
     libraries: ['geometry'],
   });
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+        setCenter(coords);
+        setOrigin(coords);
+      },
+      (err) => {
+        console.error('Failed to obtain location', err);
+      },
+    );
+  }, []);
 
   const toCoord = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
 
