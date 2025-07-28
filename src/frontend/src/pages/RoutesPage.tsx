@@ -279,9 +279,9 @@ export default function RoutesPage() {
                         value={preference}
                         onChange={(e) => setPreference(e.target.value)}
                       >
-                        <option value="fastest">Fastest</option>
-                        <option value="scenic">Scenic</option>
-                        <option value="shortest">Shortest</option>
+                        <option value="park">Fastest</option>
+                        <option value="contryside">Scenic</option>
+                        <option value="scenic">Shortest</option>
                       </Select>
                     </FormControl>
                   </AccordionPanel>
