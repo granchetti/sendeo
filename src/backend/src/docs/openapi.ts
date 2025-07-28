@@ -26,6 +26,22 @@ export const openApiSpec = {
       },
       post: {
         summary: "Request routes",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  preference: {
+                    type: "string",
+                    enum: ["park", "rural", "green"],
+                  },
+                },
+              },
+            },
+          },
+          required: false,
+        },
         responses: {
           "202": { description: "Accepted" },
         },
