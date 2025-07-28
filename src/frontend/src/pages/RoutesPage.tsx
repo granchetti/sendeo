@@ -20,6 +20,7 @@ import {
   AccordionIcon,
   Icon,
   HStack,
+  Select,
 } from '@chakra-ui/react';
 import {
   GoogleMap,
@@ -47,6 +48,7 @@ export default function RoutesPage() {
   const [circle, setCircle] = useState(false);
   const [maxDeltaKm, setMaxDeltaKm] = useState('');
   const [routesCount, setRoutesCount] = useState('');
+  const [preference, setPreference] = useState('');
   const [mode, setMode] = useState<'points' | 'distance'>('points');
   const [jobId, setJobId] = useState<string | null>(null);
   const [routes, setRoutes] = useState<any[]>([]);
@@ -84,6 +86,7 @@ export default function RoutesPage() {
       circle: mode === 'distance' ? circle : undefined,
       maxDeltaKm: +maxDeltaKm,
       routesCount: +routesCount,
+      preference: preference || undefined,
     };
 
     setLoading(true);
@@ -105,6 +108,7 @@ export default function RoutesPage() {
     setCircle(false);
     setMaxDeltaKm('');
     setRoutesCount('');
+    setPreference('');
     setJobId(null);
     setRoutes([]);
     setLoading(false);
@@ -268,6 +272,18 @@ export default function RoutesPage() {
                         onChange={(e) => setMaxDeltaKm(e.target.value)}
                       />
                     </FormControl>
+                    <FormControl mt={4}>
+                      <FormLabel>Preference</FormLabel>
+                      <Select
+                        placeholder="Select preference"
+                        value={preference}
+                        onChange={(e) => setPreference(e.target.value)}
+                      >
+                        <option value="park">Fastest</option>
+                        <option value="contryside">Scenic</option>
+                        <option value="scenic">Shortest</option>
+                      </Select>
+                    </FormControl>
                   </AccordionPanel>
                 </AccordionItem>
               </Accordion>
@@ -336,6 +352,11 @@ export default function RoutesPage() {
           <Heading size="md" mb={2}>
             Found Routes
           </Heading>
+          {preference && (
+            <Text fontSize="sm" mb={2} color="gray.600">
+              Preference: {preference}
+            </Text>
+          )}
             <Stack spacing={2}>
             {routes.map((r, idx) => (
               <Box key={r.routeId} p={2} borderWidth="1px" rounded="md">
