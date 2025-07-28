@@ -34,7 +34,7 @@ export const openApiSpec = {
                 properties: {
                   preference: {
                     type: "string",
-                    enum: ["park", "rural", "green"],
+                    enum: ["park", "countryside", "scenic"],
                   },
                 },
               },
