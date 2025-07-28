@@ -13,11 +13,6 @@ import {
   Checkbox,
   Heading,
   Divider,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
   Icon,
   HStack,
   Select,
@@ -43,11 +38,11 @@ export default function RoutesPage() {
     lat: number;
     lng: number;
   } | null>(null);
-  const [distanceKm, setDistanceKm] = useState('');
+  const [distanceKm, setDistanceKm] = useState('5');
   const [roundTrip, setRoundTrip] = useState(false);
   const [circle, setCircle] = useState(false);
-  const [maxDeltaKm, setMaxDeltaKm] = useState('');
-  const [routesCount, setRoutesCount] = useState('');
+  const [maxDeltaKm, setMaxDeltaKm] = useState('1');
+  const [routesCount, setRoutesCount] = useState('3');
   const [preference, setPreference] = useState('');
   const [mode, setMode] = useState<'points' | 'distance'>('points');
   const [jobId, setJobId] = useState<string | null>(null);
@@ -218,14 +213,33 @@ export default function RoutesPage() {
               )}
 
               {mode === 'distance' && (
-                <FormControl>
-                  <FormLabel>Distance (km)</FormLabel>
-                  <Input
-                    type="number"
-                    value={distanceKm}
-                    onChange={(e) => setDistanceKm(e.target.value)}
-                  />
-                </FormControl>
+                <>
+                  <FormControl>
+                    <FormLabel>Distance (km)</FormLabel>
+                    <Input
+                      type="number"
+                      value={distanceKm}
+                      placeholder="Enter distance in km"
+                      bg={origin ? 'orange.50' : 'gray.50'}
+                      onChange={(e) => setDistanceKm(e.target.value)}
+                    />
+                  </FormControl>
+
+                  <HStack spacing={6} mb={4}>
+                    <Checkbox
+                      isChecked={roundTrip}
+                      onChange={(e) => setRoundTrip(e.target.checked)}
+                    >
+                      Round Trip
+                    </Checkbox>
+                    <Checkbox
+                      isChecked={circle}
+                      onChange={(e) => setCircle(e.target.checked)}
+                    >
+                      Circular Loop
+                    </Checkbox>
+                  </HStack>
+                </>
               )}
 
               <FormControl>
@@ -233,60 +247,32 @@ export default function RoutesPage() {
                 <Input
                   type="number"
                   value={routesCount}
+                  bg={origin ? 'orange.50' : 'gray.50'}
                   onChange={(e) => setRoutesCount(e.target.value)}
                 />
               </FormControl>
+              <FormControl>
+                <FormLabel>Max Tolerance (km)</FormLabel>
+                <Input
+                  type="number"
+                  bg={origin ? 'orange.50' : 'gray.50'}
+                  value={maxDeltaKm}
+                  onChange={(e) => setMaxDeltaKm(e.target.value)}
+                />
+              </FormControl>
 
-              <Accordion allowToggle>
-                <AccordionItem>
-                  <AccordionButton
-                    color="orange.500"
-                    _hover={{ bg: 'orange.50' }}
-                    _expanded={{ bg: 'orange.100' }}
-                  >
-                    <Box flex="1" textAlign="left">
-                      Advanced Options
-                    </Box>
-                    <AccordionIcon />
-                  </AccordionButton>
-                  <AccordionPanel pb={4}>
-                    <HStack spacing={6} mb={4}>
-                      <Checkbox
-                        isChecked={roundTrip}
-                        onChange={(e) => setRoundTrip(e.target.checked)}
-                      >
-                        Round Trip
-                      </Checkbox>
-                      <Checkbox
-                        isChecked={circle}
-                        onChange={(e) => setCircle(e.target.checked)}
-                      >
-                        Circular Loop
-                      </Checkbox>
-                    </HStack>
-                    <FormControl>
-                      <FormLabel>Max Delta Km</FormLabel>
-                      <Input
-                        type="number"
-                        value={maxDeltaKm}
-                        onChange={(e) => setMaxDeltaKm(e.target.value)}
-                      />
-                    </FormControl>
-                    <FormControl mt={4}>
-                      <FormLabel>Preference</FormLabel>
-                      <Select
-                        placeholder="Select preference"
-                        value={preference}
-                        onChange={(e) => setPreference(e.target.value)}
-                      >
-                        <option value="park">Fastest</option>
-                        <option value="contryside">Scenic</option>
-                        <option value="scenic">Shortest</option>
-                      </Select>
-                    </FormControl>
-                  </AccordionPanel>
-                </AccordionItem>
-              </Accordion>
+              <FormControl mt={4}>
+                <FormLabel>Preference</FormLabel>
+                <Select
+                  placeholder="Select preference"
+                  value={preference}
+                  onChange={(e) => setPreference(e.target.value)}
+                >
+                  <option value="park">Park</option>
+                  <option value="countryside">Countryside</option>
+                  <option value="scenic">Scenic</option>
+                </Select>
+              </FormControl>
 
               {/* Map right below the form */}
               <Box mt={4} borderRadius="md" overflow="hidden">
@@ -357,16 +343,16 @@ export default function RoutesPage() {
               Preference: {preference}
             </Text>
           )}
-            <Stack spacing={2}>
+          <Stack spacing={2}>
             {routes.map((r, idx) => (
               <Box key={r.routeId} p={2} borderWidth="1px" rounded="md">
-              <Text>Route {idx + 1}</Text>
-              <Text fontSize="sm">
-                Distance: {r.distanceKm?.toFixed(2)} km
-              </Text>
+                <Text>Route {idx + 1}</Text>
+                <Text fontSize="sm">
+                  Distance: {r.distanceKm?.toFixed(2)} km
+                </Text>
               </Box>
             ))}
-            </Stack>
+          </Stack>
         </Box>
       )}
     </Flex>
