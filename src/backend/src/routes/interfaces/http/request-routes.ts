@@ -56,6 +56,10 @@ export const handler = async (
     }
   }
 
+  if (data.preference != null) {
+    data.preference = String(data.preference);
+  }
+
   await sqs.send(
     new SendMessageCommand({
       QueueUrl: process.env.QUEUE_URL,

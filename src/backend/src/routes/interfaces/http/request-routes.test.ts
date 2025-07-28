@@ -85,4 +85,15 @@ describe("request routes handler", () => {
     const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
     expect(payload.routesCount).toBe(3);
   });
+
+  it("forwards preference when provided", async () => {
+    mockSend.mockResolvedValueOnce({});
+    await handler({
+      body: JSON.stringify({ origin: "A", destination: "B", preference: "park" }),
+    } as any);
+
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    expect(payload.preference).toBe("park");
+  });
 });
