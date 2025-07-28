@@ -35,6 +35,8 @@ describe("ComputeStack", () => {
       metricsQueue,
       userPool,
       googleApiKeySecretName,
+      bedrockAgentId: "a",
+      bedrockAgentAliasId: "b",
     });
 
     template = Template.fromStack(stack);
@@ -50,8 +52,8 @@ describe("ComputeStack", () => {
     template.resourceCountIs("AWS::ApiGateway::Authorizer", 1);
   });
 
-  test("defines six Lambda functions", () => {
-    template.resourceCountIs("AWS::Lambda::Function", 7);
+  test("defines Lambda functions", () => {
+    template.resourceCountIs("AWS::Lambda::Function", 8);
   });
 
   test("creates two SQS event source mappings", () => {
