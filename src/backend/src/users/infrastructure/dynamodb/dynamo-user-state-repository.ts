@@ -40,13 +40,14 @@ export class DynamoUserStateRepository implements UserStateRepository {
     const res = await this.client.send(
       new QueryCommand({
         TableName: this.tableName,
-        KeyConditionExpression: "PK = :pk",
+        KeyConditionExpression: "PK = :pk AND begins_with(SK, :fav)",
         ExpressionAttributeValues: {
           ":pk": { S: `USER#${email}` },
+          ":fav": { S: "FAV#" },
         },
       })
     );
-    return (res.Items || []).map((i) => i.SK.S!);
+    return (res.Items || []).map((i) => i.SK.S!.slice(4));
   }
 
   async getProfile(email: Email): Promise<UserProfile | null> {

@@ -60,11 +60,11 @@ describe('DynamoUserStateRepository', () => {
     expect(cmd).toBeInstanceOf(QueryCommand);
     expect((cmd as any).input).toEqual({
       TableName: tableName,
-      KeyConditionExpression: 'PK = :pk',
-      ExpressionAttributeValues: { ':pk': { S: `USER#${email.Value}` } },
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :fav)',
+      ExpressionAttributeValues: { ':pk': { S: `USER#${email.Value}` }, ':fav': { S: 'FAV#' } },
     });
 
-    expect(result).toEqual(['FAV#1', 'FAV#2']);
+    expect(result).toEqual(['1', '2']);
   });
 
   it('getFavourites returns empty array if no items', async () => {
