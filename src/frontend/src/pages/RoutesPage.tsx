@@ -15,6 +15,7 @@ import {
   Divider,
   Icon,
   HStack,
+  IconButton,
   Select,
   NumberDecrementStepper,
   NumberIncrementStepper,
@@ -28,7 +29,7 @@ import {
   Polyline,
   useLoadScript,
 } from '@react-google-maps/api';
-import { FaLocationArrow, FaRedo } from 'react-icons/fa';
+import { FaLocationArrow, FaRedo, FaStar, FaRegStar } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { api } from '../services/api';
 
@@ -59,6 +60,7 @@ export default function RoutesPage() {
   const [mode, setMode] = useState<'points' | 'distance'>('points');
   const [jobId, setJobId] = useState<string | null>(null);
   const [routes, setRoutes] = useState<any[]>([]);
+  const [favourites, setFavourites] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
@@ -82,6 +84,18 @@ export default function RoutesPage() {
         console.error('Failed to obtain location', err);
       },
     );
+  }, []);
+
+  useEffect(() => {
+    const fetchFavs = async () => {
+      try {
+        const { data } = await api.get('/favourites');
+        setFavourites(data.favourites || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchFavs();
   }, []);
 
   const toCoord = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
@@ -136,6 +150,25 @@ export default function RoutesPage() {
     setJobId(null);
     setRoutes([]);
     setLoading(false);
+  };
+
+  const toggleFavourite = async (routeId: string) => {
+    const isFav = favourites.includes(routeId);
+    try {
+      if (isFav) {
+        await api.delete(`/favourites/${routeId}`);
+        setFavourites(favourites.filter((id) => id !== routeId));
+      } else {
+        await api.post('/favourites', { routeId });
+        setFavourites([...favourites, routeId]);
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message ?? 'Failed to update favourite',
+        status: 'error',
+      });
+    }
   };
 
   useEffect(() => {
@@ -390,10 +423,27 @@ export default function RoutesPage() {
           <Stack spacing={2}>
             {routes.map((r, idx) => (
               <Box key={r.routeId} p={2} borderWidth="1px" rounded="md">
-                <Text>Route {idx + 1}</Text>
-                <Text fontSize="sm">
-                  Distance: {r.distanceKm?.toFixed(2)} km
-                </Text>
+                <Flex justify="space-between" align="center">
+                  <Box>
+                    <Text>Route {idx + 1}</Text>
+                    <Text fontSize="sm">
+                      Distance: {r.distanceKm?.toFixed(2)} km
+                    </Text>
+                  </Box>
+                  <IconButton
+                    aria-label="Toggle favourite"
+                    variant="ghost"
+                    colorScheme="yellow"
+                    icon={
+                      favourites.includes(r.routeId) ? (
+                        <FaStar />
+                      ) : (
+                        <FaRegStar />
+                      )
+                    }
+                    onClick={() => toggleFavourite(r.routeId)}
+                  />
+                </Flex>
               </Box>
             ))}
           </Stack>
