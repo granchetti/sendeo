@@ -9,6 +9,7 @@ import RoutesPage from './pages/RoutesPage';
 import ConfirmSignupPage from './pages/ConfirmSignupPage';
 import UserProfilePage from './pages/UserProfilePage';
 import ProtectedRoute from './components/ProtectedRoute';
+import FavouritesPage from './pages/FavouritesPage';
 
 
 function App() {
