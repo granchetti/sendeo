@@ -612,10 +612,10 @@ export default function RoutesPage() {
                   <Text>Distance: {summary.distanceKm} km</Text>
                 )}
                 {summary.duration != null && (
-                  <Text>Estimated: {summary.duration}</Text>
+                  <Text>Estimated Time: {summary.duration} seconds</Text>
                 )}
                 {summary.actualDuration != null && (
-                  <Text>Actual: {summary.actualDuration}</Text>
+                  <Text>Actual Time: {summary.actualDuration} seconds</Text>
                 )}
               </Stack>
             )}
