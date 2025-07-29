@@ -63,6 +63,11 @@ export default function RoutesPage() {
   const [favourites, setFavourites] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
+  const [watchId, setWatchId] = useState<number | null>(null);
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
+    null,
+  );
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
@@ -166,6 +171,44 @@ export default function RoutesPage() {
       toast({
         title: 'Error',
         description: err.message ?? 'Failed to update favourite',
+        status: 'error',
+      });
+    }
+  };
+
+  const startRoute = async (routeId: string) => {
+    try {
+      await api.post('/telemetry/started', { routeId });
+      const id = navigator.geolocation.watchPosition(
+        (pos) =>
+          setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => console.error('watchPosition error', err),
+      );
+      setWatchId(id);
+      setActiveRouteId(routeId);
+      toast({ title: 'Route started', status: 'success' });
+    } catch (err: any) {
+      toast({
+        title: 'Error starting route',
+        description: err.message,
+        status: 'error',
+      });
+    }
+  };
+
+  const finishRoute = async () => {
+    if (!activeRouteId) return;
+    try {
+      await api.post(`/routes/${activeRouteId}/finish`);
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
+      setActiveRouteId(null);
+      setPosition(null);
+      toast({ title: 'Route finished', status: 'success' });
+    } catch (err: any) {
+      toast({
+        title: 'Error finishing route',
+        description: err.message,
         status: 'error',
       });
     }
@@ -374,6 +417,7 @@ export default function RoutesPage() {
                       }}
                     />
                   ))}
+                  {position && <Marker position={position} label="You" />}
                 </GoogleMap>
               </Box>
 
@@ -430,22 +474,39 @@ export default function RoutesPage() {
                       Distance: {r.distanceKm?.toFixed(2)} km
                     </Text>
                   </Box>
-                  <IconButton
-                    aria-label="Toggle favourite"
-                    variant="ghost"
-                    colorScheme="yellow"
-                    icon={
-                      favourites.includes(r.routeId) ? (
-                        <FaStar />
-                      ) : (
-                        <FaRegStar />
-                      )
-                    }
-                    onClick={() => toggleFavourite(r.routeId)}
-                  />
+                  <HStack>
+                    <IconButton
+                      aria-label="Toggle favourite"
+                      variant="ghost"
+                      colorScheme="yellow"
+                      icon={
+                        favourites.includes(r.routeId) ? (
+                          <FaStar />
+                        ) : (
+                          <FaRegStar />
+                        )
+                      }
+                      onClick={() => toggleFavourite(r.routeId)}
+                    />
+                    <Button
+                      size="sm"
+                      colorScheme="green"
+                      onClick={() => startRoute(r.routeId)}
+                      isDisabled={
+                        !!activeRouteId && activeRouteId !== r.routeId
+                      }
+                    >
+                      Start
+                    </Button>
+                  </HStack>
                 </Flex>
               </Box>
             ))}
+            {activeRouteId && (
+              <Button mt={4} colorScheme="red" onClick={finishRoute}>
+                Finish Route
+              </Button>
+            )}
           </Stack>
         </Box>
       )}
