@@ -35,7 +35,6 @@ import {
   GoogleMap,
   Marker,
   Polyline,
-  StreetViewPanorama,
   useLoadScript,
 } from '@react-google-maps/api';
 import { FaLocationArrow, FaRedo, FaStar, FaRegStar } from 'react-icons/fa';
@@ -77,7 +76,6 @@ export default function RoutesPage() {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
     null,
   );
-  const [streetViewVisible, setStreetViewVisible] = useState(false);
   const [summary, setSummary] = useState<any | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -198,7 +196,6 @@ export default function RoutesPage() {
       );
       setWatchId(id);
       setActiveRouteId(routeId);
-      setStreetViewVisible(true);
       toast({ title: 'Route started', status: 'success' });
     } catch (err: any) {
       toast({
@@ -217,7 +214,6 @@ export default function RoutesPage() {
       setWatchId(null);
       setActiveRouteId(null);
       setPosition(null);
-      setStreetViewVisible(false);
       setSummary(data);
       onOpen();
       toast({ title: 'Route finished', status: 'success' });
@@ -417,6 +413,7 @@ export default function RoutesPage() {
                   center={origin || center}
                   zoom={13}
                   onClick={handleMapClick}
+                  options={{ tilt: 45, heading: 90 }} 
                 >
                   {origin && <Marker position={origin} label="A" />}
                   {mode === 'points' && destination && (
@@ -434,11 +431,6 @@ export default function RoutesPage() {
                     />
                   ))}
                   {position && <Marker position={position} label="You" />}
-                  <StreetViewPanorama
-                    position={origin || center}
-                    visible={streetViewVisible}
-                    options={{ enableCloseButton: false }}
-                  />
                 </GoogleMap>
               </Box>
 
