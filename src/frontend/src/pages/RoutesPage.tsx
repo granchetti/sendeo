@@ -22,11 +22,20 @@ import {
   NumberInput,
   NumberInputField,
   NumberInputStepper,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
 } from '@chakra-ui/react';
 import {
   GoogleMap,
   Marker,
   Polyline,
+  StreetViewPanorama,
   useLoadScript,
 } from '@react-google-maps/api';
 import { FaLocationArrow, FaRedo, FaStar, FaRegStar } from 'react-icons/fa';
@@ -68,6 +77,9 @@ export default function RoutesPage() {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
     null,
   );
+  const [streetViewVisible, setStreetViewVisible] = useState(false);
+  const [summary, setSummary] = useState<any | null>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
@@ -186,6 +198,7 @@ export default function RoutesPage() {
       );
       setWatchId(id);
       setActiveRouteId(routeId);
+      setStreetViewVisible(true);
       toast({ title: 'Route started', status: 'success' });
     } catch (err: any) {
       toast({
@@ -199,11 +212,14 @@ export default function RoutesPage() {
   const finishRoute = async () => {
     if (!activeRouteId) return;
     try {
-      await api.post(`/routes/${activeRouteId}/finish`);
+      const { data } = await api.post(`/routes/${activeRouteId}/finish`);
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
       setWatchId(null);
       setActiveRouteId(null);
       setPosition(null);
+      setStreetViewVisible(false);
+      setSummary(data);
+      onOpen();
       toast({ title: 'Route finished', status: 'success' });
     } catch (err: any) {
       toast({
@@ -418,6 +434,11 @@ export default function RoutesPage() {
                     />
                   ))}
                   {position && <Marker position={position} label="You" />}
+                  <StreetViewPanorama
+                    position={origin || center}
+                    visible={streetViewVisible}
+                    options={{ enableCloseButton: false }}
+                  />
                 </GoogleMap>
               </Box>
 
@@ -510,6 +531,33 @@ export default function RoutesPage() {
           </Stack>
         </Box>
       )}
+      <Modal isOpen={isOpen} onClose={() => { onClose(); setSummary(null); }}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Route Summary</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {summary && (
+              <Stack spacing={2}>
+                {summary.distanceKm != null && (
+                  <Text>Distance: {summary.distanceKm} km</Text>
+                )}
+                {summary.duration != null && (
+                  <Text>Estimated Duration: {summary.duration}</Text>
+                )}
+                {summary.actualDuration != null && (
+                  <Text>Actual Duration: {summary.actualDuration}</Text>
+                )}
+              </Stack>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={() => { onClose(); setSummary(null); }}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Flex>
   );
 }
