@@ -89,7 +89,7 @@ const NavBar = () => {
               />
               <MenuList>
                 <MenuItem as={RouterLink} to="/profile">Profile Settings</MenuItem>
-                {/* <MenuItem as={RouterLink} to="/favourites">Favourite Routes</MenuItem> */}
+                <MenuItem as={RouterLink} to="/favourites">Favourite Routes</MenuItem>
                 <MenuItem onClick={() => setToken(null)}>Logout</MenuItem>
               </MenuList>
             </Menu>

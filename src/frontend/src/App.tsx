@@ -37,14 +37,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* <Route
+          <Route
             path="/favourites"
             element={
               <ProtectedRoute>
                 <FavouritesPage />
               </ProtectedRoute>
             }
-          /> */}
+          />
         </Routes>
       </Box>
     </Box>
