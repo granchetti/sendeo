@@ -5,10 +5,7 @@ import {
   publishFavouriteSaved,
   publishFavouriteDeleted,
 } from "../../../routes/interfaces/appsync-client";
-import {
-  AddFavouriteUseCase,
-  FavouriteAlreadyExistsError,
-} from "../../application/use-cases/add-favourite";
+import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../application/use-cases/add-favourite";
 import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
 import { corsHeaders } from "../../../http/cors";
 
@@ -25,11 +22,7 @@ export const handler = async (
 ): Promise<APIGatewayProxyResult> => {
   const email = (event.requestContext as any).authorizer?.claims?.email;
   if (!email) {
-    return {
-      statusCode: 401,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: "Unauthorized" }),
-    };
+    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
   }
 
   const { httpMethod } = event;
@@ -37,8 +30,7 @@ export const handler = async (
   if (httpMethod === "GET") {
     try {
       const items = await repository.getFavourites(email);
-      const favItems = items.filter((sk) => sk.startsWith("FAV#"));
-      const favourites = favItems.map((sk) => sk.slice(4));
+      const favourites = items.map((s) => (s.startsWith("FAV#") ? s.slice(4) : s));
       return {
         statusCode: 200,
         headers: corsHeaders,
@@ -88,11 +80,7 @@ export const handler = async (
       throw err;
     }
     await publishFavouriteSaved(email, routeId);
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ saved: true }),
-    };
+    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ saved: true }) };
   }
 
   if (httpMethod === "DELETE") {
@@ -106,11 +94,7 @@ export const handler = async (
     }
     await removeFavourite.execute(email, routeId);
     await publishFavouriteDeleted(email, routeId);
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ deleted: true }),
-    };
+    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ deleted: true }) };
   }
 
   return {
