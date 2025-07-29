@@ -497,7 +497,7 @@ export default function RoutesPage() {
       {/* Results */}
       {!loading && routes.length > 0 && (
         <Box bg="white" p={4} rounded="lg" boxShadow="md" w={['90%', '900px']}>
-          <Heading size="md" mb={4}>
+          <Heading size="lg" mb={4}>
             Found Routes
           </Heading>
           <Stack spacing={3} >
