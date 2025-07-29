@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import * as turf from '@turf/turf';
 import {
   Box,
   Button,
@@ -44,14 +45,13 @@ import { api } from '../services/api';
 const MotionBox = motion(Box);
 
 const DEFAULT_CENTER = { lat: 41.3851, lng: 2.1734 };
-const DEFAULT_DISTANCE_KM = '5';
-const DEFAULT_MAX_DELTA_KM = '1';
-const DEFAULT_ROUTES_COUNT = '3';
+const COLORS = ['#ff6f00', '#388e3c', '#1976d2'];
+const OFFSET_STEP_KM = 0.005; // 15 meters approx
 
 export default function RoutesPage() {
-  const [center, setCenter] = useState<{ lat: number; lng: number }>(
-    DEFAULT_CENTER,
-  );
+  const toast = useToast();
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const [center, setCenter] = useState(DEFAULT_CENTER);
   const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(
     null,
   );
@@ -59,24 +59,24 @@ export default function RoutesPage() {
     lat: number;
     lng: number;
   } | null>(null);
-  const [distanceKm, setDistanceKm] = useState(DEFAULT_DISTANCE_KM);
+  const [mode, setMode] = useState<'points' | 'distance'>('points');
+  const [distanceKm, setDistanceKm] = useState('5');
   const [roundTrip, setRoundTrip] = useState(false);
   const [circle, setCircle] = useState(false);
-  const [maxDeltaKm, setMaxDeltaKm] = useState(DEFAULT_MAX_DELTA_KM);
-  const [routesCount, setRoutesCount] = useState(DEFAULT_ROUTES_COUNT);
+  const [maxDeltaKm, setMaxDeltaKm] = useState('1');
+  const [routesCount, setRoutesCount] = useState('3');
   const [preference, setPreference] = useState('');
-  const [mode, setMode] = useState<'points' | 'distance'>('points');
   const [jobId, setJobId] = useState<string | null>(null);
   const [routes, setRoutes] = useState<any[]>([]);
   const [favourites, setFavourites] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const toast = useToast();
   const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
   const [watchId, setWatchId] = useState<number | null>(null);
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
     null,
   );
   const [summary, setSummary] = useState<any | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const { isLoaded, loadError } = useLoadScript({
@@ -88,48 +88,62 @@ export default function RoutesPage() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const coords = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        };
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setCenter(coords);
         setOrigin(coords);
       },
-      (err) => {
-        console.error('Failed to obtain location', err);
-      },
+      (err) => console.error('Failed to obtain location', err),
     );
   }, []);
 
   useEffect(() => {
-    const fetchFavs = async () => {
+    (async () => {
       try {
         const { data } = await api.get('/favourites');
         setFavourites(data.favourites || []);
       } catch (err) {
         console.error(err);
       }
-    };
-    fetchFavs();
+    })();
   }, []);
+
+  useEffect(() => {
+    if (!jobId) return;
+    const iv = setInterval(async () => {
+      const { data } = await api.get(`/jobs/${jobId}/routes`);
+      if (data.length) {
+        setRoutes(data);
+        setLoading(false);
+        clearInterval(iv);
+      }
+    }, 2000);
+    return () => clearInterval(iv);
+  }, [jobId]);
+
+  if (loadError)
+    return <Text color="red.500">Map cannot be loaded right now.</Text>;
+  if (!isLoaded)
+    return (
+      <Flex justify="center">
+        <Spinner size="xl" />
+      </Flex>
+    );
 
   const toCoord = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
 
   const handleMapClick = (e: google.maps.MapMouseEvent) => {
     if (!e.latLng) return;
-    if (!origin) setOrigin({ lat: e.latLng.lat(), lng: e.latLng.lng() });
-    else if (!destination && mode === 'points')
-      setDestination({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+    const pt = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+    if (!origin) setOrigin(pt);
+    else if (!destination && mode === 'points') setDestination(pt);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!origin)
-      return toast({
-        title: 'Select an origin on the map.',
-        status: 'warning',
-      });
-
+    if (!origin) {
+      toast({ title: 'Select an origin on the map.', status: 'warning' });
+      return;
+    }
     const payload = {
       origin: toCoord(origin),
       destination:
@@ -156,15 +170,16 @@ export default function RoutesPage() {
   const handleReset = () => {
     setOrigin(center);
     setDestination(null);
-    setDistanceKm(DEFAULT_DISTANCE_KM);
+    setDistanceKm('5');
     setRoundTrip(false);
     setCircle(false);
-    setMaxDeltaKm(DEFAULT_MAX_DELTA_KM);
-    setRoutesCount(DEFAULT_ROUTES_COUNT);
+    setMaxDeltaKm('1');
+    setRoutesCount('3');
     setPreference('');
     setJobId(null);
     setRoutes([]);
     setLoading(false);
+    setSelectedRoute(null);
   };
 
   const toggleFavourite = async (routeId: string) => {
@@ -180,7 +195,7 @@ export default function RoutesPage() {
     } catch (err: any) {
       toast({
         title: 'Error',
-        description: err.message ?? 'Failed to update favourite',
+        description: err.message ?? 'Failed to update favourites',
         status: 'error',
       });
     }
@@ -226,27 +241,17 @@ export default function RoutesPage() {
     }
   };
 
-  useEffect(() => {
-    if (!jobId) return;
-    const iv = setInterval(async () => {
-      const { data } = await api.get(`/jobs/${jobId}/routes`);
-      if (data.length) {
-        setRoutes(data);
-        setLoading(false);
-        clearInterval(iv);
-      }
-    }, 2000);
-    return () => clearInterval(iv);
-  }, [jobId]);
-
-  if (loadError)
-    return <Text color="red.500">Map cannot be loaded right now.</Text>;
-  if (!isLoaded)
-    return (
-      <Flex justify="center">
-        <Spinner size="xl" />
-      </Flex>
-    );
+  const handleSelectRoute = (
+    routeId: string,
+    rawPath: google.maps.LatLngLiteral[],
+  ) => {
+    setSelectedRoute(routeId);
+    if (mapRef.current) {
+      const mid = rawPath[Math.floor(rawPath.length / 2)];
+      mapRef.current.panTo(mid);
+      mapRef.current.setZoom(15);
+    }
+  };
 
   return (
     <Flex direction="column" align="center" py={8} bg="gray.50" minH="100vh">
@@ -333,16 +338,20 @@ export default function RoutesPage() {
                 <>
                   <FormControl>
                     <FormLabel>Distance (km)</FormLabel>
-                    <Input
-                      type="number"
+                    <NumberInput
+                      min={1}
+                      max={50}
                       value={distanceKm}
-                      placeholder="Enter distance in km"
-                      bg={origin ? 'orange.50' : 'gray.50'}
-                      onChange={(e) => setDistanceKm(e.target.value)}
-                    />
+                      onChange={(v) => setDistanceKm(v)}
+                    >
+                      <NumberInputField bg="gray.50" />
+                      <NumberInputStepper>
+                        <NumberIncrementStepper />
+                        <NumberDecrementStepper />
+                      </NumberInputStepper>
+                    </NumberInput>
                   </FormControl>
-
-                  <HStack spacing={6} mb={4}>
+                  <HStack spacing={6}>
                     <Checkbox
                       isChecked={roundTrip}
                       onChange={(e) => setRoundTrip(e.target.checked)}
@@ -363,12 +372,11 @@ export default function RoutesPage() {
                 <FormLabel>Routes Count</FormLabel>
                 <NumberInput
                   min={1}
-                  max={3}
+                  max={5}
                   value={routesCount}
-                  bg={origin ? 'orange.50' : 'gray.50'}
-                  onChange={(valueString) => setRoutesCount(valueString)}
+                  onChange={(v) => setRoutesCount(v)}
                 >
-                  <NumberInputField />
+                  <NumberInputField bg="gray.50" />
                   <NumberInputStepper>
                     <NumberIncrementStepper />
                     <NumberDecrementStepper />
@@ -379,13 +387,12 @@ export default function RoutesPage() {
               <FormControl>
                 <FormLabel>Max Tolerance (km)</FormLabel>
                 <NumberInput
-                  min={1}
+                  min={0}
                   max={10}
                   value={maxDeltaKm}
-                  bg={origin ? 'orange.50' : 'gray.50'}
-                  onChange={(valueString) => setMaxDeltaKm(valueString)}
+                  onChange={(v) => setMaxDeltaKm(v)}
                 >
-                  <NumberInputField />
+                  <NumberInputField bg="gray.50" />
                   <NumberInputStepper>
                     <NumberIncrementStepper />
                     <NumberDecrementStepper />
@@ -393,7 +400,7 @@ export default function RoutesPage() {
                 </NumberInput>
               </FormControl>
 
-              <FormControl mt={4}>
+              <FormControl>
                 <FormLabel>Preference</FormLabel>
                 <Select
                   placeholder="Select preference"
@@ -406,9 +413,15 @@ export default function RoutesPage() {
                 </Select>
               </FormControl>
 
-              {/* Map right below the form */}
+              {/* Mapa */}
               <Box mt={4} borderRadius="md" overflow="hidden">
                 <GoogleMap
+                  onLoad={(map) => {
+                    mapRef.current = map;
+                  }}
+                  onUnmount={() => {
+                    mapRef.current = null;
+                  }}
                   mapContainerStyle={{ width: '100%', height: '500px' }}
                   center={origin || center}
                   zoom={13}
@@ -419,17 +432,40 @@ export default function RoutesPage() {
                   {mode === 'points' && destination && (
                     <Marker position={destination} label="B" />
                   )}
-                  {routes.map((r, i) => (
-                    <Polyline
-                      key={r.routeId}
-                      path={google.maps.geometry.encoding.decodePath(r.path!)}
-                      options={{
-                        strokeColor: ['#ff6f00', '#388e3c', '#1976d2'][i % 3],
-                        strokeOpacity: 0.8,
-                        strokeWeight: 4,
-                      }}
-                    />
-                  ))}
+
+                  {routes.map((r, i) => {
+                    const rawPath = google.maps.geometry.encoding.decodePath(
+                      r.path!,
+                    );
+                    const coords = rawPath.map((p) => [p.lng(), p.lat()]) as [
+                      number,
+                      number,
+                    ][];
+                    const line = turf.lineString(coords);
+                    const offsetDist =
+                      (i - (routes.length - 1) / 2) * OFFSET_STEP_KM;
+                    const offsetLine = turf.lineOffset(line, offsetDist, {
+                      units: 'kilometers',
+                    });
+                    const path = offsetLine.geometry.coordinates.map(
+                      ([lng, lat]) => ({ lat, lng }),
+                    );
+
+                    return (
+                      <Polyline
+                        key={r.routeId}
+                        path={path}
+                        options={{
+                          strokeColor: COLORS[i % COLORS.length],
+                          strokeOpacity: 1,
+                          strokeWeight: selectedRoute === r.routeId ? 6 : 4,
+                          zIndex: selectedRoute === r.routeId ? 10 : i + 1,
+                        }}
+                        onClick={() => handleSelectRoute(r.routeId, path)}
+                      />
+                    );
+                  })}
+
                   {position && <Marker position={position} label="You" />}
                 </GoogleMap>
               </Box>
@@ -439,23 +475,16 @@ export default function RoutesPage() {
                 <Button
                   onClick={handleReset}
                   leftIcon={<FaRedo />}
-                  size="lg"
                   variant="outline"
                   colorScheme="gray"
-                  minW="150px"
                 >
                   Reset
                 </Button>
-
                 <Button
                   type="submit"
                   colorScheme="orange"
                   leftIcon={<FaLocationArrow />}
-                  size="lg"
                   isLoading={loading}
-                  loadingText="Requesting…"
-                  minW="150px"
-                  flex={0.5}
                 >
                   Submit
                 </Button>
@@ -466,28 +495,55 @@ export default function RoutesPage() {
       </MotionBox>
 
       {/* Results */}
-      {loading && <Spinner size="lg" mb={4} />}
       {!loading && routes.length > 0 && (
         <Box bg="white" p={4} rounded="lg" boxShadow="md" w={['90%', '900px']}>
-          <Heading size="md" mb={2}>
+          <Heading size="md" mb={4}>
             Found Routes
           </Heading>
-          {preference && (
-            <Text fontSize="sm" mb={2} color="gray.600">
-              Preference: {preference}
-            </Text>
-          )}
-          <Stack spacing={2}>
-            {routes.map((r, idx) => (
-              <Box key={r.routeId} p={2} borderWidth="1px" rounded="md">
-                <Flex justify="space-between" align="center">
-                  <Box>
-                    <Text>Route {idx + 1}</Text>
-                    <Text fontSize="sm">
+          <Stack spacing={3} >
+            {routes.map((r, idx) => {
+              const isSelected = selectedRoute === r.routeId;
+              return (
+                <Button
+                  key={r.routeId}
+                  w="100%"
+                  size=""
+                  justifyContent="space-between"
+                  alignItems="center"
+                  variant={isSelected ? 'solid' : 'outline'}
+                  colorScheme={isSelected ? 'orange' : 'gray'}
+                  bg="white"
+                  borderWidth="1px"
+                  rounded="md"
+                  px={6}
+                  py={4} // padding vertical
+                  _hover={{ bg: isSelected ? 'orange.100' : 'gray.50' }}
+                  onClick={() => {
+                    const rawPath = google.maps.geometry.encoding.decodePath(
+                      r.path!,
+                    );
+                    const path = rawPath.map((p) => ({
+                      lat: p.lat(),
+                      lng: p.lng(),
+                    }));
+                    handleSelectRoute(r.routeId, path);
+                  }}
+                >
+                  <Box textAlign="left">
+                    <Text
+                      fontSize="lg"
+                      fontWeight="bold"
+                      color="gray.800"
+                      mb={1}
+                    >
+                      Route {idx + 1}
+                    </Text>
+                    <Text fontSize="lg" color="gray.600">
                       Distance: {r.distanceKm?.toFixed(2)} km
                     </Text>
                   </Box>
-                  <HStack>
+
+                  <HStack spacing={2}>
                     <IconButton
                       aria-label="Toggle favourite"
                       variant="ghost"
@@ -499,12 +555,18 @@ export default function RoutesPage() {
                           <FaRegStar />
                         )
                       }
-                      onClick={() => toggleFavourite(r.routeId)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavourite(r.routeId);
+                      }}
                     />
                     <Button
-                      size="sm"
+                      size="md" // botón Start un poco más pequeño que la fila
                       colorScheme="green"
-                      onClick={() => startRoute(r.routeId)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startRoute(r.routeId);
+                      }}
                       isDisabled={
                         !!activeRouteId && activeRouteId !== r.routeId
                       }
@@ -512,18 +574,33 @@ export default function RoutesPage() {
                       Start
                     </Button>
                   </HStack>
-                </Flex>
-              </Box>
-            ))}
+                </Button>
+              );
+            })}
+
             {activeRouteId && (
-              <Button mt={4} colorScheme="red" onClick={finishRoute}>
+              <Button
+                mt={4}
+                size="lg"
+                colorScheme="red"
+                w="full"
+                onClick={finishRoute}
+              >
                 Finish Route
               </Button>
             )}
           </Stack>
         </Box>
       )}
-      <Modal isOpen={isOpen} onClose={() => { onClose(); setSummary(null); }}>
+
+      {/* Modal */}
+      <Modal
+        isOpen={isOpen}
+        onClose={() => {
+          onClose();
+          setSummary(null);
+        }}
+      >
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Route Summary</ModalHeader>
@@ -535,16 +612,22 @@ export default function RoutesPage() {
                   <Text>Distance: {summary.distanceKm} km</Text>
                 )}
                 {summary.duration != null && (
-                  <Text>Estimated Duration: {summary.duration}</Text>
+                  <Text>Estimated: {summary.duration}</Text>
                 )}
                 {summary.actualDuration != null && (
-                  <Text>Actual Duration: {summary.actualDuration}</Text>
+                  <Text>Actual: {summary.actualDuration}</Text>
                 )}
               </Stack>
             )}
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={() => { onClose(); setSummary(null); }}>
+            <Button
+              colorScheme="blue"
+              onClick={() => {
+                onClose();
+                setSummary(null);
+              }}
+            >
               Close
             </Button>
           </ModalFooter>
