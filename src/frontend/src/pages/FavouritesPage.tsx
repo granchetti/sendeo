@@ -10,9 +10,11 @@ import {
   IconButton,
   Divider,
   useToast,
+  Button,
 } from '@chakra-ui/react';
 import { FaTrash, FaStar } from 'react-icons/fa';
 import { api } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 interface RouteDetails {
   routeId: string;
@@ -24,6 +26,7 @@ const FavouritesPage = () => {
   const [favourites, setFavourites] = useState<RouteDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const toast = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchFavs = async () => {
@@ -49,7 +52,7 @@ const FavouritesPage = () => {
       }
     };
     fetchFavs();
-  }, [toast]);
+  }, []);
 
   const handleRemove = async (id: string) => {
     try {
@@ -118,14 +121,23 @@ const FavouritesPage = () => {
                     </Text>
                   )}
                 </Box>
-                <IconButton
-                  aria-label="Remove favourite"
-                  icon={<FaTrash />}
-                  size="sm"
-                  colorScheme="red"
-                  variant="ghost"
-                  onClick={() => handleRemove(f.routeId)}
-                />
+                <HStack spacing={2}>
+                  <Button
+                    size="sm"
+                    colorScheme="green"
+                    onClick={() => navigate(`/routes/${f.routeId}`)}
+                  >
+                    Start
+                  </Button>
+                  <IconButton
+                    aria-label="Remove favourite"
+                    icon={<FaTrash />}
+                    size="sm"
+                    colorScheme="red"
+                    variant="ghost"
+                    onClick={() => handleRemove(f.routeId)}
+                  />
+                </HStack>
               </Flex>
             ))}
           </Stack>

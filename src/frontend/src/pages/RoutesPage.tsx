@@ -253,6 +253,12 @@ export default function RoutesPage() {
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [watchId]);
+
   return (
     <Flex direction="column" align="center" py={8} bg="gray.50" minH="100vh">
       {/* Header */}

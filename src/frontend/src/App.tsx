@@ -10,6 +10,7 @@ import ConfirmSignupPage from './pages/ConfirmSignupPage';
 import UserProfilePage from './pages/UserProfilePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import FavouritesPage from './pages/FavouritesPage';
+import RouteDetailPage from './pages/RouteDetailPage';
 
 
 function App() {
@@ -27,6 +28,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <RoutesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/routes/:routeId"
+            element={
+              <ProtectedRoute>
+                <RouteDetailPage />
               </ProtectedRoute>
             }
           />
