@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import * as turf from '@turf/turf';
 import {
   Box,
   Button,
@@ -44,6 +45,7 @@ export default function RouteDetailPage() {
     distanceKm?: number;
     duration?: number;
     actualDuration?: number;
+    actualDistanceKm?: number;
     // Add other summary properties as needed
   };
   
@@ -53,6 +55,7 @@ export default function RouteDetailPage() {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
     null,
   );
+  const [positions, setPositions] = useState<{ lat: number; lng: number }[]>([]);
 
   const [summary, setSummary] = useState<RouteSummary | null>(null);
 
@@ -104,9 +107,13 @@ export default function RouteDetailPage() {
       toast({ title: 'Failed to start tracking', status: 'error' });
       return;
     }
+    setPositions([]);
     const id = navigator.geolocation.watchPosition(
-      (pos) =>
-        setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setPosition(coords);
+        setPositions((prev) => [...prev, coords]);
+      },
       (err) => console.error(err),
     );
     setWatchId(id);
@@ -122,7 +129,18 @@ export default function RouteDetailPage() {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
       setWatchId(null);
       setPosition(null);
-      setSummary(data);
+      let actualDistanceKm: number | undefined;
+      if (positions.length > 1) {
+        const line = turf.lineString(
+          positions.map((p) => [p.lng, p.lat]) as [number, number][]
+        );
+        actualDistanceKm = turf.length(line, { units: 'kilometers' });
+      }
+      setPositions([]);
+      setSummary({
+        ...data,
+        ...(actualDistanceKm != null ? { actualDistanceKm } : {}),
+      });
       onOpen();
       toast({ title: 'Route finished', status: 'success' });
     } catch (err: unknown) {
@@ -197,6 +215,11 @@ export default function RouteDetailPage() {
                 )}
                 {summary.actualDuration != null && (
                   <Text>Actual Time: {summary.actualDuration} s</Text>
+                )}
+                {summary.actualDistanceKm != null && (
+                  <Text>
+                    Actual Distance: {summary.actualDistanceKm.toFixed(2)} km
+                  </Text>
                 )}
               </Stack>
             )}
