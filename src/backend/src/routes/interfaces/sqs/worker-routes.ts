@@ -71,18 +71,23 @@ async function getRecommendedWaypoints(
   console.info("[bedrock] requesting", preference);
   try {
     const payload = JSON.stringify({ preference, origin });
+    console.log("[getRecommendedWaypoints] payload:", payload);
     const resp = await bedrock.send(
       new InvokeModelCommand({
         modelId: "anthropic.claude-instant-v1",
         contentType: "application/json",
         accept: "application/json",
         body: Buffer.from(payload),
-        max_tokens_to_sample: 1024,
+        maxTokensToSample: 1024,
         temperature: 0.7,
       })
     );
-    const text = Buffer.from(resp.body as any).toString();
-    const data = JSON.parse(text);
+    console.log("[getRecommendedWaypoints] raw response body:", resp.body);
+    const responseText = await new Response(resp.body as any).text();
+    console.log("[getRecommendedWaypoints] responseText:", responseText);
+    const data = JSON.parse(responseText);
+    console.log("[getRecommendedWaypoints] parsed data:", data);
+
     return Array.isArray(data.waypoints) ? data.waypoints : [];
   } catch (err) {
     console.warn("[bedrock] failed", err);
