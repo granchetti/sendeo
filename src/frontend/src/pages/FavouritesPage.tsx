@@ -52,7 +52,7 @@ const FavouritesPage = () => {
       }
     };
     fetchFavs();
-  }, []);
+  }, [toast]);
 
   const handleRemove = async (id: string) => {
     try {

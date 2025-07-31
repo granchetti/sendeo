@@ -23,14 +23,6 @@ import {
   NumberInput,
   NumberInputField,
   NumberInputStepper,
-  useDisclosure,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
 } from '@chakra-ui/react';
 import {
   GoogleMap,
@@ -41,6 +33,7 @@ import {
 import { FaLocationArrow, FaRedo, FaStar, FaRegStar } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { api } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const MotionBox = motion(Box);
 
@@ -67,17 +60,17 @@ export default function RoutesPage() {
   const [routesCount, setRoutesCount] = useState('3');
   const [preference, setPreference] = useState('');
   const [jobId, setJobId] = useState<string | null>(null);
-  const [routes, setRoutes] = useState<any[]>([]);
+  interface Route {
+    routeId: string;
+    path?: string;
+    distanceKm?: number;
+    [key: string]: unknown;
+  }
+  const [routes, setRoutes] = useState<Route[]>([]);
   const [favourites, setFavourites] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
-  const [watchId, setWatchId] = useState<number | null>(null);
-  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
-    null,
-  );
-  const [summary, setSummary] = useState<any | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const navigate = useNavigate();
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
@@ -161,8 +154,10 @@ export default function RoutesPage() {
       const { data } = await api.post('/routes', payload);
       setJobId(data.jobId);
       toast({ title: 'Route request submitted.', status: 'success' });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, status: 'error' });
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'An unexpected error occurred';
+      toast({ title: 'Error', description: errorMessage, status: 'error' });
       setLoading(false);
     }
   };
@@ -192,53 +187,20 @@ export default function RoutesPage() {
         await api.post('/favourites', { routeId });
         setFavourites([...favourites, routeId]);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: 'Error',
-        description: err.message ?? 'Failed to update favourites',
+        description:
+          err instanceof Error
+            ? err.message
+            : 'Failed to update favourites',
         status: 'error',
       });
     }
   };
 
-  const startRoute = async (routeId: string) => {
-    try {
-      await api.post('/telemetry/started', { routeId });
-      const id = navigator.geolocation.watchPosition(
-        (pos) =>
-          setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        (err) => console.error('watchPosition error', err),
-      );
-      setWatchId(id);
-      setActiveRouteId(routeId);
-      toast({ title: 'Route started', status: 'success' });
-    } catch (err: any) {
-      toast({
-        title: 'Error starting route',
-        description: err.message,
-        status: 'error',
-      });
-    }
-  };
-
-  const finishRoute = async () => {
-    if (!activeRouteId) return;
-    try {
-      const { data } = await api.post(`/routes/${activeRouteId}/finish`);
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-      setWatchId(null);
-      setActiveRouteId(null);
-      setPosition(null);
-      setSummary(data);
-      onOpen();
-      toast({ title: 'Route finished', status: 'success' });
-    } catch (err: any) {
-      toast({
-        title: 'Error finishing route',
-        description: err.message,
-        status: 'error',
-      });
-    }
+  const handleStartClick = (routeId: string) => {
+    navigate(`/routes/${routeId}`);
   };
 
   const handleSelectRoute = (
@@ -252,12 +214,6 @@ export default function RoutesPage() {
       mapRef.current.setZoom(15);
     }
   };
-
-  useEffect(() => {
-    return () => {
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-    };
-  }, [watchId]);
 
   return (
     <Flex direction="column" align="center" py={8} bg="gray.50" minH="100vh">
@@ -432,7 +388,7 @@ export default function RoutesPage() {
                   center={origin || center}
                   zoom={13}
                   onClick={handleMapClick}
-                  options={{ tilt: 45, heading: 90 }} 
+                  options={{ tilt: 45, heading: 90 }}
                 >
                   {origin && <Marker position={origin} label="A" />}
                   {mode === 'points' && destination && (
@@ -471,8 +427,6 @@ export default function RoutesPage() {
                       />
                     );
                   })}
-
-                  {position && <Marker position={position} label="You" />}
                 </GoogleMap>
               </Box>
 
@@ -506,7 +460,7 @@ export default function RoutesPage() {
           <Heading size="lg" mb={4}>
             Found Routes
           </Heading>
-          <Stack spacing={3} >
+          <Stack spacing={3}>
             {routes.map((r, idx) => {
               const isSelected = selectedRoute === r.routeId;
               return (
@@ -569,13 +523,8 @@ export default function RoutesPage() {
                     <Button
                       size="md" // botón Start un poco más pequeño que la fila
                       colorScheme="green"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startRoute(r.routeId);
-                      }}
-                      isDisabled={
-                        !!activeRouteId && activeRouteId !== r.routeId
-                      }
+                      onClick={() => handleStartClick(r.routeId)}
+                      isDisabled={!r.path}
                     >
                       Start
                     </Button>
@@ -583,62 +532,9 @@ export default function RoutesPage() {
                 </Button>
               );
             })}
-
-            {activeRouteId && (
-              <Button
-                mt={4}
-                size="lg"
-                colorScheme="red"
-                w="full"
-                onClick={finishRoute}
-              >
-                Finish Route
-              </Button>
-            )}
           </Stack>
         </Box>
       )}
-
-      {/* Modal */}
-      <Modal
-        isOpen={isOpen}
-        onClose={() => {
-          onClose();
-          setSummary(null);
-        }}
-      >
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Route Summary</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {summary && (
-              <Stack spacing={2}>
-                {summary.distanceKm != null && (
-                  <Text>Distance: {summary.distanceKm} km</Text>
-                )}
-                {summary.duration != null && (
-                  <Text>Estimated Time: {summary.duration} seconds</Text>
-                )}
-                {summary.actualDuration != null && (
-                  <Text>Actual Time: {summary.actualDuration} seconds</Text>
-                )}
-              </Stack>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              colorScheme="blue"
-              onClick={() => {
-                onClose();
-                setSummary(null);
-              }}
-            >
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
     </Flex>
   );
 }
