@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { getCurrentUser, refreshSession } from '../auth/cognito';
+import { externalSetSession, externalSignOut } from '../auth/AuthProvider';
 
 const baseURL = import.meta.env.VITE_API_URL;
 
@@ -19,11 +21,40 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
+  }
+}
+
+api.interceptors.request.use(async (config) => {
+  let idToken = localStorage.getItem('idToken');
+  const refreshToken = localStorage.getItem('refreshToken');
+
+  if (idToken && refreshToken && isTokenExpired(idToken)) {
+    const user = getCurrentUser();
+    if (user) {
+      try {
+        const session = await refreshSession(user, refreshToken);
+        idToken = session.getIdToken().getJwtToken();
+        const newRefresh = session.getRefreshToken().getToken();
+        localStorage.setItem('idToken', idToken);
+        localStorage.setItem('refreshToken', newRefresh);
+        externalSetSession?.(idToken, newRefresh);
+      } catch {
+        localStorage.removeItem('idToken');
+        localStorage.removeItem('refreshToken');
+        externalSignOut?.();
+      }
+    }
+  }
+
+  if (idToken) {
     config.headers = config.headers || {};
-    config.headers['Authorization'] = `Bearer ${token}`;
+    config.headers['Authorization'] = `Bearer ${idToken}`;
   }
   return config;
 });

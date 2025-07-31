@@ -3,6 +3,8 @@ import {
   CognitoUser,
   AuthenticationDetails,
   CognitoUserAttribute,
+  CognitoUserSession,
+  CognitoRefreshToken,
 } from 'amazon-cognito-identity-js';
 
 const pool = new CognitoUserPool({
@@ -30,7 +32,10 @@ export function confirmSignUp(email: string, code: string): Promise<unknown> {
   });
 }
 
-export function signIn(email: string, password: string): Promise<string> {
+export function signIn(
+  email: string,
+  password: string,
+): Promise<CognitoUserSession> {
   const user = new CognitoUser({ Username: email, Pool: pool });
   const details = new AuthenticationDetails({
     Username: email,
@@ -39,7 +44,7 @@ export function signIn(email: string, password: string): Promise<string> {
   return new Promise((resolve, reject) => {
     user.authenticateUser(details, {
       onSuccess: (session) => {
-        resolve(session.getIdToken().getJwtToken());
+        resolve(session);
       },
       onFailure: (err) => reject(err),
     });
@@ -55,4 +60,23 @@ export function forgotPassword(email: string): Promise<void> {
       inputVerificationCode: () => resolve(), // Optional, if you want to handle verification code UI
     });
   });
+}
+
+export function refreshSession(
+  user: CognitoUser,
+  refreshToken: string,
+): Promise<CognitoUserSession> {
+  return new Promise((resolve, reject) => {
+    user.refreshSession(
+      new CognitoRefreshToken({ RefreshToken: refreshToken }),
+      (err, session) => {
+        if (err || !session) return reject(err);
+        resolve(session);
+      },
+    );
+  });
+}
+
+export function getCurrentUser(): CognitoUser | null {
+  return pool.getCurrentUser();
 }

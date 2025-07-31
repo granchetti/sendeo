@@ -24,11 +24,11 @@ import { AuthContext } from '../contexts/AuthContext';
 const MotionBox = motion(Box);
 
 const HomePage = () => {
-  const { token } = useContext(AuthContext);
+  const { idToken } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleStart = () => {
-    navigate(token ? '/routes' : '/login');
+    navigate(idToken ? '/routes' : '/login');
   };
 
   return (
