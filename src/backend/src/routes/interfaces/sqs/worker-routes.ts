@@ -73,10 +73,12 @@ async function getRecommendedWaypoints(
     const payload = JSON.stringify({ preference, origin });
     const resp = await bedrock.send(
       new InvokeModelCommand({
-        modelId: process.env.BEDROCK_MODEL_ID || "waypoint-model",
+        modelId: "anthropic.claude-instant-v1",
         contentType: "application/json",
         accept: "application/json",
         body: Buffer.from(payload),
+        max_tokens_to_sample: 1024,
+        temperature: 0.7,
       })
     );
     const text = Buffer.from(resp.body as any).toString();
