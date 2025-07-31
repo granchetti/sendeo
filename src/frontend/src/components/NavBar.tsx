@@ -19,7 +19,7 @@ import logoSrc from '../assets/logo.png';
 import { AuthContext } from '../contexts/AuthContext';
 
 const NavBar = () => {
-  const { token, setToken } = useContext(AuthContext);
+  const { idToken, signOut } = useContext(AuthContext);
   const linkColor = useColorModeValue('gray.600', 'gray.300');
   const linkHover = useColorModeValue('brand.600', 'brand.400');
 
@@ -57,7 +57,7 @@ const NavBar = () => {
             Home
           </Link>
 
-          {!token && (
+          {!idToken && (
             <>
               <Link
                 as={RouterLink}
@@ -78,7 +78,7 @@ const NavBar = () => {
             </>
           )}
 
-          {token && (
+          {idToken && (
             <Menu>
               <MenuButton
                 as={IconButton}
@@ -90,7 +90,7 @@ const NavBar = () => {
               <MenuList>
                 <MenuItem as={RouterLink} to="/profile">Profile Settings</MenuItem>
                 <MenuItem as={RouterLink} to="/favourites">Favourite Routes</MenuItem>
-                <MenuItem onClick={() => setToken(null)}>Logout</MenuItem>
+                <MenuItem onClick={signOut}>Logout</MenuItem>
               </MenuList>
             </Menu>
           )}

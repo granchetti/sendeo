@@ -15,7 +15,7 @@ const LoginPage = () => {
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
   const navigate = useNavigate();
-  const { setToken } = useContext(AuthContext);
+  const { setSession } = useContext(AuthContext);
   const toast = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,9 +32,11 @@ const LoginPage = () => {
     }
 
     try {
-      const token = await signIn(email, password);
-      setToken(token);
-      localStorage.setItem('token', token);
+      const session = await signIn(email, password);
+      setSession(
+        session.getIdToken().getJwtToken(),
+        session.getRefreshToken().getToken(),
+      );
       await api.put('/profile', { email });
       navigate('/routes');
     } catch {
