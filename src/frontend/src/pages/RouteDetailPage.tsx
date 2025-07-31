@@ -95,8 +95,15 @@ export default function RouteDetailPage() {
   const center = path[Math.floor(path.length / 2)] || DEFAULT_CENTER;
 
   // Start tracking
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!routeId) return;
+    try {
+      await api.post('/telemetry/started', { routeId });
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Failed to start tracking', status: 'error' });
+      return;
+    }
     const id = navigator.geolocation.watchPosition(
       (pos) =>
         setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
