@@ -64,6 +64,7 @@ export default function RoutesPage() {
     routeId: string;
     path?: string;
     distanceKm?: number;
+    description?: string;
     [key: string]: unknown;
   }
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -501,6 +502,11 @@ export default function RoutesPage() {
                     <Text fontSize="lg" color="gray.600">
                       Distance: {r.distanceKm?.toFixed(2)} km
                     </Text>
+                    {r.description && (
+                      <Text fontSize="sm" color="gray.500" noOfLines={1}>
+                        {r.description}
+                      </Text>
+                    )}
                   </Box>
 
                   <HStack spacing={2}>

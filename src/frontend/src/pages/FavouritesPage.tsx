@@ -20,6 +20,7 @@ interface RouteDetails {
   routeId: string;
   distanceKm?: number;
   duration?: number;
+  description?: string;
 }
 
 const FavouritesPage = () => {
@@ -118,6 +119,11 @@ const FavouritesPage = () => {
                   {f.distanceKm !== undefined && (
                     <Text fontSize="sm" color="gray.600">
                       Distance: {f.distanceKm.toFixed(2)} km
+                    </Text>
+                  )}
+                  {f.description && (
+                    <Text fontSize="sm" color="gray.500" noOfLines={1}>
+                      {f.description}
                     </Text>
                   )}
                 </Box>

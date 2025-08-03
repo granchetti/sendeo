@@ -43,6 +43,7 @@ export const handler = async (
             distanceKm: r.distanceKm?.Value,
             duration: r.duration?.Value,
             path: r.path?.Encoded,
+            description: r.description,
           }))
         ),
       };
@@ -80,6 +81,7 @@ export const handler = async (
         distanceKm: route.distanceKm?.Value,
         duration: route.duration?.Value,
         path: route.path?.Encoded,
+        description: route.description,
       }),
     };
   }
@@ -105,6 +107,7 @@ export const handler = async (
             distanceKm: r.distanceKm?.Value,
             duration: r.duration?.Value,
             path: r.path?.Encoded,
+            description: r.description,
           }))
         ),
       };
@@ -212,6 +215,7 @@ export const handler = async (
           distanceKm: route.distanceKm?.Value,
           duration: route.duration?.Value,
           path: route.path?.Encoded,
+          description: route.description,
           ...(actualDuration != null ? { actualDuration } : {}),
         })
       );
@@ -227,6 +231,7 @@ export const handler = async (
         distanceKm: route.distanceKm?.Value,
         duration: route.duration?.Value,
         path: route.path?.Encoded,
+        description: route.description,
         ...(actualDuration != null ? { actualDuration } : {}),
       }),
     };
