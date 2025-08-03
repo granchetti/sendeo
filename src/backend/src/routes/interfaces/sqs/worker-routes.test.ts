@@ -18,6 +18,11 @@ jest.mock("../appsync-client", () => ({
   publishRoutesGenerated: (...args: any[]) => mockPublish(...args),
 }));
 
+const mockDescribe = jest.fn();
+jest.mock("../../../../../handlers/describe-route", () => ({
+  describeRoute: (...args: any[]) => mockDescribe(...args),
+}));
+
 let mockBedrockSend: jest.Mock;
 jest.mock("@aws-sdk/client-bedrock-runtime", () => ({
   BedrockRuntimeClient: jest
@@ -30,6 +35,7 @@ const responseDataHolder: { data: string } = { data: "" };
 const httpsRequest = jest.fn((opts: string | any, cb: (res: any) => void) => {
   const res = new EventEmitter();
   res.on = res.addListener;
+  (res as any).statusCode = 200;
   cb(res);
   return {
     on: jest.fn(),
@@ -61,6 +67,8 @@ describe("worker routes handler", () => {
     mockSave.mockReset();
     httpsRequest.mockClear();
     mockPublish.mockReset();
+    mockDescribe.mockReset();
+    mockDescribe.mockResolvedValue("desc");
     process.env.ROUTES_TABLE = "t";
     process.env.GOOGLE_API_KEY = "k";
   });
@@ -126,6 +134,8 @@ describe("worker routes handler", () => {
       { lat: 43.252, lng: -126.453 },
     ]);
 
+    expect(saved.description).toBe("desc");
+    expect(mockDescribe).toHaveBeenCalledWith("_p~iF~ps|U_ulLnnqC_mqNvxq`@");
     expect(mockPublish).toHaveBeenCalledWith(
       "550e8400-e29b-41d4-a716-446655440000",
       [saved]
@@ -158,7 +168,7 @@ describe("worker routes handler", () => {
         typeof opts === "object" &&
         (opts as any).host === "routes.googleapis.com"
     );
-    expect(routeCalls).toHaveLength(1);
+    expect(routeCalls).toHaveLength(10);
     expect(mockSave).not.toHaveBeenCalled();
     expect(mockPublish).not.toHaveBeenCalled();
   });
@@ -235,6 +245,7 @@ describe("worker routes handler", () => {
       (opts: string | any, cb: (res: any) => void) => {
         const res = new EventEmitter();
         res.on = res.addListener;
+        (res as any).statusCode = 200;
         cb(res);
         return {
           on: jest.fn(),
@@ -254,6 +265,7 @@ describe("worker routes handler", () => {
       };
 
     httpsRequest
+      .mockImplementationOnce(makeReq(""))
       .mockImplementationOnce(makeReq(""))
       .mockImplementationOnce(makeReq(forward))
       .mockImplementationOnce(makeReq(back));
@@ -339,6 +351,7 @@ describe("worker routes handler", () => {
       (opts: string | any, cb: (res: any) => void) => {
         const res = new EventEmitter();
         res.on = res.addListener;
+        (res as any).statusCode = 200;
         cb(res);
         return {
           on: jest.fn(),
@@ -358,6 +371,7 @@ describe("worker routes handler", () => {
       };
 
     httpsRequest
+      .mockImplementationOnce(makeReq(""))
       .mockImplementationOnce(makeReq(""))
       .mockImplementationOnce(makeReq(forward))
       .mockImplementationOnce(makeReq(back));
@@ -416,6 +430,7 @@ describe("worker routes handler", () => {
       (opts: string | any, cb: (res: any) => void) => {
         const res = new EventEmitter();
         res.on = res.addListener;
+        (res as any).statusCode = 200;
         cb(res);
         return {
           on: jest.fn(),
@@ -435,6 +450,10 @@ describe("worker routes handler", () => {
       };
 
     httpsRequest
+      .mockImplementationOnce(makeReq(""))
+      .mockImplementationOnce(makeReq(""))
+      .mockImplementationOnce(makeReq(""))
+      .mockImplementationOnce(makeReq(""))
       .mockImplementationOnce(makeReq(""))
       .mockImplementationOnce(makeReq(makeLegPayload(seg1)))
       .mockImplementationOnce(makeReq(makeLegPayload(seg2)))

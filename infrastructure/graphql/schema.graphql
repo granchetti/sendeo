@@ -3,6 +3,7 @@ type Route {
   distanceKm: Float
   duration: Int
   path: String
+  description: String
 }
 
 input RouteInput {
@@ -10,6 +11,7 @@ input RouteInput {
   distanceKm: Float
   duration: Int
   path: String
+  description: String
 }
 
 type Mutation {

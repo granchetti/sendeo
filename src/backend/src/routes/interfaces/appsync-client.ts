@@ -68,6 +68,7 @@ export async function publishRoutesGenerated(jobId: string, routes: Route[]) {
     distanceKm: r.distanceKm?.Value,
     duration: r.duration?.Value,
     path: r.path?.Encoded,
+    description: r.description,
   }));
   await send(
     `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes)\n}`,
