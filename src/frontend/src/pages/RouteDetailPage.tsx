@@ -109,16 +109,42 @@ export default function RouteDetailPage() {
       return;
     }
     setPositions([]);
+    const geoOptions: PositionOptions = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    };
+    let started = false;
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setPosition(coords);
         setPositions((prev) => [...prev, coords]);
+        if (!started) {
+          started = true;
+          setWatchId(id);
+          toast({ title: 'Route started', status: 'success' });
+        }
       },
-      (err) => console.error(err),
+      (err) => {
+        toast({
+          title: 'Failed to retrieve location',
+          description: err.message,
+          status: 'error',
+        });
+        navigator.geolocation.clearWatch(id);
+        setWatchId(null);
+        if (err.code === err.POSITION_UNAVAILABLE) {
+          setPosition(DEFAULT_CENTER);
+          toast({
+            title: 'Location unavailable',
+            description: 'Using default position',
+            status: 'warning',
+          });
+        }
+      },
+      geoOptions,
     );
-    setWatchId(id);
-    toast({ title: 'Route started', status: 'success' });
   };
 
   // Finish tracking
