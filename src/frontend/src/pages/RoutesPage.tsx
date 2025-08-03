@@ -17,7 +17,6 @@ import {
   Icon,
   HStack,
   IconButton,
-  Select,
   NumberDecrementStepper,
   NumberIncrementStepper,
   NumberInput,
@@ -361,19 +360,6 @@ export default function RoutesPage() {
                     <NumberDecrementStepper />
                   </NumberInputStepper>
                 </NumberInput>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Preference</FormLabel>
-                <Select
-                  placeholder="Select preference"
-                  value={preference}
-                  onChange={(e) => setPreference(e.target.value)}
-                >
-                  <option value="park">Park</option>
-                  <option value="countryside">Countryside</option>
-                  <option value="scenic">Scenic</option>
-                </Select>
               </FormControl>
 
               {/* Mapa */}
