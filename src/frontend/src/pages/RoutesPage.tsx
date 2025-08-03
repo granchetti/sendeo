@@ -71,22 +71,44 @@ export default function RoutesPage() {
   const [loading, setLoading] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [geoError, setGeoError] = useState(false);
+  const [originInput, setOriginInput] = useState('');
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
     libraries: ['geometry'],
   });
 
-  useEffect(() => {
+  const getUserLocation = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setCenter(coords);
         setOrigin(coords);
+        setOriginInput(`${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
+        setGeoError(false);
       },
-      (err) => console.error('Failed to obtain location', err),
+      (err) => {
+        console.error('Failed to obtain location', err);
+        toast({
+          title: 'Location unavailable',
+          description:
+            'Unable to access your location. Please enable location services or enter your location manually.',
+          status: 'warning',
+        });
+        setCenter(DEFAULT_CENTER);
+        setOrigin(DEFAULT_CENTER);
+        setOriginInput(
+          `${DEFAULT_CENTER.lat.toFixed(5)}, ${DEFAULT_CENTER.lng.toFixed(5)}`,
+        );
+        setGeoError(true);
+      },
     );
+  };
+
+  useEffect(() => {
+    getUserLocation();
   }, []);
 
   useEffect(() => {
@@ -175,6 +197,11 @@ export default function RoutesPage() {
     setRoutes([]);
     setLoading(false);
     setSelectedRoute(null);
+    setOriginInput(
+      geoError && center
+        ? `${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}`
+        : '',
+    );
   };
 
   const toggleFavourite = async (routeId: string) => {
@@ -267,15 +294,34 @@ export default function RoutesPage() {
               <FormControl isRequired>
                 <FormLabel>Origin</FormLabel>
                 <Input
-                  readOnly
-                  placeholder="Click on map"
+                  readOnly={!geoError}
+                  placeholder={geoError ? 'Enter lat,lng' : 'Click on map'}
                   value={
-                    origin
-                      ? `${origin.lat.toFixed(5)}, ${origin.lng.toFixed(5)}`
-                      : ''
+                    geoError
+                      ? originInput
+                      : origin
+                        ? `${origin.lat.toFixed(5)}, ${origin.lng.toFixed(5)}`
+                        : ''
                   }
+                  onChange={(e) => {
+                    if (geoError) {
+                      setOriginInput(e.target.value);
+                      const [latStr, lngStr] = e.target.value.split(',');
+                      const lat = parseFloat(latStr);
+                      const lng = parseFloat(lngStr);
+                      if (!isNaN(lat) && !isNaN(lng)) {
+                        setOrigin({ lat, lng });
+                        setCenter({ lat, lng });
+                      }
+                    }
+                  }}
                   bg={origin ? 'orange.50' : 'gray.50'}
                 />
+                {geoError && (
+                  <Button size="sm" mt={2} onClick={getUserLocation}>
+                    Retry Geolocation
+                  </Button>
+                )}
               </FormControl>
 
               {mode === 'points' && (
