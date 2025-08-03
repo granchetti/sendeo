@@ -12,7 +12,7 @@ import { Path } from "../../domain/value-objects/path-value-object";
 import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { publishRoutesGenerated } from "../appsync-client";
-import { describeRoute } from "../../../../../handlers/describe-route";
+import { describeRoute } from "../../handlers/describe-route";
 
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
