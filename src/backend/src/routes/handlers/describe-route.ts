@@ -24,24 +24,24 @@ export async function describeRoute(
 ): Promise<string> {
   if (!encodedPath) return "";
   const coords = polyline.decode(encodedPath);
-  const [startLat, startLng] = coords[0] || [];
+  const [startLat, startLng] = coords[0] ?? [];
   const weather =
-    startLat !== undefined ? await fetchWeather(startLat, startLng) : "";
+    startLat != null ? await fetchWeather(startLat, startLng) : "";
 
   const prompt = `
 You are an expert urban walking guide. ${weather}
-I will provide you with a walking route defined by this array of GPS coordinates (latitude, longitude):
+I will provide you with a walking zroute defined by this array of GPS coordinates (latitude, longitude):
 ${JSON.stringify(coords)}
 
 Please generate:
 1. A concise summary stating the total distance and estimated walking time.
-2. Step-by-step numbered directions (e.g., "1. From the starting point, walk 200 m south...").
-3. Street names or notable landmarks along the way.
-4. Highlights of points of interest or scenic spots.
-5. Any warnings about elevation changes or potential obstacles.
-6. Practical tips (e.g., best places to rest, water stops, viewpoints).
+2. Step-by-step numbered directions.
+3. Street names or notable landmarks.
+4. Highlights of points of interest.
+5. Any warnings about elevation or obstacles.
+6. Practical tips (rest stops, viewpoints).
 
-Return the instructions in a clear, friendly paragraph format.
+Return in clear, friendly paragraph format.
 `.trim();
 
   try {
@@ -59,9 +59,9 @@ Return the instructions in a clear, friendly paragraph format.
         ),
       })
     );
-    const text = await new Response(resp.body as any).text();
-    const data = JSON.parse(text);
-    return data.completion ?? data.output ?? text;
+    const raw = await new Response(resp.body as any).text();
+    const data = JSON.parse(raw);
+    return data.completion ?? data.output ?? raw;
   } catch (err) {
     console.warn("[describeRoute] failed", err);
     return "";
