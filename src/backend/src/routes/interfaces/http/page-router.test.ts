@@ -103,6 +103,7 @@ describe("page router get route", () => {
         LatLng.fromNumbers(0, 0),
         LatLng.fromNumbers(1, 1),
       ]),
+      description: "desc",
     });
     mockFindById.mockResolvedValueOnce(route);
 
@@ -119,6 +120,7 @@ describe("page router get route", () => {
       distanceKm: 2,
       duration: 100,
       path: route.path!.Encoded,
+      description: "desc",
     });
   });
 });
@@ -149,6 +151,7 @@ describe("page router list routes", () => {
         LatLng.fromNumbers(10, 10),
         LatLng.fromNumbers(20, 20),
       ]),
+      description: "a",
     });
     const route2 = new Route({
       routeId: UUID.generate(),
@@ -158,6 +161,7 @@ describe("page router list routes", () => {
         LatLng.fromNumbers(30, 30),
         LatLng.fromNumbers(40, 40),
       ]),
+      description: "b",
     });
     mockFindAll.mockResolvedValueOnce([route1, route2]);
 
@@ -173,12 +177,14 @@ describe("page router list routes", () => {
         distanceKm: 1,
         duration: 10,
         path: route1.path!.Encoded,
+        description: "a",
       },
       {
         routeId: route2.routeId.Value,
         distanceKm: 2,
         duration: 20,
         path: route2.path!.Encoded,
+        description: "b",
       },
     ]);
   });
@@ -208,7 +214,13 @@ describe("page router list routes by jobId", () => {
     expect(mockFindByJobId).toHaveBeenCalledWith(jobId.Value);
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual([
-      { routeId: r.routeId.Value, distanceKm: undefined, duration: undefined, path: undefined },
+      {
+        routeId: r.routeId.Value,
+        distanceKm: undefined,
+        duration: undefined,
+        path: undefined,
+        description: undefined,
+      },
     ]);
   });
 });
@@ -286,6 +298,7 @@ describe("finish route", () => {
         LatLng.fromNumbers(0, 0),
         LatLng.fromNumbers(1, 1),
       ]),
+      description: "desc",
     });
     mockFindById.mockResolvedValueOnce(route);
     mockGetRouteStart.mockResolvedValueOnce(1000);
@@ -314,6 +327,8 @@ describe("finish route", () => {
       route.routeId.Value,
       expect.any(String)
     );
+    const summary = JSON.parse(mockPublishFinished.mock.calls[0][2]);
+    expect(summary.description).toBe("desc");
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body).toEqual({
@@ -321,6 +336,7 @@ describe("finish route", () => {
       distanceKm: 2,
       duration: 100,
       path: route.path!.Encoded,
+      description: "desc",
       actualDuration: expect.any(Number),
     });
   });

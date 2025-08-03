@@ -36,8 +36,9 @@ export default function RouteDetailPage() {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   type Route = {
-    id: string;
+    routeId: string;
     path: string;
+    description?: string;
     // Add other route properties as needed
   };
 
@@ -155,6 +156,12 @@ export default function RouteDetailPage() {
     <Box py={8} minH="100vh" bg="gray.50">
       <Stack spacing={6} align="center">
         <Heading>Route {routeId}</Heading>
+
+        {route?.description && (
+          <Text color="gray.600" textAlign="center">
+            {route.description}
+          </Text>
+        )}
 
         <Box w={['90%', '800px']} h="500px" borderRadius="md" overflow="hidden">
           <GoogleMap

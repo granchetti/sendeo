@@ -53,6 +53,7 @@ describe("DynamoRouteRepository", () => {
       distanceKm: new DistanceKm(5),
       duration: new Duration(10),
       path,
+      description: "desc",
     });
 
     const now = 1_600_000_000;
@@ -69,6 +70,7 @@ describe("DynamoRouteRepository", () => {
       path: { S: path.Encoded },
       createdAt: { N: now.toString() },
       ttl: { N: (now + 60).toString() },
+      description: { S: "desc" },
     };
 
     expect(mockPut).toHaveBeenCalledWith({
@@ -95,6 +97,7 @@ describe("DynamoRouteRepository", () => {
       distanceKm: { N: "5" },
       duration: { N: "10" },
       path: { S: encoded },
+      description: { S: "desc" },
     };
     mockSend.mockResolvedValueOnce({ Item: returned });
 
@@ -108,6 +111,7 @@ describe("DynamoRouteRepository", () => {
     expect(route?.jobId?.Value).toBe(jobId);
     expect(route?.distanceKm?.Value).toBe(5);
     expect(route?.duration?.Value).toBe(10);
+    expect(route?.description).toBe("desc");
     expect(
       route?.path?.Coordinates.map((c) => ({ lat: c.Lat, lng: c.Lng }))
     ).toEqual([
@@ -124,6 +128,7 @@ describe("DynamoRouteRepository", () => {
         {
           routeId: { S: routeId },
           jobId: { S: jobId },
+          description: { S: "d" },
         },
       ],
     };
@@ -139,5 +144,6 @@ describe("DynamoRouteRepository", () => {
     });
     expect(res).toHaveLength(1);
     expect(res[0].jobId?.Value).toBe(jobId);
+    expect(res[0].description).toBe("d");
   });
 });

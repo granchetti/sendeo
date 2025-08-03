@@ -27,6 +27,7 @@ export class DynamoRouteRepository implements RouteRepository {
       item.distanceKm = { N: route.distanceKm.Value.toString() };
     if (route.duration) item.duration = { N: route.duration.Value.toString() };
     if (route.path) item.path = { S: route.path.Encoded };
+    if (route.description) item.description = { S: route.description };
 
     const ttlEnv = process.env.ROUTES_TTL;
     if (ttlEnv) {
@@ -60,6 +61,7 @@ export class DynamoRouteRepository implements RouteRepository {
         ? new Duration(parseFloat(res.Item.duration.N!))
         : undefined,
       path: res.Item.path ? new Path(res.Item.path.S!) : undefined,
+      description: res.Item.description?.S,
     });
   }
 
@@ -77,6 +79,7 @@ export class DynamoRouteRepository implements RouteRepository {
             : undefined,
           duration: item.duration ? new Duration(+item.duration.N!) : undefined,
           path: item.path ? new Path(item.path.S!) : undefined,
+          description: item.description?.S,
         })
     );
   }
@@ -102,6 +105,7 @@ export class DynamoRouteRepository implements RouteRepository {
             : undefined,
           duration: item.duration ? new Duration(+item.duration.N!) : undefined,
           path: item.path ? new Path(item.path.S!) : undefined,
+          description: item.description?.S,
         })
     );
   }
