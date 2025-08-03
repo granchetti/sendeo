@@ -5,10 +5,6 @@ import {
   SecretsManagerClient,
   GetSecretValueCommand,
 } from "@aws-sdk/client-secrets-manager";
-import {
-  BedrockRuntimeClient,
-  InvokeModelCommand,
-} from "@aws-sdk/client-bedrock-runtime";
 import { Route } from "../../domain/entities/route-entity";
 import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
@@ -21,7 +17,6 @@ import { describeRoute } from "../../../../../handlers/describe-route";
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 const sm = new SecretsManagerClient({});
-const bedrock = new BedrockRuntimeClient({});
 
 /** FETCH Google key */
 async function getGoogleKey(): Promise<string> {
@@ -61,39 +56,6 @@ function fetchJson<T = any>(url: string): Promise<T> {
     });
     req.end();
   });
-}
-
-/** Retrieve recommended waypoints from Amazon Bedrock */
-async function getRecommendedWaypoints(
-  preference: string,
-  origin: { lat: number; lng: number }
-): Promise<Array<{ lat: number; lng: number }>> {
-  if (!preference) return [];
-  console.info("[bedrock] requesting", preference);
-  try {
-    const payload = JSON.stringify({ preference, origin });
-    console.log("[getRecommendedWaypoints] payload:", payload);
-    const resp = await bedrock.send(
-      new InvokeModelCommand({
-        modelId: "anthropic.claude-instant-v1",
-        contentType: "application/json",
-        accept: "application/json",
-        body: Buffer.from(payload),
-        maxTokensToSample: 1024,
-        temperature: 0.7,
-      })
-    );
-    console.log("[getRecommendedWaypoints] raw response body:", resp.body);
-    const responseText = await new Response(resp.body as any).text();
-    console.log("[getRecommendedWaypoints] responseText:", responseText);
-    const data = JSON.parse(responseText);
-    console.log("[getRecommendedWaypoints] parsed data:", data);
-
-    return Array.isArray(data.waypoints) ? data.waypoints : [];
-  } catch (err) {
-    console.warn("[bedrock] failed", err);
-    return [];
-  }
 }
 
 /** Geocode or parse “lat,lng” */
@@ -325,36 +287,15 @@ export const handler: SQSHandler = async (event) => {
       circle = false,
       maxDeltaKm = 1,
       routesCount = 3,
-      preference,
     } = JSON.parse(body);
 
     const oCoords = await geocode(origin, key);
     const dCoords = destination ? await geocode(destination, key) : undefined;
-    const recommended = await getRecommendedWaypoints(preference, oCoords);
 
     const saved: Route[] = [];
     let attempts = 0,
       maxAt = routesCount * 10;
     console.info(`[handler] max attempts: ${maxAt}`);
-
-    if (recommended.length) {
-      for (const wp of recommended) {
-        if (saved.length >= routesCount) break;
-        const [alt] = await computeRoutes(oCoords, wp, key);
-        if (!alt) continue;
-        const km = alt.distanceMeters / 1000;
-        const r = await persistRoute(
-          jobId,
-          km,
-          alt.durationSeconds,
-          alt.encoded
-        );
-        if (alt.encoded) {
-          r.description = await describeRoute(alt.encoded);
-        }
-        saved.push(r);
-      }
-    }
 
     while (saved.length < routesCount && attempts++ < maxAt) {
       console.info(

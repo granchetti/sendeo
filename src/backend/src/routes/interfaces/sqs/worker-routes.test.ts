@@ -23,14 +23,6 @@ jest.mock("../../../../../handlers/describe-route", () => ({
   describeRoute: (...args: any[]) => mockDescribe(...args),
 }));
 
-let mockBedrockSend: jest.Mock;
-jest.mock("@aws-sdk/client-bedrock-runtime", () => ({
-  BedrockRuntimeClient: jest
-    .fn()
-    .mockImplementation(() => ({ send: (mockBedrockSend = jest.fn()) })),
-  InvokeModelCommand: jest.fn().mockImplementation((i) => i),
-}));
-
 const responseDataHolder: { data: string } = { data: "" };
 const httpsRequest = jest.fn((opts: string | any, cb: (res: any) => void) => {
   const res = new EventEmitter();
@@ -619,41 +611,4 @@ describe("worker routes handler", () => {
     expect(httpsRequest).toHaveBeenCalledTimes(1);
   });
 
-  it("uses Bedrock recommendations when preference provided", async () => {
-    mockBedrockSend.mockResolvedValueOnce({
-      body: Buffer.from(JSON.stringify({ waypoints: [{ lat: 1, lng: 2 }] })),
-    });
-    responseDataHolder.data = JSON.stringify({
-      routes: [
-        {
-          legs: [
-            {
-              distanceMeters: 1500,
-              duration: { seconds: 600 },
-              polyline: { encodedPolyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@" },
-            },
-          ],
-        },
-      ],
-    });
-
-    const handler = loadHandler();
-    const event = {
-      Records: [
-        {
-          body: JSON.stringify({
-            jobId: "550e8400-e29b-41d4-a716-446655440099",
-            origin: "a",
-            preference: "park",
-            routesCount: 1,
-          }),
-        },
-      ],
-    } as any;
-
-    await handler(event);
-
-    expect(mockBedrockSend).toHaveBeenCalledTimes(1);
-    expect(mockSave).toHaveBeenCalledTimes(1);
-  });
 });
