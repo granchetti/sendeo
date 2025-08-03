@@ -16,6 +16,7 @@ import { Path } from "../../domain/value-objects/path-value-object";
 import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { publishRoutesGenerated } from "../appsync-client";
+import { describeRoute } from "../../../../../handlers/describe-route";
 
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
@@ -192,7 +193,7 @@ async function computeRoutes(
   return (resp.routes || [])
     .map((r: any) => {
       const leg = r.legs?.[0];
-      if (!leg?.polyline?.encodedPolyline) return null;
+      if (!leg) return null;
       const seconds =
         typeof leg.duration === "object"
           ? leg.duration.seconds
@@ -200,7 +201,7 @@ async function computeRoutes(
       return {
         distanceMeters: leg.distanceMeters!,
         durationSeconds: seconds,
-        encoded: leg.polyline.encodedPolyline,
+        encoded: leg.polyline?.encodedPolyline,
       };
     })
     .filter((x): x is any => !!x);
@@ -294,14 +295,14 @@ async function persistRoute(
   jobId: string,
   km: number,
   dur: number,
-  poly: string
+  poly?: string
 ) {
   const r = new Route({
     routeId: UUID.generate(),
     jobId: UUID.fromString(jobId),
     distanceKm: new DistanceKm(km),
     duration: new Duration(dur),
-    path: new Path(poly),
+    path: poly ? new Path(poly) : undefined,
   });
   await repository.save(r);
   console.info("[persistRoute] saved:", r);
@@ -342,9 +343,16 @@ export const handler: SQSHandler = async (event) => {
         const [alt] = await computeRoutes(oCoords, wp, key);
         if (!alt) continue;
         const km = alt.distanceMeters / 1000;
-        saved.push(
-          await persistRoute(jobId, km, alt.durationSeconds, alt.encoded)
+        const r = await persistRoute(
+          jobId,
+          km,
+          alt.durationSeconds,
+          alt.encoded
         );
+        if (alt.encoded) {
+          r.description = await describeRoute(alt.encoded);
+        }
+        saved.push(r);
       }
     }
 
@@ -363,9 +371,16 @@ export const handler: SQSHandler = async (event) => {
             console.warn("[handler] p2p out of range", km);
             continue;
           }
-          saved.push(
-            await persistRoute(jobId, km, alt.durationSeconds, alt.encoded)
+          const r = await persistRoute(
+            jobId,
+            km,
+            alt.durationSeconds,
+            alt.encoded
           );
+          if (alt.encoded) {
+            r.description = await describeRoute(alt.encoded);
+          }
+          saved.push(r);
         }
       } else {
         // ——— distance‑only ———
@@ -439,9 +454,16 @@ export const handler: SQSHandler = async (event) => {
             console.warn("[handler] dist-only out of range", km);
             continue;
           }
-          saved.push(
-            await persistRoute(jobId, km, leg.durationSeconds, leg.encoded)
+          const r = await persistRoute(
+            jobId,
+            km,
+            leg.durationSeconds,
+            leg.encoded
           );
+          if (leg.encoded) {
+            r.description = await describeRoute(leg.encoded);
+          }
+          saved.push(r);
         }
       }
     }
@@ -454,3 +476,5 @@ export const handler: SQSHandler = async (event) => {
     }
   }
 };
+
+export { geocode };

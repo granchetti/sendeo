@@ -9,6 +9,7 @@ export interface RouteProps {
   readonly distanceKm?: DistanceKm;
   readonly duration?: Duration;
   readonly path?: Path;
+  readonly description?: string;
 }
 
 export class Route {
@@ -39,5 +40,13 @@ export class Route {
 
   get path(): Path | undefined {
     return this.props.path;
+  }
+
+  get description(): string | undefined {
+    return this.props.description;
+  }
+
+  set description(desc: string | undefined) {
+    this.props.description = desc;
   }
 }
