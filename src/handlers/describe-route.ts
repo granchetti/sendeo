@@ -1,4 +1,7 @@
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import {
+  BedrockRuntimeClient,
+  InvokeModelCommand,
+} from "@aws-sdk/client-bedrock-runtime";
 import polyline from "@mapbox/polyline";
 
 const bedrock = new BedrockRuntimeClient({});
@@ -9,7 +12,7 @@ async function fetchWeather(lat: number, lng: number): Promise<string> {
     const res = await fetch(url);
     const data: any = await res.json();
     const t = data?.current?.temperature_2m;
-    return typeof t === "number" ? `Current temperature ${t}\u00B0C.` : "";
+    return typeof t === "number" ? `The current temperature is ${t}°C.` : "";
   } catch {
     return "";
   }
@@ -17,20 +20,43 @@ async function fetchWeather(lat: number, lng: number): Promise<string> {
 
 export async function describeRoute(
   encodedPath: string,
-  modelId = "anthropic.claude-instant-v1"
+  modelId = "anthropic.claude-3.7-sonnet"
 ): Promise<string> {
   if (!encodedPath) return "";
   const coords = polyline.decode(encodedPath);
-  const [lat, lng] = coords[0] || [];
-  const weather = lat !== undefined ? await fetchWeather(lat, lng) : "";
-  const prompt = `You are a helpful assistant. ${weather} Describe the walking route for these coordinates: ${JSON.stringify(coords)}`;
+  const [startLat, startLng] = coords[0] || [];
+  const weather =
+    startLat !== undefined ? await fetchWeather(startLat, startLng) : "";
+
+  const prompt = `
+You are an expert urban walking guide. ${weather}
+I will provide you with a walking route defined by this array of GPS coordinates (latitude, longitude):
+${JSON.stringify(coords)}
+
+Please generate:
+1. A concise summary stating the total distance and estimated walking time.
+2. Step-by-step numbered directions (e.g., "1. From the starting point, walk 200 m south...").
+3. Street names or notable landmarks along the way.
+4. Highlights of points of interest or scenic spots.
+5. Any warnings about elevation changes or potential obstacles.
+6. Practical tips (e.g., best places to rest, water stops, viewpoints).
+
+Return the instructions in a clear, friendly paragraph format.
+`.trim();
+
   try {
     const resp = await bedrock.send(
       new InvokeModelCommand({
         modelId,
         contentType: "application/json",
         accept: "application/json",
-        body: Buffer.from(JSON.stringify({ prompt, maxTokensToSample: 256 })),
+        body: Buffer.from(
+          JSON.stringify({
+            prompt,
+            maxTokensToSample: 512,
+            temperature: 0.7,
+          })
+        ),
       })
     );
     const text = await new Response(resp.body as any).text();
