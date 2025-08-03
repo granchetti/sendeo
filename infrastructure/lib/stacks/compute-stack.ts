@@ -94,6 +94,12 @@ export class ComputeStack extends cdk.Stack {
         resources: ["*"],
       })
     );
+    workerRoutes.fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["bedrock:InvokeModel"],
+        resources: ["*"],
+      })
+    );
 
     // 3) FavouriteRoutes → GET/POST /favourites & DELETE /favourites/{routeId}
     const favoriteRoutes = new HttpLambda(this, "FavoriteRoutes", {
