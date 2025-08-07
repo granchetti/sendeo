@@ -29,8 +29,8 @@ export async function describeRoute(
     startLat != null ? await fetchWeather(startLat, startLng) : "";
 
   const prompt = `
-You are an expert urban walking guide. ${weather}
-I will provide you with a walking zroute defined by this array of GPS coordinates (latitude, longitude):
+Human: You are an expert urban walking guide. ${weather}
+I will provide you with a walking route defined by this array of GPS coordinates (latitude, longitude):
 ${JSON.stringify(coords)}
 
 Please generate:
@@ -42,6 +42,7 @@ Please generate:
 6. Practical tips (rest stops, viewpoints).
 
 Return in clear, friendly paragraph format.
+Assistant:
 `.trim();
 
   try {
