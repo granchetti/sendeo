@@ -320,6 +320,7 @@ export const handler: SQSHandler = async (event) => {
           );
           if (alt.encoded) {
             r.description = await describeRoute(alt.encoded);
+            await repository.save(r);
           }
           saved.push(r);
         }
@@ -403,6 +404,7 @@ export const handler: SQSHandler = async (event) => {
           );
           if (leg.encoded) {
             r.description = await describeRoute(leg.encoded);
+            await repository.save(r);
           }
           saved.push(r);
         }
