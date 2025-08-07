@@ -1,4 +1,5 @@
 import { Construct } from "constructs";
+import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
@@ -14,6 +15,8 @@ export interface HttpLambdaProps {
     methods: string[];
     authorizer?: apigw.IAuthorizer;
   }>;
+  readonly memorySize?: number;
+  readonly timeout?: cdk.Duration;
 }
 
 export class HttpLambda extends Construct {
@@ -28,6 +31,8 @@ export class HttpLambda extends Construct {
       entry: path.join(props.entry, `${file}.ts`),
       handler: fnName,
       environment: props.environment,
+      memorySize: props.memorySize ?? 128,
+      timeout: props.timeout ?? cdk.Duration.seconds(3),
     });
 
     for (const r of props.routes) {

@@ -156,6 +156,8 @@ export class ComputeStack extends cdk.Stack {
       ),
 
       handler: "page-router.handler",
+      memorySize: 256,
+      timeout: cdk.Duration.seconds(15),
       environment: {
         ROUTES_TABLE: props.routesTable.tableName,
         USER_STATE_TABLE: props.userStateTable.tableName,
