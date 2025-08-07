@@ -46,7 +46,6 @@ export default function RouteDetailPage() {
     routeId: string;
     path: string;
     description?: string;
-    // Add other route properties as needed
   };
 
   type RouteSummary = {
@@ -54,7 +53,6 @@ export default function RouteDetailPage() {
     duration?: number;
     actualDuration?: number;
     actualDistanceKm?: number;
-    // Add other summary properties as needed
   };
 
   const [route, setRoute] = useState<Route | null>(null);
@@ -74,7 +72,6 @@ export default function RouteDetailPage() {
     libraries: ['geometry'],
   });
 
-  // fetch route
   useEffect(() => {
     if (!routeId) return;
     api
@@ -84,7 +81,7 @@ export default function RouteDetailPage() {
       .finally(() => setLoading(false));
   }, [routeId]);
 
-  // cleanup geolocation watcher
+
   useEffect(() => {
     return () => {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
@@ -99,7 +96,6 @@ export default function RouteDetailPage() {
       </Flex>
     );
 
-  // decode polyline
   const path = route?.path
     ? google.maps.geometry.encoding
         .decodePath(route.path)
@@ -107,7 +103,6 @@ export default function RouteDetailPage() {
     : [];
   const center = path[Math.floor(path.length / 2)] || DEFAULT_CENTER;
 
-  // Start tracking
   const handleStart = async () => {
     if (!routeId) return;
     try {
@@ -156,7 +151,6 @@ export default function RouteDetailPage() {
     );
   };
 
-  // Finish tracking
   const handleFinish = async () => {
     if (!routeId) return;
     try {
@@ -259,8 +253,8 @@ export default function RouteDetailPage() {
           </Button>
         </Stack>
 
-        <Button variant="link" onClick={() => navigate('/')}>
-          ← Back to Home
+        <Button variant="link" onClick={() => navigate('/routes')}>
+          ← Back to Routes
         </Button>
       </Stack>
 

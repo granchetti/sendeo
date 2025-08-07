@@ -218,15 +218,18 @@ export default function RoutesPage() {
       toast({
         title: 'Error',
         description:
-          err instanceof Error
-            ? err.message
-            : 'Failed to update favourites',
+          err instanceof Error ? err.message : 'Failed to update favourites',
         status: 'error',
       });
     }
   };
 
-  const handleStartClick = (routeId: string) => {
+  const handleStartClick = async (routeId: string) => {
+    try {
+      await api.get(`/routes/${routeId}`);
+    } catch (err) {
+      console.warn('Prefetch description failed:', err);
+    }
     navigate(`/routes/${routeId}`);
   };
 
@@ -300,8 +303,8 @@ export default function RoutesPage() {
                     geoError
                       ? originInput
                       : origin
-                        ? `${origin.lat.toFixed(5)}, ${origin.lng.toFixed(5)}`
-                        : ''
+                      ? `${origin.lat.toFixed(5)}, ${origin.lng.toFixed(5)}`
+                      : ''
                   }
                   onChange={(e) => {
                     if (geoError) {
