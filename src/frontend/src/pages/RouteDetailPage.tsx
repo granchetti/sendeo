@@ -36,7 +36,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   FaInfoCircle,
-  FaDirections,
   FaMapMarkedAlt,
   FaLightbulb,
   FaExclamationTriangle,
@@ -194,9 +193,6 @@ export default function RouteDetailPage() {
 
   const iconMap: Record<string, JSX.Element> = {
     Overview: <Icon as={FaInfoCircle} color="orange.500" mr={1} />,
-    'Turn-by-turn directions': (
-      <Icon as={FaDirections} color="orange.500" mr={1} />
-    ),
     'Points of Interest': (
       <Icon as={FaMapMarkedAlt} color="orange.500" mr={1} />
     ),
@@ -204,6 +200,9 @@ export default function RouteDetailPage() {
       <Icon as={FaExclamationTriangle} color="orange.500" mr={1} />
     ),
     'Practical tips': <Icon as={FaLightbulb} color="orange.500" mr={1} />,
+    'Add an encouraging sentence': (
+      <Icon as={FaInfoCircle} color="orange.500" mr={1} />
+    ),
   };
 
   const MDcomponents = {
