@@ -57,6 +57,7 @@ Return in clear, friendly paragraph format.
         accept: "application/json",
         body: Buffer.from(
           JSON.stringify({
+            anthropic_version: "bedrock-2023-05-31",
             messages,
             max_tokens: 512,
             temperature: 0.7,
