@@ -20,7 +20,7 @@ async function fetchWeather(lat: number, lng: number): Promise<string> {
 
 export async function describeRoute(
   encodedPath: string,
-  modelId = "anthropic.claude-3-7-sonnet-20250219-v1:0"
+  modelId = "arn:aws:bedrock:eu-west-1:992382778801:inference-profile/eu.anthropic.claude-3-7-sonnet-20250219-v1:0"
 ): Promise<string> {
   if (!encodedPath) return "";
   const coords = polyline.decode(encodedPath);
