@@ -18,18 +18,15 @@ async function fetchWeather(lat: number, lng: number): Promise<string> {
   }
 }
 
-const systemMessage = {
-  role: "system",
-  content: `
+const SYSTEM_PROMPT = `
 You are Claude, a senior travel-writer specialized in crafting engaging,
-easy-to-read walking-tour briefs. 
-Always write in a warm, enthusiastic tone, no more than B2 English level. 
-Never invent places that are not on or near the provided route.`.trim(),
-};
+easy-to-read walking-tour briefs.
+Always write in a warm, enthusiastic tone, no higher than B2 English level.
+Never invent places that are not on or near the provided route.`.trim();
 
 function buildUserMessage(coords: any[], weatherSentence = "") {
   return {
-    role: "user",
+    role: "user" as const,
     content: `
 ${weatherSentence}
 
@@ -46,12 +43,12 @@ ${JSON.stringify(coords)}
 • Mention total distance (approx.), estimated walking time (assume 4.5 km/h)  
 • One-line mood/terrain teaser (e.g. “quiet coastal path”, “lively urban stroll”)
 
-**2. Turn-by-turn directions (numbered 1) 2) 3) …)**
+**2. Turn-by-turn directions (numbered 1) 2) 3) …)**  
 Short sentences; include street names, squares or obvious landmarks.  
 Max 12 steps – merge trivial straight segments.
 
-**3. Points of Interest (max 4)**
-Start each line with “- ”.
+**3. Points of Interest (max 4)**  
+Start each line with “- ”.  
 Format: **Name** — reason (≤ 15 words).
 
 **4. Heads-up section**  
@@ -66,7 +63,7 @@ Formatting rules:
 * Use **Markdown**, but no code fences.  
 * Wrap lines naturally; do *not* truncate text.  
 * Do *not* repeat the GPS data.  
-* Stay under **250 words total**.
+* Stay under **250 words total**.  
 * The title must begin with the exact town/city name of the route.`.trim(),
   };
 }
@@ -81,7 +78,14 @@ export async function describeRoute(
     ? await fetchWeather(coords[0][0], coords[0][1])
     : "";
 
-  const messages = [systemMessage, buildUserMessage(coords, weatherSentence)];
+  const payload = {
+    anthropic_version: "bedrock-2023-05-31",
+    system: SYSTEM_PROMPT,
+    messages: [buildUserMessage(coords, weatherSentence)],
+    max_tokens: 512,
+    temperature: 0.7,
+    stop_sequences: ["\n\n### End"],
+  };
 
   try {
     const resp = await bedrock.send(
@@ -89,19 +93,13 @@ export async function describeRoute(
         modelId,
         contentType: "application/json",
         accept: "application/json",
-        body: Buffer.from(
-          JSON.stringify({
-            anthropic_version: "bedrock-2023-05-31",
-            messages,
-            max_tokens: 512,
-            temperature: 0.7,
-            stop_sequences: ['\n\n### End']
-          })
-        ),
+        body: Buffer.from(JSON.stringify(payload)),
       })
     );
+
     const raw = await new Response(resp.body as any).text();
     const data = JSON.parse(raw);
+
     return (
       data.content?.map((c: any) => c.text).join("") ??
       data.completion ??
