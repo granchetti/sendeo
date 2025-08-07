@@ -3,7 +3,11 @@ import {
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 import polyline from "@mapbox/polyline";
-import { getCityName, getGoogleKey } from "../interfaces/shared/utils";
+import {
+  calcDistanceKm,
+  getCityName,
+  getGoogleKey,
+} from "../interfaces/shared/utils";
 
 const bedrock = new BedrockRuntimeClient({});
 
@@ -25,7 +29,8 @@ easy-to-read walking-tour briefs.
 Always write in a warm, enthusiastic tone, no higher than B2 English level.
 Never invent places that are not on or near the provided route.`.trim();
 
-function buildUserMessage(coords: any[], weatherSentence = "") {
+function buildUserMessage(coords: [number, number][], weatherSentence = "") {
+  const km = calcDistanceKm(coords).toFixed(1);
   return {
     role: "user" as const,
     content: `
@@ -36,6 +41,8 @@ Each element is **[latitude, longitude]** in WGS-84:
 
 ${JSON.stringify(coords)}
 
+**The total distance is about ${km} km.**
+
 ---
 
 ### Please write a single text response following **exactly** this structure:
@@ -44,20 +51,17 @@ ${JSON.stringify(coords)}
 • Mention total distance (approx.), estimated walking time (assume 4.5 km/h)  
 • One-line mood/terrain teaser (e.g. “quiet coastal path”, “lively urban stroll”)
 
-**2. Turn-by-turn directions (numbered 1) 2) 3) …)**  
-Short sentences; include street names, squares or obvious landmarks.  
-Max 12 steps – merge trivial straight segments.
-
-**3. Points of Interest (max 4)**  
+**2. Points of Interest (max 4)**  
 Start each line with “- ”.  
 Format: **Name** — reason (≤ 15 words).
 
-**4. Heads-up section**  
+**3. Heads-up section**  
 Compact warnings about steep parts, stairs, busy crossings, surfaces, etc.
 
-**5. Practical tips**  
+**4. Practical tips**  
 Good viewpoints, water fountains, cafés, shaded benches… 2–3 items max.
 
+**5. Add an encouraging sentence to motivate the reader to walk this route with emojis.**
 ---
 
 Formatting rules:  

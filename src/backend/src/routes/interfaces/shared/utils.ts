@@ -3,6 +3,7 @@ import {
   SecretsManagerClient,
   GetSecretValueCommand,
 } from "@aws-sdk/client-secrets-manager";
+import * as turf from "@turf/turf";
 
 const sm = new SecretsManagerClient({});
 
@@ -69,3 +70,9 @@ export async function getCityName(
     return "Unknown";
   }
 }
+
+export function calcDistanceKm(coords: [number, number][]) {
+  const line = turf.lineString(coords.map(([lat, lng]) => [lng, lat]));
+  return turf.length(line, { units: "kilometers" });
+}
+
