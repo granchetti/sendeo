@@ -77,7 +77,6 @@ export const handler = async (
         const desc = await describeRoute(route.path.Encoded);
         if (desc) {
           route.description = desc;
-          // guardar de nuevo (PutItem sobrescribe)
           await routeRepository.save(route);
         }
       } catch (err) {

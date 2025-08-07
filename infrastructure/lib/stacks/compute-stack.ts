@@ -94,12 +94,6 @@ export class ComputeStack extends cdk.Stack {
         resources: ["*"],
       })
     );
-    workerRoutes.fn.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["bedrock:InvokeModel"],
-        resources: ["*"],
-      })
-    );
 
     // 3) FavouriteRoutes → GET/POST /favourites & DELETE /favourites/{routeId}
     const favoriteRoutes = new HttpLambda(this, "FavoriteRoutes", {
@@ -199,6 +193,12 @@ export class ComputeStack extends cdk.Stack {
           "dynamodb:Query",
         ],
         resources: [props.userStateTable.tableArn],
+      })
+    );
+    pageRouter.fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["bedrock:InvokeModel"],
+        resources: ["*"],
       })
     );
     props.metricsQueue.grantSendMessages(pageRouter.fn);
