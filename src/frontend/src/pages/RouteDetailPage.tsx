@@ -220,7 +220,7 @@ export default function RouteDetailPage() {
           <GoogleMap
             mapContainerStyle={{ width: '100%', height: '800px' }}
             center={center}
-            zoom={13}
+            zoom={14}
           >
             {path.length > 0 && (
               <Polyline
