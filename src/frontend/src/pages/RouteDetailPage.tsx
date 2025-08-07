@@ -31,6 +31,8 @@ import {
 } from '@react-google-maps/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const DEFAULT_CENTER = { lat: 41.3851, lng: 2.1734 };
 
@@ -54,14 +56,16 @@ export default function RouteDetailPage() {
     actualDistanceKm?: number;
     // Add other summary properties as needed
   };
-  
+
   const [route, setRoute] = useState<Route | null>(null);
   const [loading, setLoading] = useState(true);
   const [watchId, setWatchId] = useState<number | null>(null);
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
     null,
   );
-  const [positions, setPositions] = useState<{ lat: number; lng: number }[]>([]);
+  const [positions, setPositions] = useState<{ lat: number; lng: number }[]>(
+    [],
+  );
 
   const [summary, setSummary] = useState<RouteSummary | null>(null);
 
@@ -189,7 +193,7 @@ export default function RouteDetailPage() {
         <Heading>Route {routeId}</Heading>
 
         {route?.description && (
-          <Accordion w="full" defaultIndex={[0]} allowToggle>
+          <Accordion  w={['90%', '900px']} defaultIndex={[0]} allowToggle>
             <AccordionItem>
               <h2>
                 <AccordionButton _expanded={{ bg: 'orange.50' }}>
@@ -199,14 +203,26 @@ export default function RouteDetailPage() {
                   <AccordionIcon />
                 </AccordionButton>
               </h2>
-              <AccordionPanel pb={4} whiteSpace="pre-wrap">
-                {route.description}
+              <AccordionPanel pb={4}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: (props) => <Heading size="md" mt={4} {...props} />,
+                    h2: (props) => <Heading size="sm" mt={4} {...props} />,
+                    p: (props) => <Text mb={2} {...props} />,
+                    strong: (props) => (
+                      <Text as="span" fontWeight="bold" {...props} />
+                    ),
+                  }}
+                >
+                  {route.description ?? ''}
+                </ReactMarkdown>
               </AccordionPanel>
             </AccordionItem>
           </Accordion>
         )}
 
-        <Box w={['90%', '800px']} h="500px" borderRadius="md" overflow="hidden">
+        <Box w={['90%', '900px']} h="500px" borderRadius="md" overflow="hidden">
           <GoogleMap
             mapContainerStyle={{ width: '100%', height: '100%' }}
             center={center}

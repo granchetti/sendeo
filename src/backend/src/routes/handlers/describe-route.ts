@@ -46,12 +46,13 @@ ${JSON.stringify(coords)}
 • Mention total distance (approx.), estimated walking time (assume 4.5 km/h)  
 • One-line mood/terrain teaser (e.g. “quiet coastal path”, “lively urban stroll”)
 
-**2. Turn-by-turn directions (numbered)**  
+**2. Turn-by-turn directions (numbered 1) 2) 3) …)**
 Short sentences; include street names, squares or obvious landmarks.  
 Max 12 steps – merge trivial straight segments.
 
-**3. Points of interest (bullet list, max 4)**  
-Name + why it’s worth a stop (≤ 15 words each).
+**3. Points of Interest (max 4)**
+Start each line with “- ”.
+Format: **Name** — reason (≤ 15 words).
 
 **4. Heads-up section**  
 Compact warnings about steep parts, stairs, busy crossings, surfaces, etc.
@@ -65,7 +66,8 @@ Formatting rules:
 * Use **Markdown**, but no code fences.  
 * Wrap lines naturally; do *not* truncate text.  
 * Do *not* repeat the GPS data.  
-* Stay under **350 words total**.`.trim(),
+* Stay under **250 words total**.
+* The title must begin with the exact town/city name of the route.`.trim(),
   };
 }
 
@@ -93,6 +95,7 @@ export async function describeRoute(
             messages,
             max_tokens: 512,
             temperature: 0.7,
+            stop_sequences: ['\n\n### End']
           })
         ),
       })
