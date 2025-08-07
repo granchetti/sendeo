@@ -53,7 +53,7 @@ Return in clear, friendly paragraph format.
         body: Buffer.from(
           JSON.stringify({
             prompt,
-            maxTokensToSample: 512,
+            max_tokens_to_sample: 512,
             temperature: 0.7,
           })
         ),
