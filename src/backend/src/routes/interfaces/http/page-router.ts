@@ -8,6 +8,7 @@ import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 import { corsHeaders } from "../../../http/cors";
+import { describeRoute } from "../../handlers/describe-route";
 
 const dynamo = new DynamoDBClient({});
 const sqs = new SQSClient({});
@@ -43,7 +44,6 @@ export const handler = async (
             distanceKm: r.distanceKm?.Value,
             duration: r.duration?.Value,
             path: r.path?.Encoded,
-            description: r.description,
           }))
         ),
       };
@@ -72,7 +72,18 @@ export const handler = async (
     if (!route) {
       return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ error: "Not Found" }) };
     }
-
+    if (!route.description && route.path) {
+      try {
+        const desc = await describeRoute(route.path.Encoded);
+        if (desc) {
+          route.description = desc;
+          // guardar de nuevo (PutItem sobrescribe)
+          await routeRepository.save(route);
+        }
+      } catch (err) {
+        console.warn("describeRoute failed:", err);
+      }
+    }
     return {
       statusCode: 200,
       headers: corsHeaders,
@@ -107,7 +118,6 @@ export const handler = async (
             distanceKm: r.distanceKm?.Value,
             duration: r.duration?.Value,
             path: r.path?.Encoded,
-            description: r.description,
           }))
         ),
       };

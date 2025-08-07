@@ -17,6 +17,11 @@ import {
   ModalCloseButton,
   ModalBody,
   ModalFooter,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
 } from '@chakra-ui/react';
 import {
   GoogleMap,
@@ -159,7 +164,7 @@ export default function RouteDetailPage() {
       let actualDistanceKm: number | undefined;
       if (positions.length > 1) {
         const line = turf.lineString(
-          positions.map((p) => [p.lng, p.lat]) as [number, number][]
+          positions.map((p) => [p.lng, p.lat]) as [number, number][],
         );
         actualDistanceKm = turf.length(line, { units: 'kilometers' });
       }
@@ -184,9 +189,21 @@ export default function RouteDetailPage() {
         <Heading>Route {routeId}</Heading>
 
         {route?.description && (
-          <Text color="gray.600" textAlign="center">
-            {route.description}
-          </Text>
+          <Accordion w="full" defaultIndex={[0]} allowToggle>
+            <AccordionItem>
+              <h2>
+                <AccordionButton _expanded={{ bg: 'orange.50' }}>
+                  <Box flex="1" textAlign="left" fontWeight="bold">
+                    About this walk
+                  </Box>
+                  <AccordionIcon />
+                </AccordionButton>
+              </h2>
+              <AccordionPanel pb={4} whiteSpace="pre-wrap">
+                {route.description}
+              </AccordionPanel>
+            </AccordionItem>
+          </Accordion>
         )}
 
         <Box w={['90%', '800px']} h="500px" borderRadius="md" overflow="hidden">

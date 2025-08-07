@@ -18,36 +18,68 @@ async function fetchWeather(lat: number, lng: number): Promise<string> {
   }
 }
 
+const systemMessage = {
+  role: "system",
+  content: `
+You are Claude, a senior travel-writer specialized in crafting engaging,
+easy-to-read walking-tour briefs. 
+Always write in a warm, enthusiastic tone, no more than B2 English level. 
+Never invent places that are not on or near the provided route.`.trim(),
+};
+
+function buildUserMessage(coords: any[], weatherSentence = "") {
+  return {
+    role: "user",
+    content: `
+${weatherSentence}
+
+Below is an **ordered array** of GPS coordinates that defines a walking route.
+Each element is **[latitude, longitude]** in WGS-84:
+
+${JSON.stringify(coords)}
+
+---
+
+### Please write a single text response following **exactly** this structure:
+
+**1. Overview (≤ 2 sentences)**  
+• Mention total distance (approx.), estimated walking time (assume 4.5 km/h)  
+• One-line mood/terrain teaser (e.g. “quiet coastal path”, “lively urban stroll”)
+
+**2. Turn-by-turn directions (numbered)**  
+Short sentences; include street names, squares or obvious landmarks.  
+Max 12 steps – merge trivial straight segments.
+
+**3. Points of interest (bullet list, max 4)**  
+Name + why it’s worth a stop (≤ 15 words each).
+
+**4. Heads-up section**  
+Compact warnings about steep parts, stairs, busy crossings, surfaces, etc.
+
+**5. Practical tips**  
+Good viewpoints, water fountains, cafés, shaded benches… 2–3 items max.
+
+---
+
+Formatting rules:  
+* Use **Markdown**, but no code fences.  
+* Wrap lines naturally; do *not* truncate text.  
+* Do *not* repeat the GPS data.  
+* Stay under **350 words total**.`.trim(),
+  };
+}
+
 export async function describeRoute(
   encodedPath: string,
   modelId = "eu.anthropic.claude-3-7-sonnet-20250219-v1:0"
-): Promise<string> {
+) {
   if (!encodedPath) return "";
   const coords = polyline.decode(encodedPath);
-  const [startLat, startLng] = coords[0] ?? [];
-  const weather =
-    startLat != null ? await fetchWeather(startLat, startLng) : "";
+  const weatherSentence = coords[0]
+    ? await fetchWeather(coords[0][0], coords[0][1])
+    : "";
 
-  const messages = [
-    {
-      role: "user",
-      content: `
-You are an expert urban walking guide. ${weather}
-I will provide you with a walking route defined by this array of GPS coordinates (latitude, longitude):
-${JSON.stringify(coords)}
-
-Please generate:
-1. A concise summary stating the total distance and estimated walking time.
-2. Step-by-step numbered directions.
-3. Street names or notable landmarks.
-4. Highlights of points of interest.
-5. Any warnings about elevation or obstacles.
-6. Practical tips (rest stops, viewpoints).
-
-Return in clear, friendly paragraph format.
-`.trim(),
-    },
-  ];
+  const messages = [systemMessage, buildUserMessage(coords, weatherSentence)];
 
   try {
     const resp = await bedrock.send(

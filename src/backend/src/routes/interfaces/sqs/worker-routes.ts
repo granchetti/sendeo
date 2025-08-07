@@ -258,7 +258,6 @@ async function persistRoute(
   km: number,
   dur: number,
   poly?: string,
-  description?: string // 🆕
 ) {
   const r = new Route({
     routeId: UUID.generate(),
@@ -266,7 +265,6 @@ async function persistRoute(
     distanceKm: new DistanceKm(km),
     duration: new Duration(dur),
     path: poly ? new Path(poly) : undefined,
-    ...(description ? { description } : {}),
   });
   await repository.save(r);
   console.info("[persistRoute] saved:", r);
@@ -314,15 +312,11 @@ export const handler: SQSHandler = async (event) => {
             console.warn("[handler] p2p out of range", km);
             continue;
           }
-          const desc = alt.encoded
-            ? await describeRoute(alt.encoded)
-            : undefined; // 🆕
           const r = await persistRoute(
             jobId,
             km,
             alt.durationSeconds,
             alt.encoded,
-            desc
           );
           saved.push(r);
         }
@@ -398,15 +392,11 @@ export const handler: SQSHandler = async (event) => {
             console.warn("[handler] dist-only out of range", km);
             continue;
           }
-          const desc = leg.encoded
-            ? await describeRoute(leg.encoded)
-            : undefined;
           const r = await persistRoute(
             jobId,
             km,
             leg.durationSeconds,
             leg.encoded,
-            desc
           );
           saved.push(r);
         }
