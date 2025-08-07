@@ -177,6 +177,7 @@ export class ComputeStack extends cdk.Stack {
         { path: "routes/{routeId}/finish", methods: ["POST"], authorizer },
       ],
     });
+    googleSecret.grantRead(pageRouter.fn);
     pageRouter.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:Scan"],
