@@ -3,6 +3,7 @@ import {
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 import polyline from "@mapbox/polyline";
+import { getCityName, getGoogleKey } from "../interfaces/shared/utils";
 
 const bedrock = new BedrockRuntimeClient({});
 
@@ -74,13 +75,22 @@ export async function describeRoute(
 ) {
   if (!encodedPath) return "";
   const coords = polyline.decode(encodedPath);
-  const weatherSentence = coords[0]
-    ? await fetchWeather(coords[0][0], coords[0][1])
-    : "";
+  const [lat, lng] = coords[0];
+  const weatherSentence = await fetchWeather(lat, lng);
+
+  const googleKey = await getGoogleKey();
+  const city = await getCityName(lat, lng, googleKey);
+
+  const systemPrompt = `
+${SYSTEM_PROMPT}
+
+The walk takes place in **${city}**.
+The **title must start with “${city}”**.
+  `.trim();
 
   const payload = {
     anthropic_version: "bedrock-2023-05-31",
-    system: SYSTEM_PROMPT,
+    system: systemPrompt,
     messages: [buildUserMessage(coords, weatherSentence)],
     max_tokens: 512,
     temperature: 0.7,

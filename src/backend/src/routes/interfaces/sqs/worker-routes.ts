@@ -1,10 +1,6 @@
 import { SQSHandler } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { request as httpsRequest, RequestOptions } from "node:https";
-import {
-  SecretsManagerClient,
-  GetSecretValueCommand,
-} from "@aws-sdk/client-secrets-manager";
 import { Route } from "../../domain/entities/route-entity";
 import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
@@ -12,51 +8,10 @@ import { Path } from "../../domain/value-objects/path-value-object";
 import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { publishRoutesGenerated } from "../appsync-client";
-import { describeRoute } from "../../handlers/describe-route";
+import { fetchJson, getGoogleKey } from "../shared/utils";
 
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
-const sm = new SecretsManagerClient({});
-
-/** FETCH Google key */
-async function getGoogleKey(): Promise<string> {
-  console.info("[getGoogleKey] start");
-  if (process.env.GOOGLE_API_KEY) {
-    console.info("[getGoogleKey] using ENV key");
-    return process.env.GOOGLE_API_KEY;
-  }
-  console.info("[getGoogleKey] fetching from Secrets Manager");
-  const resp = await sm.send(
-    new GetSecretValueCommand({ SecretId: "google-api-key" })
-  );
-  console.info("[getGoogleKey] retrieved key");
-  return JSON.parse(resp.SecretString!).GOOGLE_API_KEY;
-}
-
-/** HTTP GET → JSON */
-function fetchJson<T = any>(url: string): Promise<T> {
-  console.info(`[fetchJson] GET ${url}`);
-  return new Promise((resolve, reject) => {
-    const req = httpsRequest(url, (res) => {
-      let data = "";
-      res.on("data", (c) => (data += c));
-      res.on("end", () => {
-        console.info(`[fetchJson] resp body: ${data}`);
-        try {
-          resolve(data ? JSON.parse(data) : null);
-        } catch (err) {
-          console.error("[fetchJson] JSON.parse error", data);
-          reject(err);
-        }
-      });
-    });
-    req.on("error", (err) => {
-      console.error("[fetchJson] HTTP error", err);
-      reject(err);
-    });
-    req.end();
-  });
-}
 
 /** Geocode or parse “lat,lng” */
 async function geocode(address: string, apiKey: string) {
