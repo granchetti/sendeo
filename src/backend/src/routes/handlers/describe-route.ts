@@ -20,7 +20,7 @@ async function fetchWeather(lat: number, lng: number): Promise<string> {
 
 export async function describeRoute(
   encodedPath: string,
-  modelId = "arn:aws:bedrock:eu-west-1:992382778801:inference-profile/eu.anthropic.claude-3-7-sonnet-20250219-v1:0"
+  modelId = "anthropic.claude-3-sonnet-20240229-v1"
 ): Promise<string> {
   if (!encodedPath) return "";
   const coords = polyline.decode(encodedPath);
@@ -28,8 +28,11 @@ export async function describeRoute(
   const weather =
     startLat != null ? await fetchWeather(startLat, startLng) : "";
 
-  const prompt = `
-Human: You are an expert urban walking guide. ${weather}
+  const messages = [
+    {
+      role: "user",
+      content: `
+You are an expert urban walking guide. ${weather}
 I will provide you with a walking route defined by this array of GPS coordinates (latitude, longitude):
 ${JSON.stringify(coords)}
 
@@ -42,8 +45,9 @@ Please generate:
 6. Practical tips (rest stops, viewpoints).
 
 Return in clear, friendly paragraph format.
-Assistant:
-`.trim();
+`.trim(),
+    },
+  ];
 
   try {
     const resp = await bedrock.send(
@@ -53,8 +57,8 @@ Assistant:
         accept: "application/json",
         body: Buffer.from(
           JSON.stringify({
-            prompt,
-            max_tokens_to_sample: 512,
+            messages,
+            max_tokens: 512,
             temperature: 0.7,
           })
         ),
@@ -62,7 +66,12 @@ Assistant:
     );
     const raw = await new Response(resp.body as any).text();
     const data = JSON.parse(raw);
-    return data.completion ?? data.output ?? raw;
+    return (
+      data.content?.map((c: any) => c.text).join("") ??
+      data.completion ??
+      data.output ??
+      raw
+    );
   } catch (err) {
     console.warn("[describeRoute] failed", err);
     return "";
