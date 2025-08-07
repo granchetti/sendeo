@@ -261,7 +261,7 @@ export default function RoutesPage() {
         p={6}
         rounded="lg"
         boxShadow="md"
-        w={['90%', '900px']}
+        w={['90%', '1000px']}
         mb={6}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -420,7 +420,7 @@ export default function RoutesPage() {
                   onUnmount={() => {
                     mapRef.current = null;
                   }}
-                  mapContainerStyle={{ width: '100%', height: '500px' }}
+                  mapContainerStyle={{ width: '100%', height: '700px' }}
                   center={origin || center}
                   zoom={13}
                   onClick={handleMapClick}
@@ -492,7 +492,7 @@ export default function RoutesPage() {
 
       {/* Results */}
       {!loading && routes.length > 0 && (
-        <Box bg="white" p={4} rounded="lg" boxShadow="md" w={['90%', '900px']}>
+        <Box bg="white" p={4} rounded="lg" boxShadow="md" w={['90%', '1000px']}>
           <Heading size="lg" mb={4}>
             Found Routes
           </Heading>

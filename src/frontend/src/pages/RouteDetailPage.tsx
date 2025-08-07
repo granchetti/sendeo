@@ -216,9 +216,9 @@ export default function RouteDetailPage() {
           </Accordion>
         )}
 
-        <Box w={['90%', '900px']} h="500px" borderRadius="md" overflow="hidden">
+        <Box w={['90%', '1000px']} h="800px" borderRadius="md" overflow="hidden">
           <GoogleMap
-            mapContainerStyle={{ width: '100%', height: '100%' }}
+            mapContainerStyle={{ width: '100%', height: '800px' }}
             center={center}
             zoom={13}
           >
