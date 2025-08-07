@@ -39,6 +39,7 @@ import {
   FaMapMarkedAlt,
   FaLightbulb,
   FaExclamationTriangle,
+  FaSmileBeam,
 } from 'react-icons/fa';
 
 const DEFAULT_CENTER = { lat: 41.3851, lng: 2.1734 };
@@ -87,7 +88,6 @@ export default function RouteDetailPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [routeId]);
-
 
   useEffect(() => {
     return () => {
@@ -201,7 +201,7 @@ export default function RouteDetailPage() {
     ),
     'Practical tips': <Icon as={FaLightbulb} color="orange.500" mr={1} />,
     'Add an encouraging sentence': (
-      <Icon as={FaInfoCircle} color="orange.500" mr={1} />
+      <Icon as={FaSmileBeam} color="orange.500" mr={1} />
     ),
   };
 
@@ -216,12 +216,17 @@ export default function RouteDetailPage() {
         {props.children}
       </Heading>
     ),
-    p: (props: React.ComponentProps<'p'>) => <Text mb={2} fontSize="md" {...props} />,
+    p: (props: React.ComponentProps<'p'>) => (
+      <Text mb={2} fontSize="md" {...props} />
+    ),
     strong: (props: React.ComponentProps<'strong'>) => {
       let raw = '';
       if (typeof props.children === 'string') {
         raw = props.children;
-      } else if (Array.isArray(props.children) && typeof props.children[0] === 'string') {
+      } else if (
+        Array.isArray(props.children) &&
+        typeof props.children[0] === 'string'
+      ) {
         raw = props.children[0];
       }
       const label = raw.replace(/^\d+\.\s*/, '');
@@ -236,7 +241,14 @@ export default function RouteDetailPage() {
       <ul style={{ paddingLeft: '1rem' }} {...props} />
     ),
     li: (props: React.ComponentProps<'li'>) => (
-      <li style={{ marginLeft: '0.25rem', fontSize: '1rem', listStyleType: 'disc' }} {...props} />
+      <li
+        style={{
+          marginLeft: '0.25rem',
+          fontSize: '1rem',
+          listStyleType: 'disc',
+        }}
+        {...props}
+      />
     ),
   };
 
