@@ -18,11 +18,6 @@ jest.mock("../appsync-client", () => ({
   publishRoutesGenerated: (...args: any[]) => mockPublish(...args),
 }));
 
-const mockDescribe = jest.fn();
-jest.mock("../../../../../handlers/describe-route", () => ({
-  describeRoute: (...args: any[]) => mockDescribe(...args),
-}));
-
 const responseDataHolder: { data: string } = { data: "" };
 const httpsRequest = jest.fn((opts: string | any, cb: (res: any) => void) => {
   const res = new EventEmitter();
@@ -59,8 +54,6 @@ describe("worker routes handler", () => {
     mockSave.mockReset();
     httpsRequest.mockClear();
     mockPublish.mockReset();
-    mockDescribe.mockReset();
-    mockDescribe.mockResolvedValue("desc");
     process.env.ROUTES_TABLE = "t";
     process.env.GOOGLE_API_KEY = "k";
   });
@@ -125,9 +118,6 @@ describe("worker routes handler", () => {
       { lat: 40.7, lng: -120.95 },
       { lat: 43.252, lng: -126.453 },
     ]);
-
-    expect(saved.description).toBe("desc");
-    expect(mockDescribe).toHaveBeenCalledWith("_p~iF~ps|U_ulLnnqC_mqNvxq`@");
     expect(mockPublish).toHaveBeenCalledWith(
       "550e8400-e29b-41d4-a716-446655440000",
       [saved]
@@ -233,8 +223,8 @@ describe("worker routes handler", () => {
       ],
     });
 
-    const makeReq = (payload: string) =>
-      (opts: string | any, cb: (res: any) => void) => {
+    const makeReq =
+      (payload: string) => (opts: string | any, cb: (res: any) => void) => {
         const res = new EventEmitter();
         res.on = res.addListener;
         (res as any).statusCode = 200;
@@ -243,13 +233,12 @@ describe("worker routes handler", () => {
           on: jest.fn(),
           write: jest.fn(),
           end: jest.fn(() => {
-            const data = typeof opts === "string"
-              ? JSON.stringify({
-                  results: [
-                    { geometry: { location: { lat: 0, lng: 0 } } },
-                  ],
-                })
-              : payload;
+            const data =
+              typeof opts === "string"
+                ? JSON.stringify({
+                    results: [{ geometry: { location: { lat: 0, lng: 0 } } }],
+                  })
+                : payload;
             res.emit("data", data);
             res.emit("end");
           }),
@@ -339,8 +328,8 @@ describe("worker routes handler", () => {
       ],
     });
 
-    const makeReq = (payload: string) =>
-      (opts: string | any, cb: (res: any) => void) => {
+    const makeReq =
+      (payload: string) => (opts: string | any, cb: (res: any) => void) => {
         const res = new EventEmitter();
         res.on = res.addListener;
         (res as any).statusCode = 200;
@@ -349,13 +338,12 @@ describe("worker routes handler", () => {
           on: jest.fn(),
           write: jest.fn(),
           end: jest.fn(() => {
-            const data = typeof opts === "string"
-              ? JSON.stringify({
-                  results: [
-                    { geometry: { location: { lat: 0, lng: 0 } } },
-                  ],
-                })
-              : payload;
+            const data =
+              typeof opts === "string"
+                ? JSON.stringify({
+                    results: [{ geometry: { location: { lat: 0, lng: 0 } } }],
+                  })
+                : payload;
             res.emit("data", data);
             res.emit("end");
           }),
@@ -418,8 +406,8 @@ describe("worker routes handler", () => {
     const seg3 = "_ibE_ibE?~hbE";
     const seg4 = "_ibE?~hbE?";
 
-    const makeReq = (payload: string) =>
-      (opts: string | any, cb: (res: any) => void) => {
+    const makeReq =
+      (payload: string) => (opts: string | any, cb: (res: any) => void) => {
         const res = new EventEmitter();
         res.on = res.addListener;
         (res as any).statusCode = 200;
@@ -428,13 +416,12 @@ describe("worker routes handler", () => {
           on: jest.fn(),
           write: jest.fn(),
           end: jest.fn(() => {
-            const data = typeof opts === "string"
-              ? JSON.stringify({
-                  results: [
-                    { geometry: { location: { lat: 0, lng: 0 } } },
-                  ],
-                })
-              : payload;
+            const data =
+              typeof opts === "string"
+                ? JSON.stringify({
+                    results: [{ geometry: { location: { lat: 0, lng: 0 } } }],
+                  })
+                : payload;
             res.emit("data", data);
             res.emit("end");
           }),
@@ -471,14 +458,18 @@ describe("worker routes handler", () => {
     await handler(event);
 
     const routeCalls = httpsRequest.mock.calls.filter(
-      ([opts]) => typeof opts === "object" && (opts as any).host === "routes.googleapis.com"
+      ([opts]) =>
+        typeof opts === "object" &&
+        (opts as any).host === "routes.googleapis.com"
     );
     expect(routeCalls).toHaveLength(4);
 
     const saved = mockSave.mock.calls[0][0];
     expect(saved.distanceKm.Value).toBe(4);
     expect(saved.duration.Value).toBe(2400);
-    expect(saved.path!.Coordinates.map((c: any) => ({ lat: c.Lat, lng: c.Lng }))).toEqual([
+    expect(
+      saved.path!.Coordinates.map((c: any) => ({ lat: c.Lat, lng: c.Lng }))
+    ).toEqual([
       { lat: 0, lng: 0 },
       { lat: 0, lng: 1 },
       { lat: 1, lng: 1 },
@@ -610,5 +601,4 @@ describe("worker routes handler", () => {
     await geocode("Barcelona", "k");
     expect(httpsRequest).toHaveBeenCalledTimes(1);
   });
-
 });

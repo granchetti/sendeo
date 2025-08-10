@@ -10,6 +10,7 @@ import {
   Image,
   SimpleGrid,
   Icon,
+  HStack,
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import {
@@ -17,6 +18,11 @@ import {
   FaWalking,
   FaLeaf,
   FaMapMarkedAlt,
+  FaInfoCircle,
+  FaLightbulb,
+  FaExclamationTriangle,
+  FaRulerHorizontal,
+  FaSyncAlt,
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
@@ -37,6 +43,9 @@ const HomePage = () => {
       bgGradient="linear(to-br, lime.100 0%, brand.300 100%)"
       position="relative"
       overflow="hidden"
+      boxShadow="2xl"
+      borderWidth={2}
+      borderColor="brand.400"
     >
       {/* HERO SECTION */}
       <Container maxW="container.lg" py={16}>
@@ -106,7 +115,13 @@ const HomePage = () => {
       {/* HOW IT WORKS */}
       <Box py={12} bg="brand.50">
         <Container maxW="container.lg">
-          <Heading as="h2" size="lg" textAlign="center" mb={10} color="brand.700">
+          <Heading
+            as="h2"
+            size="lg"
+            textAlign="center"
+            mb={10}
+            color="brand.700"
+          >
             How does Sendeo work?
           </Heading>
           <SimpleGrid columns={{ base: 1, md: 4 }} spacing={8}>
@@ -153,7 +168,13 @@ const HomePage = () => {
               whileHover={{ scale: 1.06, boxShadow: '0 0 24px lime.200' }}
               transition={{ duration: 0.25 }}
             >
-              <Icon as={FaMapMarkedAlt} w={12} h={12} color="brand.300" mb={4} />
+              <Icon
+                as={FaMapMarkedAlt}
+                w={12}
+                h={12}
+                color="brand.300"
+                mb={4}
+              />
               <Heading size="md" mb={2}>
                 Pick your favorite route
               </Heading>
@@ -182,52 +203,143 @@ const HomePage = () => {
         </Container>
       </Box>
 
-      {/* BENEFITS */}
-      <Box py={16} bg="darkGreen.700">
+      {/* BENEFITS (nuevo, sin métricas) */}
+      <Box py={{ base: 12, md: 20 }} bg="darkGreen.800" position="relative">
         <Container maxW="container.lg">
-          <Heading as="h2" size="lg" color="lime.200" textAlign="center" mb={8}>
-            Why walk with Sendeo?
-          </Heading>
-          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
-            {[
-              {
-                icon: FaWalking,
-                iconColor: "brand.500",
-                title: 'Healthy Lifestyle',
-                desc: 'Walking is one of the best ways to improve your physical and mental health.',
-              },
-              {
-                icon: FaLeaf,
-                iconColor: "lime.400",
-                title: 'Flexible & Personalized',
-                desc: 'Choose routes based on your time, mood, or fitness goals—city, park, or nature.',
-              },
-              {
-                icon: FaMapMarkedAlt,
-                iconColor: "brand.400",
-                title: 'Discover & Enjoy',
-                desc: 'Find new places, enjoy fresh air, and turn every walk into a small adventure.',
-              },
-            ].map((benefit) => (
-              <MotionBox
-                key={benefit.title}
-                p={6}
-                borderRadius="2xl"
-                bg="darkGreen.500"
-                color="white"
-                textAlign="center"
-                boxShadow="lg"
-                whileHover={{ scale: 1.06, boxShadow: '0 0 18px brand.300' }}
-              >
-                <Icon as={benefit.icon} w={12} h={12} color={benefit.iconColor} mb={4} />
-                <Heading size="md" mb={2}>
-                  {benefit.title}
-                </Heading>
-                <Text fontSize="md" color="gray.100">
-                  {benefit.desc}
-                </Text>
-              </MotionBox>
-            ))}
+          <SimpleGrid
+            columns={{ base: 1, md: 2 }}
+            spacing={12}
+            alignItems="center"
+          >
+            {/* Columna izquierda: por qué usar Sendeo */}
+            <Box>
+              <Heading as="h2" size="lg" color="white" mb={3}>
+                Why people choose Sendeo
+              </Heading>
+              <Text color="gray.200" mb={6}>
+                Not another map. Sendeo helps you walk more with routes that fit
+                your day.
+              </Text>
+
+              <Stack spacing={4}>
+                <HStack align="start" spacing={4}>
+                  <Icon as={FaRulerHorizontal} color="lime.300" boxSize={6} />
+                  <Box>
+                    <Text fontWeight="bold" color="white">
+                      Distance-first routes
+                    </Text>
+                    <Text color="gray.200">
+                      Set your kilometers—7 km, 10 km… you choose.
+                    </Text>
+                  </Box>
+                </HStack>
+
+                <HStack align="start" spacing={4}>
+                  <Icon as={FaRoute} color="lime.300" boxSize={6} />
+                  <Box>
+                    <Text fontWeight="bold" color="white">
+                      Everyday reliable
+                    </Text>
+                    <Text color="gray.200">
+                      Solid, repeatable paths for daily walks or runs.
+                    </Text>
+                  </Box>
+                </HStack>
+
+                <HStack align="start" spacing={4}>
+                  <Icon as={FaSyncAlt} color="lime.300" boxSize={6} />
+                  <Box>
+                    <Text fontWeight="bold" color="white">
+                      Loops & out-and-backs
+                    </Text>
+                    <Text color="gray.200">
+                      Neat loops or straight out-and-back options.
+                    </Text>
+                  </Box>
+                </HStack>
+              </Stack>
+            </Box>
+
+            {/* Columna derecha: qué recibes en cada ruta (IA) */}
+            <Box>
+              <Heading as="h3" size="md" color="lime.200" mb={3}>
+                What you get on each route (AI-generated)
+              </Heading>
+              <Text color="gray.200" mb={5}>
+                After you pick a route with AI, you’ll see a short area brief so
+                you know what to expect.
+              </Text>
+
+              <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+                <MotionBox
+                  p={5}
+                  borderRadius="xl"
+                  bg="darkGreen.600"
+                  color="white"
+                  whileHover={{ y: -4 }}
+                  boxShadow="lg"
+                >
+                  <HStack spacing={3} mb={2}>
+                    <Icon as={FaInfoCircle} color="lime.300" />
+                    <Text fontWeight="bold">Overview</Text>
+                  </HStack>
+                  <Text color="gray.200" fontSize="sm">
+                    Distance, time and vibe.
+                  </Text>
+                </MotionBox>
+
+                <MotionBox
+                  p={5}
+                  borderRadius="xl"
+                  bg="darkGreen.600"
+                  color="white"
+                  whileHover={{ y: -4 }}
+                  boxShadow="lg"
+                >
+                  <HStack spacing={3} mb={2}>
+                    <Icon as={FaMapMarkedAlt} color="lime.300" />
+                    <Text fontWeight="bold">Points of Interest</Text>
+                  </HStack>
+                  <Text color="gray.200" fontSize="sm">
+                    Up to 4 nearby highlights.
+                  </Text>
+                </MotionBox>
+
+                <MotionBox
+                  p={5}
+                  borderRadius="xl"
+                  bg="darkGreen.600"
+                  color="white"
+                  whileHover={{ y: -4 }}
+                  boxShadow="lg"
+                >
+                  <HStack spacing={3} mb={2}>
+                    <Icon as={FaExclamationTriangle} color="lime.300" />
+                    <Text fontWeight="bold">Heads-up</Text>
+                  </HStack>
+                  <Text color="gray.200" fontSize="sm">
+                    Surfaces, slopes and busy crossings.
+                  </Text>
+                </MotionBox>
+
+                <MotionBox
+                  p={5}
+                  borderRadius="xl"
+                  bg="darkGreen.600"
+                  color="white"
+                  whileHover={{ y: -4 }}
+                  boxShadow="lg"
+                >
+                  <HStack spacing={3} mb={2}>
+                    <Icon as={FaLightbulb} color="lime.300" />
+                    <Text fontWeight="bold">Practical tips</Text>
+                  </HStack>
+                  <Text color="gray.200" fontSize="sm">
+                    Water, shade, cafés and viewpoints.
+                  </Text>
+                </MotionBox>
+              </SimpleGrid>
+            </Box>
           </SimpleGrid>
         </Container>
       </Box>

@@ -200,7 +200,6 @@ export default function RouteDetailPage() {
       <Icon as={FaExclamationTriangle} color="orange.500" mr={1} />
     ),
     'Practical tips': <Icon as={FaLightbulb} color="orange.500" mr={1} />,
-
   };
 
   const MDcomponents = {
