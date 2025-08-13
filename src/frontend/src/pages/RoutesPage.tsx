@@ -86,6 +86,7 @@ export default function RoutesPage() {
   const [favourites, setFavourites] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
+  const [startingRouteId, setStartingRouteId] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -325,6 +326,7 @@ export default function RoutesPage() {
   };
 
   const handleStartClick = async (routeId: string) => {
+    setStartingRouteId(routeId);
     try {
       await api.get(`/routes/${routeId}`);
     } catch {}
@@ -383,7 +385,12 @@ export default function RoutesPage() {
       <Container maxW="container.xl" py={10}>
         {/* Header */}
         <Stack align="center" spacing={3} mb={6}>
-          <Heading size="2xl" color="orange.600" letterSpacing="tight">
+          <Heading
+            size="2xl"
+            color="orange.600"
+            letterSpacing="tight"
+            textAlign="center"
+          >
             Plan Your Perfect Route
           </Heading>
           <Text color="gray.700" textAlign="center">
@@ -415,7 +422,8 @@ export default function RoutesPage() {
           rounded="xl"
           bg="white"
           mb={8}
-          w={['90%', '1000px']}
+          w="full"
+          maxW="xxl"
           mx="auto"
         >
           <MotionBox
@@ -685,7 +693,8 @@ export default function RoutesPage() {
             p={4}
             rounded="lg"
             boxShadow="md"
-            w={['90%', '1000px']}
+            w="full"
+            maxW="xxl"
             mx="auto"
           >
             <Heading size="lg" mb={4}>
@@ -696,6 +705,7 @@ export default function RoutesPage() {
                 const isSelected = selectedRoute === r.routeId;
                 return (
                   <Button
+                    minH={['60px', '80px']}
                     key={r.routeId}
                     w="100%"
                     justifyContent="space-between"
@@ -758,8 +768,14 @@ export default function RoutesPage() {
                       <Button
                         size="md"
                         colorScheme="green"
-                        onClick={() => handleStartClick(r.routeId)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartClick(r.routeId);
+                        }}
                         isDisabled={!r.path}
+                        isLoading={startingRouteId === r.routeId}
+                        loadingText="Opening…"
+                        spinnerPlacement="end"
                       >
                         Start
                       </Button>

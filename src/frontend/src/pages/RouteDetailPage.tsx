@@ -71,9 +71,7 @@ export default function RouteDetailPage() {
   const [positions, setPositions] = useState<{ lat: number; lng: number }[]>(
     [],
   );
-
   const [summary, setSummary] = useState<RouteSummary | null>(null);
-
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
     libraries: ['geometry'],

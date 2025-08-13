@@ -27,9 +27,38 @@ const SYSTEM_PROMPT = `
 You are Claude, a senior travel-writer specialized in crafting engaging,
 easy-to-read walking-tour briefs.
 Always write in a warm, enthusiastic tone, no higher than B2 English level.
-Never invent places that are not on or near the provided route.`.trim();
+Never invent places that are not on or near the provided route.
 
-function buildUserMessage(coords: [number, number][], weatherSentence = "") {
+ORIGINALITY RULES:
+- Every call must feel fresh. Do NOT reuse sentences verbatim across outputs.
+- Vary sentence structure, verbs, adjectives, and emoji choices each time.
+- Rotate the angle of the description (e.g., history, scenery, cafés, local life).
+- If similar POIs appear, change their ordering and reasons; keep reasons concise and varied.
+`.trim();
+
+function stylePalette(variant: number) {
+  switch (variant) {
+    case 1:
+      return `Style variant #1 — Lexicon: stroll, amble, gentle; Mood: calm & cozy; Emoji set: 🌿☕🙂`;
+    case 2:
+      return `Style variant #2 — Lexicon: brisk, energizing, pace; Mood: lively & active; Emoji set: 🏃‍♀️⚡🏙️`;
+    case 3:
+      return `Style variant #3 — Lexicon: heritage, cobbled, landmark; Mood: cultural; Emoji set: 🏛️🧭📸`;
+    case 4:
+      return `Style variant #4 — Lexicon: green, shaded, stream; Mood: nature-forward; Emoji set: 🍃🌳💧`;
+    case 5:
+      return `Style variant #5 — Lexicon: scenic, vista, open; Mood: airy & scenic; Emoji set: 🌄🧡👣`;
+    default:
+      return `Style variant #6 — Lexicon: local bites, cafés, pause; Mood: foodie & relaxed; Emoji set: ☕🥐😊`;
+  }
+}
+
+function buildUserMessage(
+  coords: [number, number][],
+  weatherSentence = "",
+  variant: number,
+  seed: number
+) {
   const km = calcDistanceKm(coords).toFixed(1);
   return {
     role: "user" as const,
@@ -42,6 +71,11 @@ Each element is **[latitude, longitude]** in WGS-84:
 ${JSON.stringify(coords)}
 
 **The total distance is about ${km} km.**
+
+Use this guidance to keep wording fresh on every call:
+- Variation seed: ${seed}. Pick expressions consistent with the style below.
+- ${stylePalette(variant)}
+- Avoid repeating exact wording you might typically produce for this city.
 
 ---
 
@@ -61,7 +95,7 @@ Compact warnings about steep parts, stairs, busy crossings, surfaces, etc.
 **4. Practical tips**  
 Good viewpoints, water fountains, cafés, shaded benches… 2–3 items max.
 
-**5. Add an encouraging sentence to motivate the reader to walk this route with emojis.**
+At the end, add an encouraging sentence to motivate the reader to walk this route with emojis.
 ---
 
 Formatting rules:  
@@ -69,7 +103,8 @@ Formatting rules:
 * Wrap lines naturally; do *not* truncate text.  
 * Do *not* repeat the GPS data.  
 * Stay under **250 words total**.  
-* The title must begin with the exact town/city name of the route.`.trim(),
+* The title must begin with the exact town/city name of the route.
+`.trim(),
   };
 }
 
@@ -84,20 +119,23 @@ export async function describeRoute(
 
   const googleKey = await getGoogleKey();
   const city = await getCityName(lat, lng, googleKey);
+  const seed = Date.now();
+  const variant = (seed % 6) + 1;
 
   const systemPrompt = `
 ${SYSTEM_PROMPT}
 
 The walk takes place in **${city}**.
 The **title must start with “${city}”**.
-  `.trim();
+`.trim();
 
   const payload = {
     anthropic_version: "bedrock-2023-05-31",
     system: systemPrompt,
-    messages: [buildUserMessage(coords, weatherSentence)],
+    messages: [buildUserMessage(coords, weatherSentence, variant, seed)],
     max_tokens: 512,
-    temperature: 0.7,
+    temperature: 0.85,
+    top_p: 0.95,
     stop_sequences: ["\n\n### End"],
   };
 
