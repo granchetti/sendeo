@@ -43,7 +43,9 @@ const MotionBox = motion(Box);
 
 const DEFAULT_CENTER = { lat: 41.3851, lng: 2.1734 };
 const COLORS = ['#ff6f00', '#388e3c', '#1976d2'];
-const OFFSET_STEP_KM = 0.005; // ~15 m
+const OFFSET_STEP_KM = 0.005;
+const CACHE_KEY = 'sendeo:lastResults';
+const CACHE_TTL_MS = 10 * 60 * 1000;
 
 export default function RoutesPage() {
   const toast = useToast();
@@ -212,12 +214,57 @@ export default function RoutesPage() {
   }, []);
 
   useEffect(() => {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return;
+    try {
+      const cached = JSON.parse(raw);
+      const fresh = Date.now() - (cached.createdAt ?? 0) < CACHE_TTL_MS;
+      if (fresh && Array.isArray(cached.routes) && cached.routes.length) {
+        setRoutes(cached.routes);
+        setJobId(cached.jobId ?? null);
+
+        if (cached.origin) setOrigin(cached.origin);
+        if (cached.destination) setDestination(cached.destination);
+        if (cached.originText) setOriginText(cached.originText);
+        if (cached.destinationText) setDestinationText(cached.destinationText);
+        if (cached.mode) setMode(cached.mode);
+        if (cached.distanceKm) setDistanceKm(String(cached.distanceKm));
+        if (cached.roundTrip != null) setRoundTrip(!!cached.roundTrip);
+        if (cached.circle != null) setCircle(!!cached.circle);
+        if (cached.maxDeltaKm != null) setMaxDeltaKm(String(cached.maxDeltaKm));
+        if (cached.routesCount != null)
+          setRoutesCount(String(cached.routesCount));
+      } else {
+        sessionStorage.removeItem(CACHE_KEY);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     if (!jobId) return;
     const iv = setInterval(async () => {
       const { data } = await api.get(`/jobs/${jobId}/routes`);
       if (data.length) {
         setRoutes(data);
         setLoading(false);
+        sessionStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({
+            createdAt: Date.now(),
+            jobId,
+            routes: data,
+            origin,
+            destination,
+            originText,
+            destinationText,
+            mode,
+            distanceKm,
+            roundTrip,
+            circle,
+            maxDeltaKm,
+            routesCount,
+          }),
+        );
         clearInterval(iv);
       }
     }, 2000);
@@ -290,6 +337,7 @@ export default function RoutesPage() {
   };
 
   const handleReset = () => {
+    sessionStorage.removeItem(CACHE_KEY);
     setOrigin(center);
     setDestination(null);
     setOriginText(`${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}`);
