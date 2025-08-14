@@ -8,8 +8,9 @@ import {
 } from "aws-cdk-lib/aws-appsync";
 import { IUserPool } from "aws-cdk-lib/aws-cognito";
 import * as path from "path";
+import { WithStage } from "./types";
 
-export interface AppSyncStackProps extends cdk.StackProps {
+export interface AppSyncStackProps extends cdk.StackProps, WithStage {
   readonly userPool: IUserPool;
 }
 
@@ -19,14 +20,14 @@ export class AppSyncStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AppSyncStackProps) {
     super(scope, id, props);
 
+    const suffix = props.stage;
+
     this.api = new GraphqlApi(this, "SendeoGraphQL", {
-      name: "SendeoGraphQL",
+      name: `SendeoGraphQL-${suffix}`,
       schema: SchemaFile.fromAsset(
         path.join(__dirname, "../../graphql/schema.graphql")
       ),
-      logConfig: {
-        fieldLogLevel: FieldLogLevel.ALL,
-      },
+      logConfig: { fieldLogLevel: FieldLogLevel.ALL },
       authorizationConfig: {
         defaultAuthorization: {
           authorizationType: AuthorizationType.USER_POOL,
@@ -37,13 +38,13 @@ export class AppSyncStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, "AppSyncUrl", {
       value: this.api.graphqlUrl,
-      exportName: "SendeoAppSyncUrl",
+      exportName: `SendeoAppSyncUrl-${suffix}`,
     });
 
     if (this.api.apiKey) {
       new cdk.CfnOutput(this, "AppSyncApiKey", {
         value: this.api.apiKey,
-        exportName: "SendeoAppSyncApiKey",
+        exportName: `SendeoAppSyncApiKey-${suffix}`,
       });
     }
   }

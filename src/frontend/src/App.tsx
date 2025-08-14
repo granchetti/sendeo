@@ -1,4 +1,3 @@
-// App.tsx
 import { Routes, Route } from 'react-router-dom';
 import { Box } from '@chakra-ui/react';
 import NavBar from './components/NavBar';

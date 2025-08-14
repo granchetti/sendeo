@@ -6,8 +6,9 @@ import {
   BillingMode,
   ProjectionType,
 } from "aws-cdk-lib/aws-dynamodb";
+import { WithStage } from "./types";
 
-export interface StorageStackProps extends cdk.StackProps {}
+export interface StorageStackProps extends cdk.StackProps, WithStage {}
 
 export class StorageStack extends cdk.Stack {
   public readonly routesTable: Table;
@@ -16,8 +17,10 @@ export class StorageStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: StorageStackProps) {
     super(scope, id, props);
 
+    const suffix = props.stage;
+
     this.routesTable = new Table(this, "RoutesTable", {
-      tableName: "Routes",
+      tableName: `Routes-${suffix}`,
       partitionKey: { name: "routeId", type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
       timeToLiveAttribute: "ttl",
@@ -38,7 +41,7 @@ export class StorageStack extends cdk.Stack {
     });
 
     this.userStateTable = new Table(this, "UserStateTable", {
-      tableName: "UserState",
+      tableName: `UserState-${suffix}`,
       partitionKey: { name: "PK", type: AttributeType.STRING },
       sortKey: { name: "SK", type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,

@@ -1,3 +1,4 @@
+// lib/stacks/compute-stack.ts
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
@@ -9,8 +10,9 @@ import { IUserPool } from "aws-cdk-lib/aws-cognito";
 import { HttpLambda } from "../constructs/http-lambda";
 import { SqsConsumer } from "../constructs/sqs-consumer";
 import * as path from "path";
+import { WithStage } from "./types";
 
-export interface ComputeStackProps extends cdk.StackProps {
+export interface ComputeStackProps extends cdk.StackProps, WithStage {
   readonly routesTable: Table;
   readonly userStateTable: Table;
   readonly routeJobsQueue: sqs.IQueue;
@@ -28,15 +30,17 @@ export class ComputeStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ComputeStackProps) {
     super(scope, id, props);
 
+    const suffix = props.stage;
+
     const googleSecret = Secret.fromSecretNameV2(
       this,
       "GoogleSecret",
-      "google-api-key"
+      props.googleApiKeySecretName
     );
 
     // API Gateway + Cognito Authorizer
     const api = new apigw.RestApi(this, "Api", {
-      restApiName: "SendeoApi",
+      restApiName: `SendeoApi-${suffix}`,
       defaultCorsPreflightOptions: {
         allowOrigins: ["*"],
         allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

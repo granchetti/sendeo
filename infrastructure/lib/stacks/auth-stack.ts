@@ -1,25 +1,25 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as cognito from "aws-cdk-lib/aws-cognito";
+import { WithStage } from "./types";
 
-export interface AuthStackProps extends cdk.StackProps {}
+export interface AuthStackProps extends cdk.StackProps, WithStage {}
 
 export class AuthStack extends cdk.Stack {
   public readonly userPool: cognito.UserPool;
   public readonly userPoolClient: cognito.UserPoolClient;
 
-  constructor(scope: Construct, id: string, props?: AuthStackProps) {
+  constructor(scope: Construct, id: string, props: AuthStackProps) {
     super(scope, id, props);
 
-    // 1) User Pool
+    const suffix = props.stage;
+
     this.userPool = new cognito.UserPool(this, "UserPool", {
-      userPoolName: "SendeoUserPool",
+      userPoolName: `SendeoUserPool-${suffix}`,
       selfSignUpEnabled: true,
       signInAliases: { email: true },
       autoVerify: { email: true },
-      standardAttributes: {
-        email: { required: true, mutable: true },
-      },
+      standardAttributes: { email: { required: true, mutable: true } },
       passwordPolicy: {
         minLength: 8,
         requireLowercase: true,
@@ -27,31 +27,20 @@ export class AuthStack extends cdk.Stack {
       },
     });
 
-    // 2) App Client
     this.userPoolClient = new cognito.UserPoolClient(this, "UserPoolClient", {
       userPool: this.userPool,
-      userPoolClientName: "UserPoolClient",
+      userPoolClientName: `UserPoolClient-${suffix}`,
       generateSecret: false,
-      authFlows: {
-        userPassword: true,
-        adminUserPassword: true,
-        userSrp: true,
-      },
-      accessTokenValidity: cdk.Duration.hours(2), // up to 24 hours
-      idTokenValidity: cdk.Duration.hours(2), // up to 24 hours
-      refreshTokenValidity: cdk.Duration.days(90), // up to 10 years
-      // For Hosted UI:
-      // oAuth: {
-      //   flows: { authorizationCodeGrant: true },
-      //   callbackUrls: ['https://tu-app.com/callback'],
-      //   logoutUrls: ['https://tu-app.com/'],
-      // },
+      authFlows: { userPassword: true, adminUserPassword: true, userSrp: true },
+      accessTokenValidity: cdk.Duration.hours(2),
+      idTokenValidity: cdk.Duration.hours(2),
+      refreshTokenValidity: cdk.Duration.days(90),
       preventUserExistenceErrors: true,
     });
 
     new cdk.CfnOutput(this, "UserPoolClientId", {
       value: this.userPoolClient.userPoolClientId,
-      exportName: "SendeoUserPoolClientId",
+      exportName: `SendeoUserPoolClientId-${suffix}`,
     });
   }
 }
