@@ -42,10 +42,11 @@ import { MdMyLocation } from 'react-icons/md';
 const MotionBox = motion(Box);
 
 const DEFAULT_CENTER = { lat: 41.3851, lng: 2.1734 };
-const COLORS = ['#ff6f00', '#388e3c', '#1976d2'];
+const COLORS = ['#ff6f00', '#388e3c', '#1976d2', '#d32f2f', '#a839e4ff'];
 const OFFSET_STEP_KM = 0.005;
 const CACHE_KEY = 'sendeo:lastResults';
 const CACHE_TTL_MS = 10 * 60 * 1000;
+const MAX_FAVS = 10;
 
 export default function RoutesPage() {
   const toast = useToast();
@@ -80,7 +81,7 @@ export default function RoutesPage() {
     routeId: string;
     path?: string;
     distanceKm?: number;
-    description?: string;
+    duration?: number;
     [key: string]: unknown;
   }
 
@@ -94,7 +95,7 @@ export default function RoutesPage() {
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
-    libraries: ['geometry', 'places'], // 👈 importante
+    libraries: ['geometry', 'places'],
   });
 
   // --- helpers de geocoding ---
@@ -297,7 +298,6 @@ export default function RoutesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Asegurar coords desde texto si aún no hay
     const o = await ensureCoords(origin, originText, setOrigin, 'Origin');
     if (!o) return;
 
@@ -356,6 +356,16 @@ export default function RoutesPage() {
 
   const toggleFavourite = async (routeId: string) => {
     const isFav = favourites.includes(routeId);
+
+    if (!isFav && favourites.length >= MAX_FAVS) {
+      toast({
+        title: 'Favorites limit reached',
+        description: `You can save up to ${MAX_FAVS} routes. Remove one to add another.`,
+        status: 'warning',
+      });
+      return;
+    }
+
     try {
       if (isFav) {
         await api.delete(`/favourites/${routeId}`);
@@ -373,12 +383,12 @@ export default function RoutesPage() {
     }
   };
 
-  const handleStartClick = async (routeId: string) => {
+  const handleStartClick = async (routeId: string, navState?: any) => {
     setStartingRouteId(routeId);
     try {
       await api.get(`/routes/${routeId}`);
     } catch {}
-    navigate(`/routes/${routeId}`);
+    navigate(`/routes/${routeId}`, { state: navState });
   };
 
   const handleSelectRoute = (
@@ -393,10 +403,9 @@ export default function RoutesPage() {
     }
   };
 
-  // onBlur geocode si el user no seleccionó del Autocomplete
   const handleOriginBlur = async () => {
     if (!originText.trim()) return;
-    if (origin) return; // ya tenemos coords
+    if (origin) return;
     const parsed = parseLatLng(originText);
     if (parsed) {
       setOrigin(parsed);
@@ -751,21 +760,24 @@ export default function RoutesPage() {
             <Stack spacing={3}>
               {routes.map((r, idx) => {
                 const isSelected = selectedRoute === r.routeId;
+                const color = COLORS[idx % COLORS.length];
+
+                const labelLine =
+                  mode === 'points'
+                    ? `${originText || 'Origin'} → ${
+                        destinationText || 'Destination'
+                      }`
+                    : `${originText || 'Start'} • ${distanceKm} km`;
+
+                const defaultTag = `Route ${idx + 1}`;
+                const navState = { displayName: defaultTag, labelLine, idx };
+
                 return (
-                  <Button
-                    minH={['60px', '80px']}
+                  // 🔁 ANTES: <Button ...>  —  AHORA: <Box ... role="button">
+                  <Box
                     key={r.routeId}
-                    w="100%"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    variant={isSelected ? 'solid' : 'outline'}
-                    colorScheme={isSelected ? 'orange' : 'gray'}
-                    bg="white"
-                    borderWidth="1px"
-                    rounded="md"
-                    px={6}
-                    py={4}
-                    _hover={{ bg: isSelected ? 'orange.100' : 'gray.50' }}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
                       const rawPath = google.maps.geometry.encoding.decodePath(
                         r.path!,
@@ -776,24 +788,69 @@ export default function RoutesPage() {
                       }));
                       handleSelectRoute(r.routeId, path);
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        const rawPath =
+                          google.maps.geometry.encoding.decodePath(r.path!);
+                        const path = rawPath.map((p) => ({
+                          lat: p.lat(),
+                          lng: p.lng(),
+                        }));
+                        handleSelectRoute(r.routeId, path);
+                      }
+                    }}
+                    // estilos que antes tenía el Button
+                    minH={['60px', '80px']}
+                    w="100%"
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    bg="white"
+                    borderWidth="1px"
+                    rounded="md"
+                    px={6}
+                    py={4}
+                    cursor="pointer"
+                    _hover={{ bg: isSelected ? 'orange.100' : 'gray.50' }}
+                    borderColor={isSelected ? 'orange.300' : 'gray.200'}
                   >
                     <Box textAlign="left">
-                      <Text
-                        fontSize="lg"
-                        fontWeight="bold"
-                        color="gray.800"
-                        mb={1}
-                      >
-                        Route {idx + 1}
-                      </Text>
-                      <Text fontSize="lg" color="gray.600">
-                        Distance: {r.distanceKm?.toFixed(2)} km
-                      </Text>
-                      {r.description && (
-                        <Text fontSize="sm" color="gray.500" noOfLines={1}>
-                          {r.description}
+                      <HStack mb={1} spacing={3} align="center">
+                        <Tag size="md" colorScheme="gray" variant="subtle">
+                          Route {idx + 1}
+                        </Tag>
+                        <Box
+                          w="10px"
+                          h="10px"
+                          borderRadius="full"
+                          bg={color}
+                          border="1px solid rgba(0,0,0,0.2)"
+                        />
+                        <Text fontSize="lg" fontWeight="bold" color="gray.800">
+                          {labelLine}
                         </Text>
-                      )}
+                      </HStack>
+
+                      <HStack spacing={3}>
+                        {r.distanceKm != null && (
+                          <Text fontSize="sm" color="gray.600">
+                            {r.distanceKm.toFixed(2)} km
+                          </Text>
+                        )}
+                        {r.duration != null && (
+                          <Text
+                            fontSize="lg"
+                            color="gray.700"
+                            fontWeight="medium"
+                          >
+                            {(r.duration / 60).toFixed(1)} min
+                          </Text>
+                        )}
+                        <Text fontSize="sm" color="gray.500">
+                          ID: {r.routeId.slice(0, 8)}…
+                        </Text>
+                      </HStack>
                     </Box>
 
                     <HStack spacing={2}>
@@ -808,6 +865,10 @@ export default function RoutesPage() {
                             <FaRegStar />
                           )
                         }
+                        isDisabled={
+                          !favourites.includes(r.routeId) &&
+                          favourites.length >= MAX_FAVS
+                        }
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleFavourite(r.routeId);
@@ -818,7 +879,7 @@ export default function RoutesPage() {
                         colorScheme="green"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleStartClick(r.routeId);
+                          handleStartClick(r.routeId, navState);
                         }}
                         isDisabled={!r.path}
                         isLoading={startingRouteId === r.routeId}
@@ -828,7 +889,7 @@ export default function RoutesPage() {
                         Start
                       </Button>
                     </HStack>
-                  </Button>
+                  </Box>
                 );
               })}
             </Stack>

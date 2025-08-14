@@ -81,18 +81,18 @@ Use this guidance to keep wording fresh on every call:
 
 ### Please write a single text response following **exactly** this structure:
 
-**1. Overview (≤ 2 sentences)**  
+**Overview (≤ 2 sentences)**  
 • Mention total distance (approx.), estimated walking time (assume 4.5 km/h)  
 • One-line mood/terrain teaser (e.g. “quiet coastal path”, “lively urban stroll”)
 
-**2. Points of Interest (max 4)**  
+**Points of Interest (max 4)**  
 Start each line with “- ”.  
 Format: **Name** — reason (≤ 15 words).
 
-**3. Heads-up section**  
+**Heads-up section**  
 Compact warnings about steep parts, stairs, busy crossings, surfaces, etc.
 
-**4. Practical tips**  
+**∫Practical tips**  
 Good viewpoints, water fountains, cafés, shaded benches… 2–3 items max.
 
 At the end, add an encouraging sentence to motivate the reader to walk this route with emojis.
