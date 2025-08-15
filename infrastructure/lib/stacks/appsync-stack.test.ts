@@ -30,6 +30,7 @@ describe("AppSyncStack", () => {
     const stack = new AppSyncStack(app, "TestAppSyncStack", {
       env: TEST_ENV,
       userPool,
+      stage: 'test',
     });
 
     template = Template.fromStack(stack);
@@ -37,7 +38,7 @@ describe("AppSyncStack", () => {
 
   test("creates a GraphQL API with Cognito auth", () => {
     template.hasResourceProperties("AWS::AppSync::GraphQLApi", {
-      Name: "SendeoGraphQL",
+      Name: "SendeoGraphQL-test",
       AuthenticationType: "AMAZON_COGNITO_USER_POOLS",
       LogConfig: {
         FieldLogLevel: "ALL",
@@ -47,14 +48,14 @@ describe("AppSyncStack", () => {
 
   test("outputs the API url", () => {
     template.hasOutput("AppSyncUrl", {
-      Export: { Name: "SendeoAppSyncUrl" },
+      Export: { Name: "SendeoAppSyncUrl-test" },
     });
   });
 
   test("conditionally outputs the API key", () => {
     if (Object.keys(template.findOutputs("AppSyncApiKey", true)).length > 0) {
       template.hasOutput("AppSyncApiKey", {
-        Export: { Name: "SendeoAppSyncApiKey" },
+        Export: { Name: "SendeoAppSyncApiKey-test" },
       });
     }
   });

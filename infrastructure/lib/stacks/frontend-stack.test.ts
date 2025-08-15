@@ -12,6 +12,7 @@ describe('FrontendStack', () => {
       repoOwner: 'owner',
       repoName: 'repo',
       oauthTokenSecretName: 'tokenSecret',
+      stage: 'test',
     });
     template = Template.fromStack(stack);
   });
@@ -28,7 +29,7 @@ describe('FrontendStack', () => {
 
   test('outputs the Amplify URL', () => {
     template.hasOutput('AmplifyURL', {
-      Description: 'URL pública de la rama main en Amplify',
+      Description: 'URL pública de la rama main (test)',
     });
   });
 });

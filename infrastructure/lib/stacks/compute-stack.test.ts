@@ -37,6 +37,7 @@ describe("ComputeStack", () => {
       googleApiKeySecretName,
       bedrockAgentId: "a",
       bedrockAgentAliasId: "b",
+      stage: 'test',
     });
 
     template = Template.fromStack(stack);
@@ -44,7 +45,7 @@ describe("ComputeStack", () => {
 
   test("creates an API Gateway named SendeoApi", () => {
     template.hasResourceProperties("AWS::ApiGateway::RestApi", {
-      Name: "SendeoApi",
+      Name: "SendeoApi-test",
     });
   });
 
