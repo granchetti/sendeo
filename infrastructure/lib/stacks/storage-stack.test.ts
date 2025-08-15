@@ -9,6 +9,7 @@ describe('StorageStack', () => {
     const app = new cdk.App();
     const stack = new StorageStack(app, 'TestStorageStack', {
       env: { account: '123456789012', region: 'us-east-1' },
+      stage: 'test',
     });
     template = Template.fromStack(stack);
   });
@@ -19,7 +20,7 @@ describe('StorageStack', () => {
 
   test('Routes table has the correct properties', () => {
     template.hasResourceProperties('AWS::DynamoDB::Table', {
-      TableName: 'Routes',
+      TableName: 'Routes-test',
       BillingMode: 'PAY_PER_REQUEST',
       TimeToLiveSpecification: {
         AttributeName: 'ttl',
@@ -68,7 +69,7 @@ describe('StorageStack', () => {
 
   test('UserState table has the correct properties', () => {
     template.hasResourceProperties('AWS::DynamoDB::Table', {
-      TableName: 'UserState',
+      TableName: 'UserState-test',
       BillingMode: 'PAY_PER_REQUEST',
       KeySchema: [
         { AttributeName: 'PK', KeyType: 'HASH' },

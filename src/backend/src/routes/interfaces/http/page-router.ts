@@ -44,6 +44,7 @@ export const handler = async (
             distanceKm: r.distanceKm?.Value,
             duration: r.duration?.Value,
             path: r.path?.Encoded,
+            description: r.description,
           }))
         ),
       };
@@ -117,6 +118,7 @@ export const handler = async (
             distanceKm: r.distanceKm?.Value,
             duration: r.duration?.Value,
             path: r.path?.Encoded,
+            description: r.description,
           }))
         ),
       };

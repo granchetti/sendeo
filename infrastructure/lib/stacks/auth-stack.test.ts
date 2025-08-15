@@ -9,6 +9,7 @@ describe('AuthStack', () => {
     const app = new cdk.App();
     const stack = new AuthStack(app, 'TestAuthStack', {
       env: { account: '123456789012', region: 'us-east-1' },
+      stage: 'test',
     });
     template = Template.fromStack(stack);
   });
@@ -40,7 +41,7 @@ describe('AuthStack', () => {
   test('exports the UserPoolClientId output for cross-stack reference', () => {
     template.hasOutput('UserPoolClientId', {
       Export: {
-        Name: 'SendeoUserPoolClientId',
+        Name: 'SendeoUserPoolClientId-test',
       },
       Value: {
         'Ref': Match.stringLikeRegexp('UserPoolClient'),

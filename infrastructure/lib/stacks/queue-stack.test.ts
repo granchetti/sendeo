@@ -9,6 +9,7 @@ describe('QueueStack', () => {
     const app = new cdk.App();
     const stack = new QueueStack(app, 'TestQueueStack', {
       env: { account: '123456789012', region: 'us-east-1' },
+      stage: 'test',
     });
     template = Template.fromStack(stack);
   });
@@ -19,7 +20,7 @@ describe('QueueStack', () => {
 
   test('RouteJobsQueue configured with DLQ and visibility timeout', () => {
     template.hasResourceProperties('AWS::SQS::Queue', {
-      QueueName: 'RouteJobsQueue',
+      QueueName: 'RouteJobsQueue-test',
       VisibilityTimeout: 60,
       RedrivePolicy: {
         maxReceiveCount: 5,
@@ -32,7 +33,7 @@ describe('QueueStack', () => {
 
   test('MetricsQueue has visibility timeout of 30 seconds', () => {
     template.hasResourceProperties('AWS::SQS::Queue', {
-      QueueName: 'MetricsQueue',
+      QueueName: 'MetricsQueue-test',
       VisibilityTimeout: 30,
     });
   });
