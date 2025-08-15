@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as amplify from "@aws-cdk/aws-amplify-alpha";
-import { WithStage } from "./types";
+import { WithStage } from "./helpers/types";
 
 export interface FrontendStackProps extends cdk.StackProps, WithStage {
   readonly repoOwner: string;

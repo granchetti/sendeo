@@ -8,7 +8,7 @@ import {
 } from "aws-cdk-lib/aws-appsync";
 import { IUserPool } from "aws-cdk-lib/aws-cognito";
 import * as path from "path";
-import { WithStage } from "./types";
+import { WithStage } from "./helpers/types";
 
 export interface AppSyncStackProps extends cdk.StackProps, WithStage {
   readonly userPool: IUserPool;

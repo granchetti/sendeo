@@ -6,7 +6,7 @@ import {
   BillingMode,
   ProjectionType,
 } from "aws-cdk-lib/aws-dynamodb";
-import { WithStage } from "./types";
+import { WithStage } from "./helpers/types";
 
 export interface StorageStackProps extends cdk.StackProps, WithStage {}
 

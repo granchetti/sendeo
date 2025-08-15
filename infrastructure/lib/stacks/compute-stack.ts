@@ -10,7 +10,7 @@ import { IUserPool } from "aws-cdk-lib/aws-cognito";
 import { HttpLambda } from "../constructs/http-lambda";
 import { SqsConsumer } from "../constructs/sqs-consumer";
 import * as path from "path";
-import { WithStage } from "./types";
+import { WithStage } from "./helpers/types";
 
 export interface ComputeStackProps extends cdk.StackProps, WithStage {
   readonly routesTable: Table;

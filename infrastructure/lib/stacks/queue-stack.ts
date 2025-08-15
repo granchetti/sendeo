@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { Queue, QueueEncryption, DeadLetterQueue } from "aws-cdk-lib/aws-sqs";
-import { WithStage } from "./types";
+import { WithStage } from "./helpers/types";
 
 export interface QueueStackProps extends cdk.StackProps, WithStage {}
 

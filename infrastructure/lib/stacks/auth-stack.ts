@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as cognito from "aws-cdk-lib/aws-cognito";
-import { WithStage } from "./types";
+import { WithStage } from "./helpers/types";
 
 export interface AuthStackProps extends cdk.StackProps, WithStage {}
 

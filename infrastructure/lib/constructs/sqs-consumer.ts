@@ -11,9 +11,7 @@ export interface SqsConsumerProps {
   readonly handler: string;
   readonly environment?: { [k: string]: string };
   readonly queue: sqs.IQueue;
-  /** Optional memory size for the Lambda function in MB */
   readonly memorySize?: number;
-  /** Optional timeout for the Lambda function */
   readonly timeout?: cdk.Duration;
 }
 
