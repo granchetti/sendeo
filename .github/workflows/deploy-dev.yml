@@ -70,6 +70,12 @@ jobs:
           cache: npm
           cache-dependency-path: infrastructure/package-lock.json
       - run: npm ci
+      - name: Debug GitHub context
+        run: |
+          echo "repo=${{ github.repository }}"
+          echo "ref=${{ github.ref }}"
+          echo "event_name=${{ github.event_name }}"
+          echo "actor=${{ github.actor }}"
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
