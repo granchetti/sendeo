@@ -59,6 +59,7 @@ jobs:
     environment: dev
     runs-on: ubuntu-latest
     needs: [test-backend, test-infra]
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -71,17 +72,21 @@ jobs:
       - name: Install deps (backend)
         working-directory: src/backend
         run: npm ci
+
       - name: Install deps (infra)
         working-directory: infrastructure
         run: npm ci
+
       - name: Connect to AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
+
       - name: CDK synth (dev)
         working-directory: infrastructure
         run: npx cdk synth -c env=dev
+        
       - name: CDK deploy (dev)
         working-directory: infrastructure
         run: npx cdk deploy --all -c env=dev --require-approval=never

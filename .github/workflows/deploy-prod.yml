@@ -1,0 +1,61 @@
+name: Deploy Prod
+
+on:
+  workflow_run:
+    workflows: ["Deploy Dev"]   # <- nombre EXACTO del otro workflow
+    types: [completed]
+
+concurrency:
+  group: cdk-prod
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'eu-west-1' }}
+
+jobs:
+  deploy:
+    name: Deploy to prod
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment: prod
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout same commit as Dev
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup Node (backend & infra)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            src/backend/package-lock.json
+            infrastructure/package-lock.json
+
+      - name: Install deps (backend)
+        working-directory: src/backend
+        run: npm ci
+
+      - name: Install deps (infra)
+        working-directory: infrastructure
+        run: npm ci
+
+      - name: Configure AWS credentials (OIDC or keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: CDK synth (prod)
+        working-directory: infrastructure
+        run: npx cdk synth -c env=prod
+
+      - name: CDK deploy (prod)
+        working-directory: infrastructure
+        run: npx cdk deploy --all -c env=prod --require-approval=never
