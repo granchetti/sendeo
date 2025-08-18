@@ -76,8 +76,8 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
       - name: CDK synth (dev)
-        working-directory: src/infrastructure
+        working-directory: infrastructure
         run: npx cdk synth -c env=dev --profile tfm-sso
       - name: CDK deploy (dev)
-        working-directory: src/infrastructure
+        working-directory: infrastructure
         run: npx cdk deploy --all -c env=dev --require-approval=never --profile tfm-sso
