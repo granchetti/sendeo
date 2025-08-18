@@ -81,7 +81,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
       - name: CDK synth (dev)
         working-directory: infrastructure
-        run: npx cdk synth -c env=dev --profile tfm-sso
+        run: npx cdk synth -c env=dev
       - name: CDK deploy (dev)
         working-directory: infrastructure
-        run: npx cdk deploy --all -c env=dev --require-approval=never --profile tfm-sso
+        run: npx cdk deploy --all -c env=dev --require-approval=never
