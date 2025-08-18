@@ -9,16 +9,17 @@ import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 import { corsHeaders } from "../../../http/cors";
 import { describeRoute } from "../../handlers/describe-route";
+import config from "../../../config";
 
 const dynamo = new DynamoDBClient({});
 const sqs = new SQSClient({});
 const routeRepository = new DynamoRouteRepository(
   dynamo,
-  process.env.ROUTES_TABLE!
+  config.ROUTES_TABLE,
 );
 const userStateRepository = new DynamoUserStateRepository(
   dynamo,
-  process.env.USER_STATE_TABLE!
+  config.USER_STATE_TABLE,
 );
 const listRoutes = new ListRoutesUseCase(routeRepository);
 const getRouteDetails = new GetRouteDetailsUseCase(routeRepository);
@@ -159,7 +160,7 @@ export const handler = async (
     await userStateRepository.putRouteStart(email, routeId, ts);
     await sqs.send(
       new SendMessageCommand({
-        QueueUrl: process.env.METRICS_QUEUE!,
+        QueueUrl: config.METRICS_QUEUE,
         MessageBody: JSON.stringify({
           event: "started",
           routeId,
@@ -206,7 +207,7 @@ export const handler = async (
 
     await sqs.send(
       new SendMessageCommand({
-        QueueUrl: process.env.METRICS_QUEUE!,
+        QueueUrl: config.METRICS_QUEUE,
         MessageBody: JSON.stringify({
           event: "finished",
           routeId,
