@@ -6,6 +6,8 @@ const externalBase = process.env.E2E_BASE_URL;
 
 export default defineConfig({
   testDir: './e2e',
+  testMatch: ['**/*.spec.ts'],
+  testIgnore: ['**/*.test.ts'],
   fullyParallel: true,
   retries: isCI ? 2 : 0,
   workers: isCI ? 2 : undefined,
