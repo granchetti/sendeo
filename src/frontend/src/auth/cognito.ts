@@ -57,7 +57,7 @@ export function forgotPassword(email: string): Promise<void> {
     user.forgotPassword({
       onSuccess: () => resolve(),
       onFailure: (err) => reject(err),
-      inputVerificationCode: () => resolve(), // Optional, if you want to handle verification code UI
+      inputVerificationCode: () => resolve(),
     });
   });
 }

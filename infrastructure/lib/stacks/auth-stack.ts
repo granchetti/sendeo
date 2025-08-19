@@ -1,6 +1,9 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as cognito from "aws-cdk-lib/aws-cognito";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
+import * as path from "path";
 import { WithStage } from "./helpers/types";
 
 export interface AuthStackProps extends cdk.StackProps, WithStage {}
@@ -26,6 +29,42 @@ export class AuthStack extends cdk.Stack {
         requireDigits: true,
       },
     });
+
+    // 🔸 Trigger SOLO fuera de prod
+    if (suffix !== "prod") {
+      const backendRoot = path.join(__dirname, "../../../src/backend");
+      const backendLock = path.join(backendRoot, "package-lock.json");
+      const backendTsconfig = path.join(backendRoot, "tsconfig.json");
+
+      const preSignUpFn = new NodejsFunction(this, "PreSignUpFn", {
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry: path.join(
+          __dirname,
+          "../../../src/backend/src/auth/triggers/pre-signup.ts"
+        ),
+        handler: "handler",
+        environment: {
+          STAGE: suffix,
+          // Opcional: limitar emails auto-confirmados a un dominio controlado:
+          // ALLOWED_EMAIL_DOMAIN: "e2e.local",
+        },
+        depsLockFilePath: backendLock,
+        bundling: {
+          target: "node18",
+          format: OutputFormat.CJS,
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          tsconfig: backendTsconfig,
+          // nodeModules: [] // añade aquí módulos nativos si hiciera falta
+        },
+      });
+
+      this.userPool.addTrigger(
+        cognito.UserPoolOperation.PRE_SIGN_UP,
+        preSignUpFn
+      );
+    }
 
     this.userPoolClient = new cognito.UserPoolClient(this, "UserPoolClient", {
       userPool: this.userPool,

@@ -1,4 +1,3 @@
-// lib/stacks/compute-stack.ts
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
