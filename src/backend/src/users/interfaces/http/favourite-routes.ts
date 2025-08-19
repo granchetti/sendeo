@@ -8,11 +8,12 @@ import {
 import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../application/use-cases/add-favourite";
 import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
 import { corsHeaders } from "../../../http/cors";
+import config from "../../../config";
 
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoUserStateRepository(
   dynamo,
-  process.env.USER_STATE_TABLE!
+  config.USER_STATE_TABLE,
 );
 const addFavourite = new AddFavouriteUseCase(repository);
 const removeFavourite = new RemoveFavouriteUseCase(repository);

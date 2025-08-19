@@ -6,11 +6,12 @@ import { UpdateUserProfileUseCase } from "../../application/use-cases/update-use
 import { Email } from "../../../routes/domain/value-objects/email-value-object";
 import { UserProfile } from "../../domain/entities/user-profile";
 import { corsHeaders } from "../../../http/cors";
+import config from "../../../config";
 
 const dynamo = new DynamoDBClient({});
 const repository = new DynamoUserStateRepository(
   dynamo,
-  process.env.USER_STATE_TABLE!
+  config.USER_STATE_TABLE,
 );
 const getUserProfile = new GetUserProfileUseCase(repository);
 const updateUserProfile = new UpdateUserProfileUseCase(repository);

@@ -9,9 +9,10 @@ import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { publishRoutesGenerated } from "../appsync-client";
 import { fetchJson, getGoogleKey } from "../shared/utils";
+import config from "../../../config";
 
 const dynamo = new DynamoDBClient({});
-const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
+const repository = new DynamoRouteRepository(dynamo, config.ROUTES_TABLE);
 
 /** Geocode or parse “lat,lng” */
 async function geocode(address: string, apiKey: string) {
