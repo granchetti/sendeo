@@ -4,10 +4,6 @@ import { externalSetSession, externalSignOut } from '../auth/AuthProvider';
 
 const baseURL = import.meta.env.VITE_API_URL;
 
-/**
- * Ensure that the VITE_API_URL environment variable is present.
- * It should contain the base URL of the backend API.
- */
 function validateApiUrl(): void {
   if (!baseURL) {
     throw new Error(
@@ -59,9 +55,6 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-/**
- * Retrieve the configured API instance, validating that the base URL is set.
- */
 export function getApi() {
   validateApiUrl();
   return api;

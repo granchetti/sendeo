@@ -43,9 +43,15 @@ export class ComputeStack extends cdk.Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: ["*"],
         allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowHeaders: ["Content-Type", "Authorization"],
+        allowHeaders: ["*"],
       },
     });
+
+    new cdk.CfnOutput(this, "ApiUrl", {
+      value: api.url,
+      exportName: `SendeoApiUrl-${suffix}`,
+    });
+
     const authorizer = new apigw.CognitoUserPoolsAuthorizer(
       this,
       "CognitoAuth",

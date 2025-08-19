@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-// Generate a random user to avoid collisions with existing accounts
 const uniqueId = Date.now();
 const email = `testuser_${uniqueId}@yopmail.com`;
 const password = `TestPass!${uniqueId}`;
@@ -13,25 +12,36 @@ test.describe('authentication flow', () => {
 
     await expect(page).toHaveURL(/\/signup/);
 
-    await expect(page.getByRole('textbox', { name: 'Email' })).toBeVisible();
     await page.getByRole('textbox', { name: 'Email' }).fill(email);
+    await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue(
+      email,
+    );
 
-    await expect(page.getByRole('textbox', { name: 'Password' })).toBeVisible();
     await page.getByRole('textbox', { name: 'Password' }).fill(password);
+    await expect(page.getByRole('textbox', { name: 'Password' })).toHaveValue(
+      password,
+    );
 
     await expect(page.getByRole('button', { name: 'Sign Up' })).toBeVisible();
     await page.getByRole('button', { name: 'Sign Up' }).click();
 
     await expect(page).toHaveURL(/\/login/);
 
-    await expect(page.getByRole('textbox', { name: 'Email' })).toBeVisible();
     await page.getByRole('textbox', { name: 'Email' }).fill(email);
+    await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue(
+      email,
+    );
 
-    await expect(page.getByRole('textbox', { name: 'Password' })).toBeVisible();
     await page.getByRole('textbox', { name: 'Password' }).fill(password);
+    await expect(page.getByRole('textbox', { name: 'Password' })).toHaveValue(
+      password,
+    );
 
     await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
     await page.getByRole('button', { name: 'Login' }).click();
-    
+
+    await expect(
+      page.getByRole('heading', { name: 'Plan Your Perfect Route' }),
+    ).toBeVisible();
   });
 });
