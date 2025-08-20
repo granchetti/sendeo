@@ -24,14 +24,17 @@ import {
   ensureCoords,
 } from '../utils/geocoding';
 import { api } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const MotionBox = motion(Box);
 
 const CACHE_KEY = 'sendeo:lastResults';
 const CACHE_TTL_MS = 10 * 60 * 1000;
+const MAX_FAVS = 10;
 
 export default function RoutesPage() {
   const toast = useToast();
+  const navigate = useNavigate();
   const mapRef = useRef<google.maps.Map | null>(null);
 
   // Autocomplete refs
@@ -70,13 +73,13 @@ export default function RoutesPage() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
-
+  const [favourites, setFavourites] = useState<string[]>([]);
+  const [startingRouteId, setStartingRouteId] = useState<string | null>(null);
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
     libraries: ['geometry', 'places'],
   });
-
 
   const getUserLocation = () => {
     setLocating(true);
@@ -112,6 +115,14 @@ export default function RoutesPage() {
     getUserLocation();
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get('/favourites');
+        setFavourites(data.favourites || []);
+      } catch {}
+    })();
+  }, []);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(CACHE_KEY);
@@ -292,6 +303,43 @@ export default function RoutesPage() {
     if (geo) setDestination(geo);
   };
 
+  const toggleFavourite = async (routeId: string) => {
+    const isFav = favourites.includes(routeId);
+
+    if (!isFav && favourites.length >= MAX_FAVS) {
+      toast({
+        title: 'Favorites limit reached',
+        description: `You can save up to ${MAX_FAVS} routes. Remove one to add another.`,
+        status: 'warning',
+      });
+      return;
+    }
+
+    try {
+      if (isFav) {
+        await api.delete(`/favourites/${routeId}`);
+        setFavourites((prev) => prev.filter((id) => id !== routeId));
+      } else {
+        await api.post('/favourites', { routeId });
+        setFavourites((prev) => [...prev, routeId]);
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to update favourites',
+        status: 'error',
+      });
+    }
+  };
+
+  const handleStartClick = async (routeId: string, navState?: any) => {
+    setStartingRouteId(routeId);
+    try {
+      await api.get(`/routes/${routeId}`);
+    } catch {}
+    navigate(`/routes/${routeId}`, { state: navState });
+  };
+
   return (
     <Box
       position="relative"
@@ -336,73 +384,86 @@ export default function RoutesPage() {
         </Stack>
 
         {/* Card */}
-<Box p="1px" rounded="xl" bg="white" mb={8} w="full" maxW="xxl" mx="auto">
-  <MotionBox
-    bg="white"
-    p={6}
-    rounded="xl"
-    boxShadow="lg"
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3 }}
-  >
-    <RouteSearchForm
-      mode={mode}
-      setMode={setMode}
-      originText={originText}
-      setOriginText={setOriginText}
-      setOrigin={setOrigin}
-      destinationText={destinationText}
-      setDestinationText={setDestinationText}
-      setDestination={setDestination}
-      distanceKm={distanceKm}
-      setDistanceKm={setDistanceKm}
-      roundTrip={roundTrip}
-      setRoundTrip={setRoundTrip}
-      circle={circle}
-      setCircle={setCircle}
-      maxDeltaKm={maxDeltaKm}
-      setMaxDeltaKm={setMaxDeltaKm}
-      routesCount={routesCount}
-      setRoutesCount={setRoutesCount}
-      onSubmit={handleSubmit}
-      onReset={handleReset}
-      loading={loading}
-      originAutoRef={originAutoRef}
-      destAutoRef={destAutoRef}
-      getUserLocation={getUserLocation}
-      locating={locating}
-      onOriginBlur={handleOriginBlur}
-      onDestinationBlur={handleDestinationBlur}
-      setCenter={setCenter}
-      mapRef={mapRef}
-    >
-      <RouteMap
-        center={center}
-        origin={origin}
-        destination={destination}
-        mode={mode}
-        routes={routes}
-        selectedRoute={selectedRoute}
-        onSelectRoute={handleSelectRoute}
-        onMapClick={handleMapClick}
-        mapRef={mapRef}
-      />
-    </RouteSearchForm>
-  </MotionBox>
-</Box>
+        <Box
+          p="1px"
+          rounded="xl"
+          bg="white"
+          mb={8}
+          w="full"
+          maxW="xxl"
+          mx="auto"
+        >
+          <MotionBox
+            bg="white"
+            p={6}
+            rounded="xl"
+            boxShadow="lg"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <RouteSearchForm
+              mode={mode}
+              setMode={setMode}
+              originText={originText}
+              setOriginText={setOriginText}
+              setOrigin={setOrigin}
+              destinationText={destinationText}
+              setDestinationText={setDestinationText}
+              setDestination={setDestination}
+              distanceKm={distanceKm}
+              setDistanceKm={setDistanceKm}
+              roundTrip={roundTrip}
+              setRoundTrip={setRoundTrip}
+              circle={circle}
+              setCircle={setCircle}
+              maxDeltaKm={maxDeltaKm}
+              setMaxDeltaKm={setMaxDeltaKm}
+              routesCount={routesCount}
+              setRoutesCount={setRoutesCount}
+              onSubmit={handleSubmit}
+              onReset={handleReset}
+              loading={loading}
+              originAutoRef={originAutoRef}
+              destAutoRef={destAutoRef}
+              getUserLocation={getUserLocation}
+              locating={locating}
+              onOriginBlur={handleOriginBlur}
+              onDestinationBlur={handleDestinationBlur}
+              setCenter={setCenter}
+              mapRef={mapRef}
+            >
+              <RouteMap
+                center={center}
+                origin={origin}
+                destination={destination}
+                mode={mode}
+                routes={routes}
+                selectedRoute={selectedRoute}
+                onSelectRoute={handleSelectRoute}
+                onMapClick={handleMapClick}
+                mapRef={mapRef}
+              />
+            </RouteSearchForm>
+          </MotionBox>
+        </Box>
         {/* Results */}
-{!loading && routes.length > 0 && (
-  <RouteList
-    routes={routes}
-    mode={mode}
-    originText={originText}
-    destinationText={destinationText}
-    distanceKm={distanceKm}
-    selectedRoute={selectedRoute}
-    onSelectRoute={handleSelectRoute}
-  />
-)}
+        {!loading && routes.length > 0 && (
+          <RouteList
+            routes={routes}
+            mode={mode}
+            originText={originText}
+            destinationText={destinationText}
+            distanceKm={distanceKm}
+            selectedRoute={selectedRoute}
+            onSelectRoute={handleSelectRoute}
+            favourites={favourites}
+            onToggleFavourite={toggleFavourite}
+            onStartClick={handleStartClick}
+            startingRouteId={startingRouteId}
+            maxFavourites={MAX_FAVS}
+          />
+        )}
       </Container>
     </Box>
   );

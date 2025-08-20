@@ -87,7 +87,7 @@ const RouteSearchForm: React.FC<RouteSearchFormProps> = ({
   children,
 }) => {
   return (
-    <Box p={6} rounded="xl" bg="white" boxShadow="lg">
+    <Box p={6} rounded="xl" bg="white">
       <Stack spacing={4}>
         <Flex>
           <Button

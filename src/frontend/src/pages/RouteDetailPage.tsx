@@ -425,7 +425,7 @@ export default function RouteDetailPage() {
             fontWeight="semibold"
             color="gray.700"
           >
-            <Text fontSize="xl">{tagText}</Text>
+            <Text fontSize="2xl">{tagText}</Text>
           </HStack>
           <IconButton
             aria-label={isFav ? 'Remove from favourites' : 'Add to favourites'}
@@ -442,7 +442,7 @@ export default function RouteDetailPage() {
 
         {coordLabel && (
           <Text
-            fontSize="2xl"
+            fontSize="xl"
             fontWeight="extrabold"
             color="gray.900"
             textAlign="center"

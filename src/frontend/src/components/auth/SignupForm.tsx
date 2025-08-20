@@ -12,10 +12,11 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { AtSignIcon, LockIcon } from '@chakra-ui/icons';
-import { signUp } from '../../auth/cognito';
+import { resendConfirmationCode, signUp } from '../../auth/cognito';
+import type { ISignUpResult } from 'amazon-cognito-identity-js';
 
 interface Props {
-  onSuccess?: (needsConfirmation: boolean) => void;
+  onSuccess?: (needsConfirmation: boolean, email: string) => void;
 }
 
 const SignupForm: React.FC<Props> = ({ onSuccess }) => {
@@ -26,17 +27,29 @@ const SignupForm: React.FC<Props> = ({ onSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signUp(email, password);
-      const stage = import.meta.env.VITE_STAGE ?? 'dev';
-      const needsConfirmation = stage === 'prod';
+      const res: ISignUpResult = await signUp(email, password);
+      const needsConfirmation = !res.userConfirmed;
       toast({
         title: needsConfirmation
           ? 'Check your email for a confirmation code'
           : 'Account created! You can log in now.',
         status: 'success',
       });
-      onSuccess?.(needsConfirmation);
-    } catch (err) {
+
+      onSuccess?.(needsConfirmation, email);
+    } catch (err: any) {
+      if (err?.code === 'UsernameExistsException') {
+        try {
+          await resendConfirmationCode(email);
+        } catch {}
+        toast({
+          title: 'Account already exists',
+          description: 'We re-sent a confirmation code to your email.',
+          status: 'info',
+        });
+        onSuccess?.(true, email);
+        return;
+      }
       toast({
         title: 'Sign up error',
         description: err instanceof Error ? err.message : 'Unknown error',
@@ -78,7 +91,13 @@ const SignupForm: React.FC<Props> = ({ onSuccess }) => {
             />
           </InputGroup>
         </FormControl>
-        <Button type="submit" colorScheme="orange" size="lg" fontWeight="bold" mt={2}>
+        <Button
+          type="submit"
+          colorScheme="orange"
+          size="lg"
+          fontWeight="bold"
+          mt={2}
+        >
           Sign Up
         </Button>
         <Text fontSize="sm" color="gray.600">

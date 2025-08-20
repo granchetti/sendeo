@@ -30,8 +30,12 @@ const SignupPage = () => {
           Join Sendeo to start discovering new routes!
         </Text>
         <SignupForm
-          onSuccess={(needsConfirmation) =>
-            navigate(needsConfirmation ? '/confirm-signup' : '/login')
+          onSuccess={(needsConfirmation, email) =>
+            navigate(needsConfirmation ? '/confirm-signup' : '/login', {
+              state: needsConfirmation
+                ? { emailPrefill: email }
+                : undefined,
+            })
           }
         />
       </Box>

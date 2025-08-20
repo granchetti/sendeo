@@ -92,7 +92,7 @@ Format: **Name** — reason (≤ 15 words).
 **Heads-up section**  
 Compact warnings about steep parts, stairs, busy crossings, surfaces, etc.
 
-**∫Practical tips**  
+**Practical tips**  
 Good viewpoints, water fountains, cafés, shaded benches… 2–3 items max.
 
 At the end, add an encouraging sentence to motivate the reader to walk this route with emojis.
