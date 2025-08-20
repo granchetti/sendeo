@@ -89,6 +89,7 @@ const SignupPage = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="username"
                   bg="gray.50"
+                  data-testid="signup-email"
                 />
               </InputGroup>
             </FormControl>
@@ -105,6 +106,7 @@ const SignupPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"
                   bg="gray.50"
+                  data-testid="signup-password" 
                 />
               </InputGroup>
             </FormControl>

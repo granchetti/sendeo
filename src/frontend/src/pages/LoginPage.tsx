@@ -108,6 +108,7 @@ const LoginPage = () => {
                   autoFocus
                   autoComplete="username"
                   bg="gray.50"
+                  data-testid="login-email"
                 />
               </InputGroup>
             </FormControl>
@@ -125,6 +126,7 @@ const LoginPage = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
                     bg="gray.50"
+                    data-testid="login-password"
                   />
                 </InputGroup>
               </FormControl>

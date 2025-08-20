@@ -12,13 +12,13 @@ test.describe('authentication flow', () => {
 
     await expect(page).toHaveURL(/\/signup/);
 
-    await page.getByRole('textbox', { name: 'Email' }).fill(email);
-    await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue(
+    await page.getByTestId('signup-email').fill(email);
+    await expect(page.getByTestId('signup-email')).toHaveValue(
       email,
     );
 
-    await page.getByRole('textbox', { name: 'Password' }).fill(password);
-    await expect(page.getByRole('textbox', { name: 'Password' })).toHaveValue(
+    await page.getByTestId('signup-password').fill(password);
+    await expect(page.getByTestId('signup-password')).toHaveValue(
       password,
     );
 
@@ -27,13 +27,13 @@ test.describe('authentication flow', () => {
 
     await expect(page).toHaveURL(/\/login/);
 
-    await page.getByRole('textbox', { name: 'Email' }).fill(email);
-    await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue(
+    await page.getByTestId('login-email').fill(email);
+    await expect(page.getByTestId('login-email')).toHaveValue(
       email,
     );
 
-    await page.getByRole('textbox', { name: 'Password' }).fill(password);
-    await expect(page.getByRole('textbox', { name: 'Password' })).toHaveValue(
+    await page.getByTestId('login-password').fill(password);
+    await expect(page.getByTestId('login-password')).toHaveValue(
       password,
     );
 

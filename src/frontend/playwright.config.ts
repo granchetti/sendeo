@@ -10,7 +10,7 @@ export default defineConfig({
   testIgnore: ['**/*.test.ts'],
   fullyParallel: true,
   retries: isCI ? 2 : 0,
-  workers: isCI ? 2 : undefined,
+  workers: isCI ? 1 : undefined,
   timeout: 30_000,
   expect: { timeout: 10_000 },
 
@@ -35,7 +35,7 @@ export default defineConfig({
   reporter: isCI
     ? [
         ['github'],
-        ['html', { outputFolder: 'playwright-report', open: 'never' }],
+        ['html', { outputFolder: 'e2e/playwright-report', open: 'never' }],
       ]
     : [['list'], ['html', { open: 'never' }]],
 });
