@@ -45,9 +45,9 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright E2E
+        working-directory: src/frontend
         env:
           E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
-          working-directory: src/frontend
         run: npx playwright test --reporter=line
 
       - name: Upload Playwright report
