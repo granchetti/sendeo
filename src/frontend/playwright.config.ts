@@ -9,7 +9,7 @@ export default defineConfig({
   testMatch: ['**/*.spec.ts'],
   testIgnore: ['**/*.test.ts'],
   fullyParallel: true,
-  retries: isCI ? 2 : 0,
+  retries: isCI ? 1 : 0,
   workers: isCI ? 1 : undefined,
   timeout: 30_000,
   expect: { timeout: 10_000 },

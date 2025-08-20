@@ -44,6 +44,18 @@ jobs:
         working-directory: src/frontend
         run: npx playwright install --with-deps
 
+      - name: Probe Dev deep-link
+        if: ${{ vars.E2E_BASE_URL != '' }}
+        run: |
+          set -e
+          echo "Probing: ${{ vars.E2E_BASE_URL }}/signup"
+          curl -I "${{ vars.E2E_BASE_URL }}/signup" || true
+          code=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.E2E_BASE_URL }}/signup")
+          echo "HTTP Status: $code"
+          if [ "$code" -ge 400 ]; then
+            echo "⚠ Deep link parece no estar sirviendo la SPA."
+          fi
+
       - name: Run Playwright E2E
         working-directory: src/frontend
         env:
