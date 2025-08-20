@@ -1,52 +1,34 @@
 import { useState, useEffect, useRef } from 'react';
-import * as turf from '@turf/turf';
 import {
   Box,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Stack,
   Flex,
   Text,
   useToast,
   Spinner,
-  Checkbox,
   Heading,
-  Divider,
-  HStack,
-  IconButton,
-  NumberDecrementStepper,
-  NumberIncrementStepper,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
   Container,
   Tag,
   Wrap,
   WrapItem,
+  Stack,
 } from '@chakra-ui/react';
-import {
-  GoogleMap,
-  Marker,
-  Polyline,
-  useLoadScript,
-  Autocomplete,
-} from '@react-google-maps/api';
-import { FaLocationArrow, FaRedo, FaStar, FaRegStar } from 'react-icons/fa';
+import { useLoadScript } from '@react-google-maps/api';
 import { motion } from 'framer-motion';
+import RouteSearchForm from '../components/routes/RouteSearchForm';
+import RouteMap from '../components/routes/RouteMap';
+import RouteList from '../components/routes/RouteList';
+import {
+  DEFAULT_CENTER,
+  parseLatLng,
+  geocodeAddress,
+  ensureCoords,
+} from '../utils/geocoding';
 import { api } from '../services/api';
-import { useNavigate } from 'react-router-dom';
-import { MdMyLocation } from 'react-icons/md';
 
 const MotionBox = motion(Box);
 
-const DEFAULT_CENTER = { lat: 41.3851, lng: 2.1734 };
-const COLORS = ['#ff6f00', '#388e3c', '#1976d2', '#d32f2f', '#a839e4ff'];
-const OFFSET_STEP_KM = 0.005;
 const CACHE_KEY = 'sendeo:lastResults';
 const CACHE_TTL_MS = 10 * 60 * 1000;
-const MAX_FAVS = 10;
 
 export default function RoutesPage() {
   const toast = useToast();
@@ -86,90 +68,15 @@ export default function RoutesPage() {
   }
 
   const [routes, setRoutes] = useState<Route[]>([]);
-  const [favourites, setFavourites] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
-  const [startingRouteId, setStartingRouteId] = useState<string | null>(null);
 
-  const navigate = useNavigate();
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
     libraries: ['geometry', 'places'],
   });
 
-  // --- helpers de geocoding ---
-  const parseLatLng = (text: string): { lat: number; lng: number } | null => {
-    const m = text
-      .trim()
-      .match(/^\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*$/);
-    if (!m) return null;
-    const lat = parseFloat(m[1]);
-    const lng = parseFloat(m[3]);
-    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
-    return { lat, lng };
-  };
-
-  const geocodeAddress = async (address: string) => {
-    return new Promise<{ lat: number; lng: number } | null>((resolve) => {
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ address }, (results, status) => {
-        if (status === 'OK' && results && results[0]?.geometry?.location) {
-          const loc = results[0].geometry.location;
-          resolve({ lat: loc.lat(), lng: loc.lng() });
-        } else {
-          resolve(null);
-        }
-      });
-    });
-  };
-
-  const applyPlaceToState = (
-    place: google.maps.places.PlaceResult,
-    setter: (p: { lat: number; lng: number }) => void,
-    setText: (t: string) => void,
-  ) => {
-    const loc = place.geometry?.location;
-    if (!loc) return;
-    const coords = { lat: loc.lat(), lng: loc.lng() };
-    setter(coords);
-    setText(
-      place.formatted_address || place.name || `${coords.lat}, ${coords.lng}`,
-    );
-    setCenter(coords);
-    if (mapRef.current) {
-      mapRef.current.panTo(coords);
-      mapRef.current.setZoom(14);
-    }
-  };
-
-  const ensureCoords = async (
-    current: { lat: number; lng: number } | null,
-    text: string,
-    setter: (p: { lat: number; lng: number }) => void,
-    label: 'Origin' | 'Destination',
-  ): Promise<{ lat: number; lng: number } | null> => {
-    if (current) return current;
-    if (!text.trim()) return null;
-
-    const parsed = parseLatLng(text);
-    if (parsed) {
-      setter(parsed);
-      return parsed;
-    }
-
-    const geo = await geocodeAddress(text);
-    if (geo) {
-      setter(geo);
-      return geo;
-    }
-    toast({
-      title: `${label} not found`,
-      description: 'Try a more precise address.',
-      status: 'warning',
-    });
-    return null;
-  };
 
   const getUserLocation = () => {
     setLocating(true);
@@ -205,14 +112,6 @@ export default function RoutesPage() {
     getUserLocation();
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get('/favourites');
-        setFavourites(data.favourites || []);
-      } catch {}
-    })();
-  }, []);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(CACHE_KEY);
@@ -354,43 +253,6 @@ export default function RoutesPage() {
     setSelectedRoute(null);
   };
 
-  const toggleFavourite = async (routeId: string) => {
-    const isFav = favourites.includes(routeId);
-
-    if (!isFav && favourites.length >= MAX_FAVS) {
-      toast({
-        title: 'Favorites limit reached',
-        description: `You can save up to ${MAX_FAVS} routes. Remove one to add another.`,
-        status: 'warning',
-      });
-      return;
-    }
-
-    try {
-      if (isFav) {
-        await api.delete(`/favourites/${routeId}`);
-        setFavourites(favourites.filter((id) => id !== routeId));
-      } else {
-        await api.post('/favourites', { routeId });
-        setFavourites([...favourites, routeId]);
-      }
-    } catch {
-      toast({
-        title: 'Error',
-        description: 'Failed to update favourites',
-        status: 'error',
-      });
-    }
-  };
-
-  const handleStartClick = async (routeId: string, navState?: any) => {
-    setStartingRouteId(routeId);
-    try {
-      await api.get(`/routes/${routeId}`);
-    } catch {}
-    navigate(`/routes/${routeId}`, { state: navState });
-  };
-
   const handleSelectRoute = (
     routeId: string,
     rawPath: google.maps.LatLngLiteral[],
@@ -474,427 +336,73 @@ export default function RoutesPage() {
         </Stack>
 
         {/* Card */}
-        <Box
-          p="1px"
-          rounded="xl"
-          bg="white"
-          mb={8}
-          w="full"
-          maxW="xxl"
-          mx="auto"
-        >
-          <MotionBox
-            bg="white"
-            p={6}
-            rounded="xl"
-            boxShadow="lg"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Stack spacing={4}>
-              {/* Mode Toggle */}
-              <Flex>
-                <Button
-                  flex={1}
-                  mr={2}
-                  colorScheme={mode === 'points' ? 'orange' : 'gray'}
-                  onClick={() => setMode('points')}
-                >
-                  By Points
-                </Button>
-                <Button
-                  flex={1}
-                  colorScheme={mode === 'distance' ? 'orange' : 'gray'}
-                  onClick={() => {
-                    setMode('distance');
-                    setDestination(null);
-                    setDestinationText('');
-                  }}
-                >
-                  By Distance
-                </Button>
-              </Flex>
-
-              <Divider />
-
-              <form onSubmit={handleSubmit}>
-                <Stack spacing={4}>
-                  {/* ORIGIN with Autocomplete */}
-                  <FormControl isRequired>
-                    <FormLabel>Origin (address or lat,lng)</FormLabel>
-                    <Autocomplete
-                      onLoad={(ac) => (originAutoRef.current = ac)}
-                      onPlaceChanged={() => {
-                        const place = originAutoRef.current?.getPlace();
-                        if (place)
-                          applyPlaceToState(place, setOrigin, setOriginText);
-                      }}
-                    >
-                      <Input
-                        placeholder="e.g. Gran Via 580, Barcelona"
-                        value={originText}
-                        onChange={(e) => {
-                          setOriginText(e.target.value);
-                          setOrigin(null);
-                        }}
-                        onBlur={handleOriginBlur}
-                        bg={origin ? 'orange.50' : 'gray.50'}
-                      />
-                    </Autocomplete>
-                    <Button
-                      size="sm"
-                      mt={2}
-                      onClick={getUserLocation}
-                      leftIcon={<MdMyLocation />}
-                      colorScheme="blue"
-                      variant="solid"
-                      rounded="full"
-                      px={3}
-                      isLoading={locating}
-                      loadingText="Locating…"
-                      _hover={{
-                        transform: 'translateY(-1px)',
-                        boxShadow: 'md',
-                      }}
-                    >
-                      Use my location
-                    </Button>
-                  </FormControl>
-
-                  {/* DESTINATION only in points mode */}
-                  {mode === 'points' && (
-                    <FormControl isRequired>
-                      <FormLabel>Destination (address or lat,lng)</FormLabel>
-                      <Autocomplete
-                        onLoad={(ac) => (destAutoRef.current = ac)}
-                        onPlaceChanged={() => {
-                          const place = destAutoRef.current?.getPlace();
-                          if (place)
-                            applyPlaceToState(
-                              place,
-                              setDestination,
-                              setDestinationText,
-                            );
-                        }}
-                      >
-                        <Input
-                          placeholder="e.g. Plaça Catalunya, Barcelona"
-                          value={destinationText}
-                          onChange={(e) => {
-                            setDestinationText(e.target.value);
-                            setDestination(null);
-                          }}
-                          onBlur={handleDestinationBlur}
-                          bg={destination ? 'orange.50' : 'gray.50'}
-                        />
-                      </Autocomplete>
-                    </FormControl>
-                  )}
-
-                  {mode === 'distance' && (
-                    <>
-                      <FormControl>
-                        <FormLabel>Distance (km)</FormLabel>
-                        <NumberInput
-                          min={1}
-                          max={50}
-                          value={distanceKm}
-                          onChange={(v) => setDistanceKm(v)}
-                        >
-                          <NumberInputField bg="gray.50" />
-                          <NumberInputStepper>
-                            <NumberIncrementStepper />
-                            <NumberDecrementStepper />
-                          </NumberInputStepper>
-                        </NumberInput>
-                      </FormControl>
-                      <HStack spacing={6}>
-                        <Checkbox
-                          isChecked={roundTrip}
-                          onChange={(e) => setRoundTrip(e.target.checked)}
-                        >
-                          Round Trip
-                        </Checkbox>
-                        <Checkbox
-                          isChecked={circle}
-                          onChange={(e) => setCircle(e.target.checked)}
-                        >
-                          Circular Loop
-                        </Checkbox>
-                      </HStack>
-                    </>
-                  )}
-
-                  <FormControl>
-                    <FormLabel>Routes Count</FormLabel>
-                    <NumberInput
-                      min={1}
-                      max={3}
-                      value={routesCount}
-                      onChange={(v) => setRoutesCount(v)}
-                    >
-                      <NumberInputField bg="gray.50" />
-                      <NumberInputStepper>
-                        <NumberIncrementStepper />
-                        <NumberDecrementStepper />
-                      </NumberInputStepper>
-                    </NumberInput>
-                  </FormControl>
-
-                  <FormControl>
-                    <FormLabel>Max Tolerance (km)</FormLabel>
-                    <NumberInput
-                      min={0}
-                      max={5}
-                      value={maxDeltaKm}
-                      onChange={(v) => setMaxDeltaKm(v)}
-                    >
-                      <NumberInputField bg="gray.50" />
-                      <NumberInputStepper>
-                        <NumberIncrementStepper />
-                        <NumberDecrementStepper />
-                      </NumberInputStepper>
-                    </NumberInput>
-                  </FormControl>
-
-                  {/* Map */}
-                  <Box
-                    mt={4}
-                    borderRadius="lg"
-                    overflow="hidden"
-                    border="1px solid"
-                    borderColor="gray.200"
-                  >
-                    <GoogleMap
-                      onLoad={(map) => {
-                        mapRef.current = map;
-                      }}
-                      onUnmount={() => {
-                        mapRef.current = null;
-                      }}
-                      mapContainerStyle={{ width: '100%', height: '700px' }}
-                      center={origin || center}
-                      zoom={13}
-                      onClick={handleMapClick}
-                      options={{ tilt: 45, heading: 90 }}
-                    >
-                      {origin && <Marker position={origin} label="A" />}
-                      {mode === 'points' && destination && (
-                        <Marker position={destination} label="B" />
-                      )}
-
-                      {routes.map((r, i) => {
-                        const rawPath =
-                          google.maps.geometry.encoding.decodePath(r.path!);
-                        const coords = rawPath.map((p) => [
-                          p.lng(),
-                          p.lat(),
-                        ]) as [number, number][];
-                        const line = turf.lineString(coords);
-                        const offsetDist =
-                          (i - (routes.length - 1) / 2) * OFFSET_STEP_KM;
-                        const offsetLine = turf.lineOffset(line, offsetDist, {
-                          units: 'kilometers',
-                        });
-                        const path = offsetLine.geometry.coordinates.map(
-                          ([lng, lat]) => ({ lat, lng }),
-                        );
-
-                        return (
-                          <Polyline
-                            key={r.routeId}
-                            path={path}
-                            options={{
-                              strokeColor: COLORS[i % COLORS.length],
-                              strokeOpacity: 1,
-                              strokeWeight: selectedRoute === r.routeId ? 6 : 4,
-                              zIndex: selectedRoute === r.routeId ? 10 : i + 1,
-                            }}
-                            onClick={() => handleSelectRoute(r.routeId, path)}
-                          />
-                        );
-                      })}
-                    </GoogleMap>
-                  </Box>
-
-                  {/* Submit + Reset */}
-                  <HStack mt={4} spacing={3} justify="flex-end">
-                    <Button
-                      onClick={handleReset}
-                      leftIcon={<FaRedo />}
-                      variant="outline"
-                      colorScheme="gray"
-                    >
-                      Reset
-                    </Button>
-                    <Button
-                      type="submit"
-                      colorScheme="orange"
-                      leftIcon={<FaLocationArrow />}
-                      isLoading={loading}
-                    >
-                      Submit
-                    </Button>
-                  </HStack>
-                </Stack>
-              </form>
-            </Stack>
-          </MotionBox>
-        </Box>
-
+<Box p="1px" rounded="xl" bg="white" mb={8} w="full" maxW="xxl" mx="auto">
+  <MotionBox
+    bg="white"
+    p={6}
+    rounded="xl"
+    boxShadow="lg"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+  >
+    <RouteSearchForm
+      mode={mode}
+      setMode={setMode}
+      originText={originText}
+      setOriginText={setOriginText}
+      setOrigin={setOrigin}
+      destinationText={destinationText}
+      setDestinationText={setDestinationText}
+      setDestination={setDestination}
+      distanceKm={distanceKm}
+      setDistanceKm={setDistanceKm}
+      roundTrip={roundTrip}
+      setRoundTrip={setRoundTrip}
+      circle={circle}
+      setCircle={setCircle}
+      maxDeltaKm={maxDeltaKm}
+      setMaxDeltaKm={setMaxDeltaKm}
+      routesCount={routesCount}
+      setRoutesCount={setRoutesCount}
+      onSubmit={handleSubmit}
+      onReset={handleReset}
+      loading={loading}
+      originAutoRef={originAutoRef}
+      destAutoRef={destAutoRef}
+      getUserLocation={getUserLocation}
+      locating={locating}
+      onOriginBlur={handleOriginBlur}
+      onDestinationBlur={handleDestinationBlur}
+      setCenter={setCenter}
+      mapRef={mapRef}
+    >
+      <RouteMap
+        center={center}
+        origin={origin}
+        destination={destination}
+        mode={mode}
+        routes={routes}
+        selectedRoute={selectedRoute}
+        onSelectRoute={handleSelectRoute}
+        onMapClick={handleMapClick}
+        mapRef={mapRef}
+      />
+    </RouteSearchForm>
+  </MotionBox>
+</Box>
         {/* Results */}
-        {!loading && routes.length > 0 && (
-          <Box
-            bg="white"
-            p={4}
-            rounded="lg"
-            boxShadow="md"
-            w="full"
-            maxW="xxl"
-            mx="auto"
-          >
-            <Heading size="lg" mb={4}>
-              Found Routes
-            </Heading>
-            <Stack spacing={3}>
-              {routes.map((r, idx) => {
-                const isSelected = selectedRoute === r.routeId;
-                const color = COLORS[idx % COLORS.length];
-
-                const labelLine =
-                  mode === 'points'
-                    ? `${originText || 'Origin'} → ${
-                        destinationText || 'Destination'
-                      }`
-                    : `${originText || 'Start'} • ${distanceKm} km`;
-
-                const defaultTag = `Route ${idx + 1}`;
-                const navState = { displayName: defaultTag, labelLine, idx };
-
-                return (
-                  // 🔁 ANTES: <Button ...>  —  AHORA: <Box ... role="button">
-                  <Box
-                    key={r.routeId}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
-                      const rawPath = google.maps.geometry.encoding.decodePath(
-                        r.path!,
-                      );
-                      const path = rawPath.map((p) => ({
-                        lat: p.lat(),
-                        lng: p.lng(),
-                      }));
-                      handleSelectRoute(r.routeId, path);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        const rawPath =
-                          google.maps.geometry.encoding.decodePath(r.path!);
-                        const path = rawPath.map((p) => ({
-                          lat: p.lat(),
-                          lng: p.lng(),
-                        }));
-                        handleSelectRoute(r.routeId, path);
-                      }
-                    }}
-                    // estilos que antes tenía el Button
-                    minH={['60px', '80px']}
-                    w="100%"
-                    display="flex"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    bg="white"
-                    borderWidth="1px"
-                    rounded="md"
-                    px={6}
-                    py={4}
-                    cursor="pointer"
-                    _hover={{ bg: isSelected ? 'orange.100' : 'gray.50' }}
-                    borderColor={isSelected ? 'orange.300' : 'gray.200'}
-                  >
-                    <Box textAlign="left">
-                      <HStack mb={1} spacing={3} align="center">
-                        <Tag size="md" colorScheme="gray" variant="subtle">
-                          Route {idx + 1}
-                        </Tag>
-                        <Box
-                          w="10px"
-                          h="10px"
-                          borderRadius="full"
-                          bg={color}
-                          border="1px solid rgba(0,0,0,0.2)"
-                        />
-                        <Text fontSize="lg" fontWeight="bold" color="gray.800">
-                          {labelLine}
-                        </Text>
-                      </HStack>
-
-                      <HStack spacing={3}>
-                        {r.distanceKm != null && (
-                          <Text fontSize="sm" color="gray.600">
-                            {r.distanceKm.toFixed(2)} km
-                          </Text>
-                        )}
-                        {r.duration != null && (
-                          <Text
-                            fontSize="lg"
-                            color="gray.700"
-                            fontWeight="medium"
-                          >
-                            {(r.duration / 60).toFixed(1)} min
-                          </Text>
-                        )}
-                        <Text fontSize="sm" color="gray.500">
-                          ID: {r.routeId.slice(0, 8)}…
-                        </Text>
-                      </HStack>
-                    </Box>
-
-                    <HStack spacing={2}>
-                      <IconButton
-                        aria-label="Toggle favourite"
-                        variant="ghost"
-                        colorScheme="yellow"
-                        icon={
-                          favourites.includes(r.routeId) ? (
-                            <FaStar />
-                          ) : (
-                            <FaRegStar />
-                          )
-                        }
-                        isDisabled={
-                          !favourites.includes(r.routeId) &&
-                          favourites.length >= MAX_FAVS
-                        }
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavourite(r.routeId);
-                        }}
-                      />
-                      <Button
-                        size="md"
-                        colorScheme="green"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartClick(r.routeId, navState);
-                        }}
-                        isDisabled={!r.path}
-                        isLoading={startingRouteId === r.routeId}
-                        loadingText="Opening…"
-                        spinnerPlacement="end"
-                      >
-                        Start
-                      </Button>
-                    </HStack>
-                  </Box>
-                );
-              })}
-            </Stack>
-          </Box>
-        )}
+{!loading && routes.length > 0 && (
+  <RouteList
+    routes={routes}
+    mode={mode}
+    originText={originText}
+    destinationText={destinationText}
+    distanceKm={distanceKm}
+    selectedRoute={selectedRoute}
+    onSelectRoute={handleSelectRoute}
+  />
+)}
       </Container>
     </Box>
   );

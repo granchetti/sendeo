@@ -17,25 +17,13 @@ import {
   ModalCloseButton,
   ModalBody,
   ModalFooter,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
   Icon,
   IconButton,
   HStack,
 } from '@chakra-ui/react';
-import {
-  GoogleMap,
-  Marker,
-  Polyline,
-  useLoadScript,
-} from '@react-google-maps/api';
+import { useLoadScript } from '@react-google-maps/api';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import {
   FaInfoCircle,
   FaMapMarkedAlt,
@@ -44,10 +32,13 @@ import {
   FaStar,
   FaRegStar,
 } from 'react-icons/fa';
+import RouteDetailMap from '../components/route-detail/RouteDetailMap';
+import RouteInfoAccordion from '../components/route-detail/RouteInfoAccordion';
+import RouteActions from '../components/route-detail/RouteActions';
+import { loadAliases, saveAliases } from '../utils/aliases';
 
 const DEFAULT_CENTER = { lat: 41.3851, lng: 2.1734 };
 const MAX_FAVS = 10;
-const ALIASES_KEY = 'sendeo:routeAliases';
 const COLORS = ['#ff6f00', '#388e3c', '#1976d2', '#d32f2f', '#a839e4ff'];
 
 const isOnlyStrong = (children: React.ReactNode) => {
@@ -78,19 +69,6 @@ type RouteSummary = {
   actualDistanceKm?: number;
 };
 
-function loadAliases(): Record<string, string> {
-  try {
-    const raw = localStorage.getItem(ALIASES_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-function saveAliases(obj: Record<string, string>) {
-  try {
-    localStorage.setItem(ALIASES_KEY, JSON.stringify(obj));
-  } catch {}
-}
 function shortId(id?: string) {
   return id ? `${id.slice(0, 8)}…` : '';
 }
@@ -502,87 +480,20 @@ export default function RouteDetailPage() {
 
       <Stack spacing={6} align="center">
         {route?.description && (
-          <Accordion w={['90%', '900px']} defaultIndex={[0]} allowToggle>
-            <AccordionItem borderRadius="lg" overflow="hidden">
-              <h2>
-                <AccordionButton _expanded={{ bg: 'orange.50' }} py={4}>
-                  <Box flex="1" textAlign="left" fontWeight="bold">
-                    About this walk
-                  </Box>
-                  <AccordionIcon />
-                </AccordionButton>
-              </h2>
-              <AccordionPanel
-                pb={4}
-                bg="white"
-                sx={{
-                  'p:has(> strong:only-child)': {
-                    marginTop: '24px',
-                    marginBottom: '4px',
-                    fontWeight: 700,
-                    fontSize: '1.125rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                  },
-                }}
-              >
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={MDcomponents}
-                >
-                  {route.description ?? ''}
-                </ReactMarkdown>
-              </AccordionPanel>
-            </AccordionItem>
-          </Accordion>
+          <RouteInfoAccordion
+            description={route.description}
+            components={MDcomponents}
+          />
         )}
 
-        <Box
-          w={['90%', '900px']}
-          h="700px"
-          borderRadius="md"
-          overflow="hidden"
-          boxShadow="md"
-        >
-          <GoogleMap
-            mapContainerStyle={{ width: '100%', height: '700px' }}
-            center={center}
-            zoom={14}
-          >
-            {path.length > 0 && (
-              <Polyline
-                path={path}
-                options={{
-                  strokeColor: '#ff6f00',
-                  strokeOpacity: 1,
-                  strokeWeight: 4,
-                }}
-              />
-            )}
-            {position && <Marker position={position} label="You" />}
-          </GoogleMap>
-        </Box>
+        <RouteDetailMap center={center} path={path} position={position} />
 
-        <Stack direction="row" spacing={4}>
-          <Button
-            colorScheme="green"
-            onClick={handleStart}
-            isDisabled={isTracking}
-          >
-            Start
-          </Button>
-          <Button
-            colorScheme="red"
-            onClick={handleFinish}
-            isDisabled={!isTracking}
-          >
-            Finish
-          </Button>
-        </Stack>
-
-        <Button variant="link" onClick={() => navigate('/routes')}>
-          ↩ Back to Routes
-        </Button>
+        <RouteActions
+          isTracking={isTracking}
+          onStart={handleStart}
+          onFinish={handleFinish}
+          onBack={() => navigate('/routes')}
+        />
       </Stack>
 
       {/* Summary Modal */}
