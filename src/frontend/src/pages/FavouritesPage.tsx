@@ -8,7 +8,6 @@ import {
   Spinner,
   HStack,
   IconButton,
-  Divider,
   useToast,
 } from '@chakra-ui/react';
 import { FaTrash, FaStar } from 'react-icons/fa';
@@ -143,11 +142,11 @@ const FavouritesPage = () => {
         {/* Header */}
         <HStack spacing={3} mb={4} justify="center">
           <FaStar color="#ED8936" size="24" />
-          <Heading size="xl" color="brand.700">
+          <Heading size="xl" color="brand.800">
             Favourite Routes ({favourites.length}/10)
           </Heading>
         </HStack>
-        <Divider mb={6} />
+        <Box borderBottom="1px" borderColor="gray.200" mb={10} />
 
         {loading ? (
           <Flex justify="center" py={10}>
@@ -207,11 +206,11 @@ const FavouritesPage = () => {
                       fontWeight="semibold"
                       color="gray.700"
                     >
-                      <Text>{tagText}</Text>
+                      <Text fontSize="xl">{tagText}</Text>
                       <IconButton
                         aria-label="Rename route"
                         icon={<MdEdit />}
-                        size="xs"
+                        size="xl"
                         variant="ghost"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -220,18 +219,19 @@ const FavouritesPage = () => {
                       />
                     </HStack>
 
-                    <Text
-                      fontSize="2xl"
-                      fontWeight="extrabold"
-                      color="gray.900"
-                    >
+                    <Text fontSize="xl" fontWeight="extrabold" color="gray.900">
                       {mainLabel}
                     </Text>
                   </HStack>
 
                   <HStack spacing={6}>
                     {typeof f.distanceKm === 'number' && (
-                      <Text fontSize="lg" color="gray.700" fontWeight="medium">
+                      <Text
+                        fontSize="lg"
+                        color="gray.700"
+                        fontWeight="medium"
+                        ml={6}
+                      >
                         {f.distanceKm.toFixed(2)} km
                       </Text>
                     )}

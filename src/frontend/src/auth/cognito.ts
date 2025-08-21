@@ -5,6 +5,7 @@ import {
   CognitoUserAttribute,
   CognitoUserSession,
   CognitoRefreshToken,
+  type ISignUpResult,
 } from 'amazon-cognito-identity-js';
 
 let pool: CognitoUserPool | null = null;
@@ -21,13 +22,21 @@ function getPool(): CognitoUserPool {
   }
   return pool;
 }
-export function signUp(email: string, password: string): Promise<unknown> {
+
+export function signUp(email: string, password: string): Promise<ISignUpResult> {
   return new Promise((resolve, reject) => {
     const attributes = [new CognitoUserAttribute({ Name: 'email', Value: email })];
     getPool().signUp(email, password, attributes, [], (err, result) => {
-      if (err) return reject(err);
+      if (err || !result) return reject(err);
       resolve(result);
     });
+  });
+}
+
+export function resendConfirmationCode(email: string): Promise<void> {
+  const user = new CognitoUser({ Username: email, Pool: getPool() });
+  return new Promise((resolve, reject) => {
+    user.resendConfirmationCode(err => (err ? reject(err) : resolve()));
   });
 }
 
