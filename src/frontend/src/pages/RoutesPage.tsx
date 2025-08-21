@@ -354,7 +354,7 @@ export default function RoutesPage() {
         <Stack align="center" spacing={3} mb={6}>
           <Heading
             size="2xl"
-            color="orange.600"
+            color="brand.800"
             letterSpacing="tight"
             textAlign="center"
           >
@@ -447,7 +447,6 @@ export default function RoutesPage() {
             </RouteSearchForm>
           </MotionBox>
         </Box>
-        {/* Results */}
         {!loading && routes.length > 0 && (
           <RouteList
             routes={routes}

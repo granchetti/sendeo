@@ -103,7 +103,7 @@ const UserProfilePage = () => {
       borderRadius="md"
       boxShadow="lg"
     >
-      <Heading size="xl" color="brand.700" textAlign="center" mb={10}>
+      <Heading size="xl" color="brand.800" textAlign="center" mb={10}>
         Profile Settings
       </Heading>
       <Box borderBottom="1px" borderColor="gray.200" mb={10} />
@@ -111,7 +111,7 @@ const UserProfilePage = () => {
         <Avatar
           size="xl"
           icon={<FaUserEdit fontSize="2.5rem" />}
-          bg="brand.600"
+          bg="brand.400"
           color="white"
         />
         <Box flex="1">
@@ -128,8 +128,8 @@ const UserProfilePage = () => {
 
       <Tabs variant="enclosed" colorScheme="brand">
         <TabList>
-          <Tab>Personal Info</Tab>
-          <Tab>Account</Tab>
+          <Tab _selected={{ color: 'brand.800', bg: 'gray.100' }}>Personal Info</Tab>
+          <Tab _selected={{ color: 'brand.800', bg: 'gray.100' }}>Account</Tab>
         </TabList>
         <TabPanels>
           <TabPanel>

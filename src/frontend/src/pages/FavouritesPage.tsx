@@ -8,7 +8,6 @@ import {
   Spinner,
   HStack,
   IconButton,
-  Divider,
   useToast,
 } from '@chakra-ui/react';
 import { FaTrash, FaStar } from 'react-icons/fa';
@@ -143,7 +142,7 @@ const FavouritesPage = () => {
         {/* Header */}
         <HStack spacing={3} mb={4} justify="center">
           <FaStar color="#ED8936" size="24" />
-          <Heading size="xl" color="brand.700">
+          <Heading size="xl" color="brand.800">
             Favourite Routes ({favourites.length}/10)
           </Heading>
         </HStack>

@@ -23,7 +23,7 @@ const SignupPage = () => {
         borderRadius="md"
         boxShadow="lg"
       >
-        <Heading mb={2} size="xl" color="brand.700" textAlign="center">
+        <Heading mb={2} size="xl" color="brand.800" textAlign="center">
           Create your account
         </Heading>
         <Text mb={8} color="gray.500" textAlign="center">

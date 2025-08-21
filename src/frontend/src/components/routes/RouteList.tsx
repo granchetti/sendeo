@@ -41,6 +41,24 @@ const decodePolyline = (encoded?: string): google.maps.LatLngLiteral[] => {
   return raw.map((p) => ({ lat: p.lat(), lng: p.lng() }));
 };
 
+// Badge reutilizable: • + "Route N"
+const RouteBadge: React.FC<{ index: number; color: string }> = ({
+  index,
+  color,
+}) => (
+  <HStack spacing={2} align="center">
+    <Box
+      w={{ base: '8px', sm: '10px' }}
+      h={{ base: '8px', sm: '10px' }}
+      borderRadius="full"
+      bg={color}
+      border="1px solid rgba(0,0,0,0.2)"
+      flex="0 0 auto"
+    />
+    <Tag colorScheme="gray" variant="subtle">Route {index}</Tag>
+  </HStack>
+);
+
 const RouteList: React.FC<RouteListProps> = ({
   routes,
   mode,
@@ -58,36 +76,23 @@ const RouteList: React.FC<RouteListProps> = ({
   if (routes.length === 0) return null;
 
   return (
-    <Box
-      bg="white"
-      p={4}
-      rounded="lg"
-      boxShadow="md"
-      w="full"
-      maxW="xxl"
-      mx="auto"
-    >
+    <Box bg="white" p={4} rounded="lg" boxShadow="md" w="full" maxW="xxl" mx="auto">
       <Heading size="lg" mb={4} color="gray.800" letterSpacing="tight">
         Found Routes
       </Heading>
+
       <Stack spacing={3}>
         {routes.map((r, idx) => {
           const isSelected = selectedRoute === r.routeId;
           const color = COLORS[idx % COLORS.length];
           const labelLine =
             mode === 'points'
-              ? `${originText || 'Origin'} → ${
-                  destinationText || 'Destination'
-                }`
+              ? `${originText || 'Origin'} → ${destinationText || 'Destination'}`
               : `${originText || 'Start'} • ${distanceKm} km`;
           const path = decodePolyline(r.path);
           const isFav = favourites.includes(r.routeId);
           const reachLimit = !isFav && favourites.length >= maxFavourites;
-          const navState = {
-            displayName: `Route ${idx + 1}`,
-            labelLine,
-            idx,
-          };
+          const navState = { displayName: `Route ${idx + 1}`, labelLine, idx };
 
           return (
             <Box
@@ -102,11 +107,13 @@ const RouteList: React.FC<RouteListProps> = ({
                   onSelectRoute(r.routeId, path);
                 }
               }}
-              minH={['60px', '80px']}
+              minH={{ base: 'auto', md: '80px' }}
               w="100%"
               display="flex"
-              justifyContent="space-between"
-              alignItems="center"
+              flexDir={{ base: 'column', md: 'row' }}
+              justifyContent={{ base: 'initial', md: 'space-between' }}
+              alignItems={{ base: 'flex-start', md: 'center' }}
+              gap={{ base: 3, md: 0 }}
               bg="white"
               borderWidth="1px"
               rounded="md"
@@ -115,28 +122,33 @@ const RouteList: React.FC<RouteListProps> = ({
               cursor="pointer"
               _hover={{ bg: isSelected ? 'orange.100' : 'gray.50' }}
               borderColor={isSelected ? 'orange.300' : 'gray.200'}
-              _focusVisible={{
-                boxShadow: '0 0 0 3px rgba(66,153,225,.6)',
-                borderColor: 'blue.300',
-              }}
+              _focusVisible={{ boxShadow: '0 0 0 3px rgba(66,153,225,.6)', borderColor: 'blue.300' }}
             >
-              <Box textAlign="left">
-                <HStack mb={1} spacing={3} align="center">
-                  <Tag size="md" colorScheme="gray" variant="subtle">
-                    Route {idx + 1}
-                  </Tag>
-                  <Box
-                    w="10px"
-                    h="10px"
-                    borderRadius="full"
-                    bg={color}
-                    border="1px solid rgba(0,0,0,0.2)"
-                  />
-                  <Text fontSize="lg" fontWeight="bold" color="gray.800">
+              {/* Texto */}
+              <Box textAlign="left" flex="1" w="100%">
+                {/* MOBILE: badge arriba */}
+                <Box display={{ base: 'block', sm: 'none' }} mb={2}>
+                  <RouteBadge index={idx + 1} color={color} />
+                </Box>
+
+                {/* DESKTOP: badge en línea a la izquierda */}
+                <HStack spacing={3} align="center" w="100%">
+                  <Box display={{ base: 'none', sm: 'block' }}>
+                    <RouteBadge index={idx + 1} color={color} />
+                  </Box>
+
+                  <Text
+                    fontSize={{ base: 'md', sm: 'lg' }}
+                    fontWeight="bold"
+                    color="gray.800"
+                    noOfLines={{ base: 2, md: 1 }}
+                    wordBreak="break-word"
+                  >
                     {labelLine}
                   </Text>
                 </HStack>
-                <HStack spacing={3}>
+
+                <HStack spacing={3} mt={2}>
                   {r.distanceKm != null && (
                     <Text fontSize="sm" color="gray.600">
                       {r.distanceKm.toFixed(2)} km
@@ -147,13 +159,26 @@ const RouteList: React.FC<RouteListProps> = ({
                       {(r.duration / 60).toFixed(1)} min
                     </Text>
                   )}
+                   {r.routeId && (
+                    <Text fontSize="sm" color="gray.600">
+                       ID: {`${r.routeId.slice(0, 8)}…`}
+                    </Text>
+                  )}
                 </HStack>
               </Box>
-              <HStack spacing={2}>
+
+              {/* Acciones */}
+              <HStack
+                spacing={2}
+                w={{ base: '100%', md: 'auto' }}
+                alignSelf={{ base: 'stretch', md: 'auto' }}
+                justify={{ base: 'flex-end', md: 'flex-end' }}
+              >
                 <IconButton
                   aria-label={isFav ? 'Remove favourite' : 'Add favourite'}
                   aria-pressed={isFav}
                   data-testid={`btn-fav-${r.routeId}`}
+                  size={{ base: 'sm', md: 'md' }}
                   variant="ghost"
                   colorScheme="yellow"
                   icon={isFav ? <FaStar /> : <FaRegStar />}
@@ -164,9 +189,12 @@ const RouteList: React.FC<RouteListProps> = ({
                   }}
                 />
                 <Button
-                  size="md"
-                  colorScheme="green"
+                  size={{ base: 'sm', md: 'md' }}
+                  flex={{ base: 1, md: 0 }}
+                  minW={{ base: '120px', md: '96px' }}
+                  whiteSpace="nowrap"
                   data-testid={`btn-start-${r.routeId}`}
+                  colorScheme="green"
                   onClick={(e) => {
                     e.stopPropagation();
                     onStartClick(r.routeId, navState);

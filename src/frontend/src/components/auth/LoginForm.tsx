@@ -108,7 +108,7 @@ const LoginForm: React.FC<Props> = ({ onSuccess }) => {
         <Stack direction="row" justify="space-between" align="center">
           <Link
             color="brand.700"
-            fontSize="sm"
+            fontSize="md"
             onClick={() => {
               setForgotMode(!forgotMode);
               setForgotSent(false);
@@ -116,7 +116,7 @@ const LoginForm: React.FC<Props> = ({ onSuccess }) => {
           >
             {forgotMode ? 'Back to login' : 'Forgot password?'}
           </Link>
-          <Text fontSize="sm">
+          <Text fontSize="md">
             No account?{' '}
             <Link color="brand.700" fontWeight="bold" href="/signup">
               Register

@@ -100,7 +100,7 @@ const SignupForm: React.FC<Props> = ({ onSuccess }) => {
         >
           Sign Up
         </Button>
-        <Text fontSize="sm" color="gray.600">
+        <Text fontSize="md" color="gray.600">
           Already have an account?{' '}
           <Link color="brand.700" fontWeight="bold" href="/login">
             Login
