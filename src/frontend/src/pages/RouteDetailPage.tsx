@@ -17,25 +17,19 @@ import {
   ModalCloseButton,
   ModalBody,
   ModalFooter,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
   Icon,
   IconButton,
   HStack,
+  Tooltip,
+  Editable,
+  EditableInput,
+  EditablePreview,
+  Divider,
+  Tag,
 } from '@chakra-ui/react';
-import {
-  GoogleMap,
-  Marker,
-  Polyline,
-  useLoadScript,
-} from '@react-google-maps/api';
+import { useLoadScript } from '@react-google-maps/api';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import {
   FaInfoCircle,
   FaMapMarkedAlt,
@@ -43,11 +37,18 @@ import {
   FaExclamationTriangle,
   FaStar,
   FaRegStar,
+  FaClock,
+  FaRulerCombined,
+  FaHashtag,
+  FaCopy,
 } from 'react-icons/fa';
+import RouteDetailMap from '../components/route-detail/RouteDetailMap';
+import RouteInfoAccordion from '../components/route-detail/RouteInfoAccordion';
+import RouteActions from '../components/route-detail/RouteActions';
+import { loadAliases, saveAliases } from '../utils/aliases';
 
 const DEFAULT_CENTER = { lat: 41.3851, lng: 2.1734 };
 const MAX_FAVS = 10;
-const ALIASES_KEY = 'sendeo:routeAliases';
 const COLORS = ['#ff6f00', '#388e3c', '#1976d2', '#d32f2f', '#a839e4ff'];
 
 const isOnlyStrong = (children: React.ReactNode) => {
@@ -78,19 +79,6 @@ type RouteSummary = {
   actualDistanceKm?: number;
 };
 
-function loadAliases(): Record<string, string> {
-  try {
-    const raw = localStorage.getItem(ALIASES_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-function saveAliases(obj: Record<string, string>) {
-  try {
-    localStorage.setItem(ALIASES_KEY, JSON.stringify(obj));
-  } catch {}
-}
 function shortId(id?: string) {
   return id ? `${id.slice(0, 8)}…` : '';
 }
@@ -201,7 +189,7 @@ export default function RouteDetailPage() {
     }
     return undefined;
   }, [uiDistanceKm, path]);
-  
+
   if (loadError) return <Text color="red.500">Map cannot load</Text>;
   if (!isLoaded || loading)
     return (
@@ -226,6 +214,25 @@ export default function RouteDetailPage() {
     (routeId ? `Route ${shortId(routeId)}` : 'Route');
 
   const dotColor = pickColor(routeId, navState.idx);
+
+  const handleAliasSave = (next: string) => {
+    if (!routeId) return;
+    const name = (next || '').trim() || tagText;
+    const nextAliases = { ...aliases, [routeId]: name };
+    setAliases(nextAliases);
+    saveAliases(nextAliases);
+    toast({ title: 'Name saved', status: 'success' });
+  };
+
+  const copyId = async () => {
+    if (!routeId) return;
+    try {
+      await navigator.clipboard.writeText(routeId);
+      toast({ title: 'Route ID copied', status: 'success' });
+    } catch {
+      toast({ title: 'Could not copy', status: 'error' });
+    }
+  };
 
   const toggleFavourite = async () => {
     if (!routeId || favBusy) return;
@@ -347,7 +354,6 @@ export default function RouteDetailPage() {
 
   const isTracking = watchId !== null;
 
-  // ---- Markdown + estilos de texto
   const iconMap: Record<string, JSX.Element> = {
     Overview: <Icon as={FaInfoCircle} color="orange.500" mr={2} />,
     'Points of Interest': (
@@ -430,159 +436,153 @@ export default function RouteDetailPage() {
 
   return (
     <Box py={8} minH="100vh" bg="gray.50">
-      <Stack spacing={3} align="center" mb={2}>
-        <HStack spacing={3} align="center">
+      {/* Header (siempre centrado) */}
+      <Stack spacing={2} mb={3} px={{ base: 2, md: 0 }} align="center">
+        <HStack
+          spacing={3}
+          align="center"
+          justify="center"
+          wrap="wrap"
+          w="full"
+        >
           <Box
             w="10px"
             h="10px"
             borderRadius="full"
             bg={dotColor}
             border="1px solid rgba(0,0,0,0.2)"
+            flex="0 0 auto"
           />
-          <HStack
-            px={3}
-            py={1}
-            bg="gray.100"
-            rounded="md"
-            fontWeight="semibold"
-            color="gray.700"
+          <Editable
+            defaultValue={tagText}
+            onSubmit={handleAliasSave}
+            selectAllOnFocus
           >
-            <Text fontSize="xl">{tagText}</Text>
-          </HStack>
-          <IconButton
-            aria-label={isFav ? 'Remove from favourites' : 'Add to favourites'}
-            icon={isFav ? <FaStar /> : <FaRegStar />}
-            colorScheme="yellow"
-            variant={isFav ? 'solid' : 'outline'}
-            isLoading={favBusy}
-            onClick={toggleFavourite}
-          />
+            <EditablePreview
+              as={Tag}
+              px={4}
+              py={2}
+              rounded="full"
+              bg="gray.100"
+              fontWeight="semibold"
+              color="gray.700"
+              textAlign="center"
+            />
+            <EditableInput
+              px={2}
+              py={1}
+              borderRadius="full"
+              bg="white"
+              border="1px solid"
+              borderColor="gray.300"
+              textAlign="center"
+            />
+          </Editable>
+
+          <Tooltip
+            label={isFav ? 'Remove from favourites' : 'Add to favourites'}
+          >
+            <IconButton
+              aria-label={
+                isFav ? 'Remove from favourites' : 'Add to favourites'
+              }
+              icon={isFav ? <FaStar /> : <FaRegStar />}
+              colorScheme="yellow"
+              variant={isFav ? 'solid' : 'outline'}
+              size="sm"
+              isLoading={favBusy}
+              onClick={toggleFavourite}
+            />
+          </Tooltip>
+
           <Text fontSize="sm" color="gray.500">
             ({favCount}/{MAX_FAVS})
           </Text>
         </HStack>
 
-        {coordLabel && (
-          <Text
-            fontSize="2xl"
-            fontWeight="extrabold"
-            color="gray.900"
-            textAlign="center"
-          >
-            {coordLabel}
-          </Text>
-        )}
-
-        <HStack spacing={6}>
-          {typeof uiDistanceKm === 'number' ? (
-            <Text fontSize="lg" color="gray.700" fontWeight="medium">
-              {uiDistanceKm.toFixed(2)} km
+        {/* Fila de detalles: en móviles se envuelve, en pantallas grandes es una sola fila */}
+        <Flex
+          mt={1}
+          align="center"
+          justify="center"
+          gap={{ base: 3, md: 5, lg: 8 }}
+          flexWrap={{ base: 'wrap', lg: 'nowrap' }}
+          w="full"
+        >
+          {coordLabel && (
+            <Text
+              color="gray.700"
+              textAlign="center"
+              whiteSpace={{ lg: 'nowrap' }}
+            >
+              {coordLabel}
             </Text>
-          ) : (
-            typeof approxDistanceKm === 'number' && (
-              <Text fontSize="lg" color="gray.700" fontWeight="medium">
-                {approxDistanceKm.toFixed(2)} km
+          )}
+
+          {(typeof uiDistanceKm === 'number' ||
+            typeof approxDistanceKm === 'number') && (
+            <HStack spacing={2} justify="center" whiteSpace={{ lg: 'nowrap' }}>
+              <Icon as={FaRulerCombined} color="orange.500" />
+              <Text color="gray.700">
+                Distance:{' '}
+                <Text as="span" fontWeight="semibold">
+                  {(uiDistanceKm ?? approxDistanceKm)!.toFixed(2)} km
+                </Text>
               </Text>
-            )
+            </HStack>
           )}
 
           {typeof uiDuration === 'number' && (
-            <Text fontSize="lg" color="gray.700" fontWeight="medium">
-              {(uiDuration / 60).toFixed(1)} min
-            </Text>
+            <HStack spacing={2} justify="center" whiteSpace={{ lg: 'nowrap' }}>
+              <Icon as={FaClock} color="blue.500" />
+              <Text color="gray.700">
+                Estimated time:{' '}
+                <Text as="span" fontWeight="semibold">
+                  {(uiDuration / 60).toFixed(1)} min
+                </Text>
+              </Text>
+            </HStack>
           )}
 
           {routeId && (
-            <Text fontSize="lg" color="gray.500">
-              ID: {`${routeId.slice(0, 8)}…`}
-            </Text>
+            <HStack spacing={2} justify="center" whiteSpace={{ lg: 'nowrap' }}>
+              <Icon as={FaHashtag} color="gray.500" />
+              <Text color="gray.700">
+                ID:{' '}
+                <Text as="span" fontWeight="semibold">
+                  {routeId.slice(0, 8)}…
+                </Text>
+              </Text>
+              <IconButton
+                aria-label="Copy ID"
+                icon={<FaCopy />}
+                size="xs"
+                variant="ghost"
+                onClick={copyId}
+              />
+            </HStack>
           )}
-        </HStack>
+        </Flex>
       </Stack>
+
+      <Divider my={4} />
 
       <Stack spacing={6} align="center">
         {route?.description && (
-          <Accordion w={['90%', '900px']} defaultIndex={[0]} allowToggle>
-            <AccordionItem borderRadius="lg" overflow="hidden">
-              <h2>
-                <AccordionButton _expanded={{ bg: 'orange.50' }} py={4}>
-                  <Box flex="1" textAlign="left" fontWeight="bold">
-                    About this walk
-                  </Box>
-                  <AccordionIcon />
-                </AccordionButton>
-              </h2>
-              <AccordionPanel
-                pb={4}
-                bg="white"
-                sx={{
-                  'p:has(> strong:only-child)': {
-                    marginTop: '24px',
-                    marginBottom: '4px',
-                    fontWeight: 700,
-                    fontSize: '1.125rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                  },
-                }}
-              >
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={MDcomponents}
-                >
-                  {route.description ?? ''}
-                </ReactMarkdown>
-              </AccordionPanel>
-            </AccordionItem>
-          </Accordion>
+          <RouteInfoAccordion
+            description={route.description}
+            components={MDcomponents}
+          />
         )}
 
-        <Box
-          w={['90%', '900px']}
-          h="700px"
-          borderRadius="md"
-          overflow="hidden"
-          boxShadow="md"
-        >
-          <GoogleMap
-            mapContainerStyle={{ width: '100%', height: '700px' }}
-            center={center}
-            zoom={14}
-          >
-            {path.length > 0 && (
-              <Polyline
-                path={path}
-                options={{
-                  strokeColor: '#ff6f00',
-                  strokeOpacity: 1,
-                  strokeWeight: 4,
-                }}
-              />
-            )}
-            {position && <Marker position={position} label="You" />}
-          </GoogleMap>
-        </Box>
+        <RouteDetailMap center={center} path={path} position={position} />
 
-        <Stack direction="row" spacing={4}>
-          <Button
-            colorScheme="green"
-            onClick={handleStart}
-            isDisabled={isTracking}
-          >
-            Start
-          </Button>
-          <Button
-            colorScheme="red"
-            onClick={handleFinish}
-            isDisabled={!isTracking}
-          >
-            Finish
-          </Button>
-        </Stack>
-
-        <Button variant="link" onClick={() => navigate('/routes')}>
-          ↩ Back to Routes
-        </Button>
+        <RouteActions
+          isTracking={watchId !== null}
+          onStart={handleStart}
+          onFinish={handleFinish}
+          onBack={() => navigate('/routes')}
+        />
       </Stack>
 
       {/* Summary Modal */}
