@@ -12,13 +12,13 @@ test.describe('authentication flow', () => {
 
     await expect(page).toHaveURL(/\/signup/);
 
-    await page.getByTestId('signup-email').fill(email);
-    await expect(page.getByTestId('signup-email')).toHaveValue(
+    await page.getByTestId('signup-email-input').fill(email);
+    await expect(page.getByTestId('signup-email-input')).toHaveValue(
       email,
     );
 
-    await page.getByTestId('signup-password').fill(password);
-    await expect(page.getByTestId('signup-password')).toHaveValue(
+    await page.getByTestId('signup-password-input').fill(password);
+    await expect(page.getByTestId('signup-password-input')).toHaveValue(
       password,
     );
 
@@ -27,13 +27,13 @@ test.describe('authentication flow', () => {
 
     await expect(page).toHaveURL(/\/login/);
 
-    await page.getByTestId('login-email').fill(email);
-    await expect(page.getByTestId('login-email')).toHaveValue(
+    await page.getByTestId('login-email-input').fill(email);
+    await expect(page.getByTestId('login-email-input')).toHaveValue(
       email,
     );
 
-    await page.getByTestId('login-password').fill(password);
-    await expect(page.getByTestId('login-password')).toHaveValue(
+    await page.getByTestId('login-password-input').fill(password);
+    await expect(page.getByTestId('login-password-input')).toHaveValue(
       password,
     );
 

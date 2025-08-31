@@ -73,6 +73,7 @@ const SignupForm: React.FC<Props> = ({ onSuccess }) => {
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
               bg="gray.50"
+              data-testid="signup-email-input"
             />
           </InputGroup>
         </FormControl>
@@ -88,6 +89,7 @@ const SignupForm: React.FC<Props> = ({ onSuccess }) => {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
               bg="gray.50"
+              data-testid="signup-password-input"
             />
           </InputGroup>
         </FormControl>

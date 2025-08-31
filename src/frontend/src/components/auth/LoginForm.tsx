@@ -82,6 +82,7 @@ const LoginForm: React.FC<Props> = ({ onSuccess }) => {
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
               bg="gray.50"
+              data-testid="login-email-input"
             />
           </InputGroup>
         </FormControl>
@@ -98,6 +99,7 @@ const LoginForm: React.FC<Props> = ({ onSuccess }) => {
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 bg="gray.50"
+                data-testid="login-password-input"
               />
             </InputGroup>
           </FormControl>
