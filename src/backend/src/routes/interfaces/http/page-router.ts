@@ -4,7 +4,7 @@ import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { DynamoUserStateRepository } from "../../../users/infrastructure/dynamodb/dynamo-user-state-repository";
 import { publishRouteStarted, publishRouteFinished } from "../appsync-client";
-import { UUID } from "../../domain/value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 import { corsHeaders } from "../../../http/cors";

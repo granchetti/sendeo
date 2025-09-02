@@ -1,5 +1,5 @@
 import { Route } from "./route-entity";
-import { UUID } from "../value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { DistanceKm } from "../value-objects/distance-value-object";
 import { Duration } from "../value-objects/duration-value-object";
 import { Path } from "../value-objects/path-value-object";

@@ -1,7 +1,7 @@
 import { DistanceKm } from "../value-objects/distance-value-object";
 import { Duration } from "../value-objects/duration-value-object";
 import { Path } from "../value-objects/path-value-object";
-import { UUID } from "../value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { DomainEvent } from "../../../shared/domain/events/domain-event";
 import { RouteRequestedEvent } from "../events/route-requested";
 import { RouteGeneratedEvent } from "../events/route-generated";
