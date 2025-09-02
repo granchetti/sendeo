@@ -8,6 +8,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { RouteRepository } from "../../domain/repositories/route-repository";
 import { Route } from "../../domain/entities/route-entity";
+import { RouteStatus } from "../../domain/value-objects/route-status";
 import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
@@ -28,6 +29,7 @@ export class DynamoRouteRepository implements RouteRepository {
     if (route.duration) item.duration = { N: route.duration.Value.toString() };
     if (route.path) item.path = { S: route.path.Encoded };
     if (route.description) item.description = { S: route.description };
+    item.status = { S: route.status };
 
     const ttlEnv = process.env.ROUTES_TTL;
     if (ttlEnv) {
@@ -51,7 +53,7 @@ export class DynamoRouteRepository implements RouteRepository {
     );
     if (!res.Item) return null;
 
-    return new Route({
+    return Route.rehydrate({
       routeId: UUID.fromString(res.Item.routeId.S!),
       jobId: res.Item.jobId ? UUID.fromString(res.Item.jobId.S!) : undefined,
       distanceKm: res.Item.distanceKm
@@ -62,6 +64,7 @@ export class DynamoRouteRepository implements RouteRepository {
         : undefined,
       path: res.Item.path ? new Path(res.Item.path.S!) : undefined,
       description: res.Item.description?.S,
+      status: (res.Item.status?.S as RouteStatus) || RouteStatus.Requested,
     });
   }
 
@@ -71,7 +74,7 @@ export class DynamoRouteRepository implements RouteRepository {
     );
     return (res.Items || []).map(
       (item) =>
-        new Route({
+        Route.rehydrate({
           routeId: UUID.fromString(item.routeId.S!),
           jobId: item.jobId ? UUID.fromString(item.jobId.S!) : undefined,
           distanceKm: item.distanceKm
@@ -80,6 +83,7 @@ export class DynamoRouteRepository implements RouteRepository {
           duration: item.duration ? new Duration(+item.duration.N!) : undefined,
           path: item.path ? new Path(item.path.S!) : undefined,
           description: item.description?.S,
+          status: (item.status?.S as RouteStatus) || RouteStatus.Requested,
         })
     );
   }
@@ -97,7 +101,7 @@ export class DynamoRouteRepository implements RouteRepository {
     );
     return (res.Items || []).map(
       (item) =>
-        new Route({
+        Route.rehydrate({
           routeId: UUID.fromString(item.routeId.S!),
           jobId: item.jobId ? UUID.fromString(item.jobId.S!) : undefined,
           distanceKm: item.distanceKm
@@ -106,6 +110,7 @@ export class DynamoRouteRepository implements RouteRepository {
           duration: item.duration ? new Duration(+item.duration.N!) : undefined,
           path: item.path ? new Path(item.path.S!) : undefined,
           description: item.description?.S,
+          status: (item.status?.S as RouteStatus) || RouteStatus.Requested,
         })
     );
   }
