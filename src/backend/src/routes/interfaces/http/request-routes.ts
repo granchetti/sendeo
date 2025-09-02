@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
-import { UUID } from "../../domain/value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { corsHeaders } from "../../../http/cors";
 
 const sqs = new SQSClient({});

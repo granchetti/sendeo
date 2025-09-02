@@ -45,32 +45,6 @@ export async function getGoogleKey(): Promise<string> {
   return JSON.parse(resp.SecretString!).GOOGLE_API_KEY;
 }
 
-export async function getCityName(
-  lat: number,
-  lng: number,
-  apiKey: string
-): Promise<string> {
-  const url =
-    `https://maps.googleapis.com/maps/api/geocode/json` +
-    `?latlng=${lat},${lng}` +
-    `&key=${apiKey}` +
-    `&result_type=locality|administrative_area_level_3`;
-
-  try {
-    const data: any = await fetchJson(url);
-    const comps = data?.results?.[0]?.address_components ?? [];
-    return (
-      comps.find((c: any) => c.types.includes("locality"))?.long_name ??
-      comps.find((c: any) =>
-        c.types.includes("administrative_area_level_3")
-      )?.long_name ??
-      "Unknown"
-    );
-  } catch {
-    return "Unknown";
-  }
-}
-
 export function calcDistanceKm(coords: [number, number][]) {
   const line = turf.lineString(coords.map(([lat, lng]) => [lng, lat]));
   return turf.length(line, { units: "kilometers" });

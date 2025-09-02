@@ -4,11 +4,13 @@ import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { DynamoUserStateRepository } from "../../../users/infrastructure/dynamodb/dynamo-user-state-repository";
 import { publishRouteStarted, publishRouteFinished } from "../appsync-client";
-import { UUID } from "../../domain/value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 import { corsHeaders } from "../../../http/cors";
 import { describeRoute } from "../../handlers/describe-route";
+import { getGoogleKey } from "../shared/utils";
+import { GoogleMapsProvider } from "../../infrastructure/google-maps/google-maps-provider";
 
 const dynamo = new DynamoDBClient({});
 const sqs = new SQSClient({});
@@ -75,7 +77,9 @@ export const handler = async (
     }
     if (!route.description && route.path) {
       try {
-        const desc = await describeRoute(route.path.Encoded);
+        const key = await getGoogleKey();
+        const mapProvider = new GoogleMapsProvider(key);
+        const desc = await describeRoute(route.path.Encoded, mapProvider);
         if (desc) {
           route.description = desc;
           await routeRepository.save(route);

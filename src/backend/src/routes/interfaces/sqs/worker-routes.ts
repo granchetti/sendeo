@@ -5,7 +5,7 @@ import { Route } from "../../domain/entities/route-entity";
 import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
-import { UUID } from "../../domain/value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { publishRoutesGenerated } from "../appsync-client";
 import { fetchJson, getGoogleKey } from "../shared/utils";

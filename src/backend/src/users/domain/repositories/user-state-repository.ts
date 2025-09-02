@@ -1,4 +1,4 @@
-import { Email } from '../../../routes/domain/value-objects/email-value-object';
+import { Email } from '../../../shared/domain/value-objects/email-value-object';
 import { UserProfile } from '../entities/user-profile';
 
 export interface UserStateRepository {
