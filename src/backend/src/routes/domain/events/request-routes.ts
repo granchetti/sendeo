@@ -1,4 +1,4 @@
-import { UUID } from '../value-objects/uuid-value-object';
+import { UUID } from '../../../shared/domain/value-objects/uuid-value-object';
 import { Address } from '../value-objects/address-value-object';
 
 export interface RequestRoutesProps {

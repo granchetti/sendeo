@@ -1,7 +1,7 @@
 import { DistanceKm } from "../value-objects/distance-value-object";
 import { Duration } from "../value-objects/duration-value-object";
 import { Path } from "../value-objects/path-value-object";
-import { UUID } from "../value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 
 export interface RouteProps {
   readonly routeId: UUID;

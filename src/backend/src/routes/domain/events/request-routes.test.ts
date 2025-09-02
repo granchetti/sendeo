@@ -1,5 +1,5 @@
 import { RequestRoutesEvent } from './request-routes';
-import { UUID } from '../value-objects/uuid-value-object';
+import { UUID } from '../../../shared/domain/value-objects/uuid-value-object';
 import { Address } from '../value-objects/address-value-object';
 
 describe('RequestRoutesEvent', () => {

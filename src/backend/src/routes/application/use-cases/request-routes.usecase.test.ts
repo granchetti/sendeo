@@ -1,7 +1,7 @@
 import { RequestRoutesUseCase } from './request-routes';
 import { RouteRepository } from '../../domain/repositories/route-repository';
 import { Route } from '../../domain/entities/route-entity';
-import { UUID } from '../../domain/value-objects/uuid-value-object';
+import { UUID } from '../../../shared/domain/value-objects/uuid-value-object';
 
 describe('RequestRoutesUseCase', () => {
   it('saves and returns a Route instance', async () => {
