@@ -4,6 +4,7 @@ import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
 import { LatLng } from "../../domain/value-objects/lat-lng-value-object";
+import { RouteStatus } from "../../domain/value-objects/route-status";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoRouteRepository } from "./dynamo-route-repository";
 
@@ -47,14 +48,9 @@ describe("DynamoRouteRepository", () => {
   it("save correctly calls PutItemCommand", async () => {
     const coords = [LatLng.fromNumbers(1, 2), LatLng.fromNumbers(3, 4)];
     const path = Path.fromCoordinates(coords);
-    const route = new Route({
-      routeId: UUID.generate(),
-      jobId: UUID.generate(),
-      distanceKm: new DistanceKm(5),
-      duration: new Duration(10),
-      path,
-      description: "desc",
-    });
+    const route = Route.request({ routeId: UUID.generate(), jobId: UUID.generate() });
+    route.generate(new DistanceKm(5), new Duration(10), path);
+    route.description = "desc";
 
     const now = 1_600_000_000;
     const spy = jest.spyOn(Date, "now").mockReturnValue(now * 1000);
@@ -71,6 +67,7 @@ describe("DynamoRouteRepository", () => {
       createdAt: { N: now.toString() },
       ttl: { N: (now + 60).toString() },
       description: { S: "desc" },
+      status: { S: RouteStatus.Generated },
     };
 
     expect(mockPut).toHaveBeenCalledWith({
@@ -98,6 +95,7 @@ describe("DynamoRouteRepository", () => {
       duration: { N: "10" },
       path: { S: encoded },
       description: { S: "desc" },
+      status: { S: RouteStatus.Generated },
     };
     mockSend.mockResolvedValueOnce({ Item: returned });
 
@@ -129,6 +127,7 @@ describe("DynamoRouteRepository", () => {
           routeId: { S: routeId },
           jobId: { S: jobId },
           description: { S: "d" },
+          status: { S: RouteStatus.Requested },
         },
       ],
     };

@@ -5,6 +5,7 @@ import { UUID } from "../value-objects/uuid-value-object";
 import { DomainEvent } from "../../../shared/domain/events/domain-event";
 import { RouteRequestedEvent } from "../events/route-requested";
 import { RouteGeneratedEvent } from "../events/route-generated";
+import { RouteStatus } from "../value-objects/route-status";
 
 export interface RouteProps {
   readonly routeId: UUID;
@@ -13,6 +14,7 @@ export interface RouteProps {
   readonly duration?: Duration;
   readonly path?: Path;
   readonly description?: string;
+  readonly status: RouteStatus;
 }
 
 export class Route {
@@ -26,17 +28,42 @@ export class Route {
     this.props = { ...props };
   }
 
-  static request(props: RouteProps): Route {
-    const route = new Route(props);
+  static request(props: Omit<RouteProps, "status">): Route {
+    const route = new Route({ ...props, status: RouteStatus.Requested });
     route.record(new RouteRequestedEvent({ routeId: route.routeId }));
     return route;
   }
 
-  generate(distanceKm: DistanceKm, duration: Duration, path: Path): void {
+  static rehydrate(props: RouteProps): Route {
+    return new Route(props);
+  }
+
+  generate(distanceKm: DistanceKm, duration: Duration, path?: Path): void {
     this.props.distanceKm = distanceKm;
     this.props.duration = duration;
-    this.props.path = path;
+    if (path) this.props.path = path;
+    this.props.status = RouteStatus.Generated;
     this.record(new RouteGeneratedEvent({ route: this }));
+  }
+
+  start(): void {
+    if (!this.props.distanceKm || !this.props.path) {
+      throw new Error("distanceKm and path must be set before starting");
+    }
+    if (this.props.status !== RouteStatus.Generated) {
+      throw new Error("route must be generated before starting");
+    }
+    this.props.status = RouteStatus.Started;
+  }
+
+  finish(): void {
+    if (!this.props.distanceKm || !this.props.path) {
+      throw new Error("distanceKm and path must be set before finishing");
+    }
+    if (this.props.status !== RouteStatus.Started) {
+      throw new Error("route must be started before finishing");
+    }
+    this.props.status = RouteStatus.Finished;
   }
 
   private record(event: DomainEvent): void {
@@ -75,5 +102,9 @@ export class Route {
 
   set description(desc: string | undefined) {
     this.props.description = desc;
+  }
+
+  get status(): RouteStatus {
+    return this.props.status;
   }
 }

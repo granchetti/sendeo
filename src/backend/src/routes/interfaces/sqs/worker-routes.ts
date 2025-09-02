@@ -214,13 +214,15 @@ async function persistRoute(
   dur: number,
   poly?: string,
 ) {
-  const r = new Route({
+  const r = Route.request({
     routeId: UUID.generate(),
     jobId: UUID.fromString(jobId),
-    distanceKm: new DistanceKm(km),
-    duration: new Duration(dur),
-    path: poly ? new Path(poly) : undefined,
   });
+  r.generate(
+    new DistanceKm(km),
+    new Duration(dur),
+    poly ? new Path(poly) : undefined
+  );
   await repository.save(r);
   console.info("[persistRoute] saved:", r);
   return r;

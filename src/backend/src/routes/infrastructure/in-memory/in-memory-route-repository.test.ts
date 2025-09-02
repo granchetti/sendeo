@@ -14,15 +14,15 @@ describe("InMemoryRouteRepository", () => {
   });
 
   it("saves and retrieves a route by id", async () => {
-    const route = new Route({
-      routeId: UUID.generate(),
-      distanceKm: new DistanceKm(3),
-      duration: new Duration(300),
-      path: Path.fromCoordinates([
+    const route = Route.request({ routeId: UUID.generate() });
+    route.generate(
+      new DistanceKm(3),
+      new Duration(300),
+      Path.fromCoordinates([
         LatLng.fromNumbers(0, 0),
         LatLng.fromNumbers(1, 1),
-      ]),
-    });
+      ])
+    );
 
     await repo.save(route);
     const fetched = await repo.findById(route.routeId);
@@ -42,24 +42,24 @@ describe("InMemoryRouteRepository", () => {
   });
 
   it("findAll returns all saved routes", async () => {
-    const routeA = new Route({
-      routeId: UUID.generate(),
-      distanceKm: new DistanceKm(1),
-      duration: new Duration(100),
-      path: Path.fromCoordinates([
+    const routeA = Route.request({ routeId: UUID.generate() });
+    routeA.generate(
+      new DistanceKm(1),
+      new Duration(100),
+      Path.fromCoordinates([
         LatLng.fromNumbers(10, 10),
         LatLng.fromNumbers(20, 20),
-      ]),
-    });
-    const routeB = new Route({
-      routeId: UUID.generate(),
-      distanceKm: new DistanceKm(2),
-      duration: new Duration(200),
-      path: Path.fromCoordinates([
+      ])
+    );
+    const routeB = Route.request({ routeId: UUID.generate() });
+    routeB.generate(
+      new DistanceKm(2),
+      new Duration(200),
+      Path.fromCoordinates([
         LatLng.fromNumbers(30, 30),
         LatLng.fromNumbers(40, 40),
-      ]),
-    });
+      ])
+    );
 
     await repo.save(routeA);
     await repo.save(routeB);
@@ -73,14 +73,8 @@ describe("InMemoryRouteRepository", () => {
 
   it("findByJobId filters routes by jobId", async () => {
     const jobId = UUID.generate();
-    const r1 = new Route({
-      routeId: UUID.generate(),
-      jobId,
-    });
-    const r2 = new Route({
-      routeId: UUID.generate(),
-      jobId,
-    });
+    const r1 = Route.request({ routeId: UUID.generate(), jobId });
+    const r2 = Route.request({ routeId: UUID.generate(), jobId });
     await repo.save(r1);
     await repo.save(r2);
 
@@ -92,15 +86,15 @@ describe("InMemoryRouteRepository", () => {
   });
 
   it("remove deletes the route", async () => {
-    const route = new Route({
-      routeId: UUID.generate(),
-      distanceKm: new DistanceKm(5),
-      duration: new Duration(500),
-      path: Path.fromCoordinates([
+    const route = Route.request({ routeId: UUID.generate() });
+    route.generate(
+      new DistanceKm(5),
+      new Duration(500),
+      Path.fromCoordinates([
         LatLng.fromNumbers(50, 50),
         LatLng.fromNumbers(60, 60),
-      ]),
-    });
+      ])
+    );
 
     await repo.save(route);
     expect(await repo.findById(route.routeId)).not.toBeNull();

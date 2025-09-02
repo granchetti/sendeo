@@ -5,7 +5,7 @@ import { UUID } from '../../domain/value-objects/uuid-value-object';
 
 describe('ListRoutesUseCase', () => {
   it('returns all routes from repository', async () => {
-    const routes = [new Route({ routeId: UUID.generate() })];
+    const routes = [Route.request({ routeId: UUID.generate() })];
     const repo: RouteRepository = {
       findAll: jest.fn().mockResolvedValue(routes),
       findById: jest.fn(),
