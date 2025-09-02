@@ -3,11 +3,8 @@ import {
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 import polyline from "@mapbox/polyline";
-import {
-  calcDistanceKm,
-  getCityName,
-  getGoogleKey,
-} from "../interfaces/shared/utils";
+import { calcDistanceKm } from "../interfaces/shared/utils";
+import { MapProvider } from "../domain/services/map-provider";
 
 const bedrock = new BedrockRuntimeClient({});
 
@@ -110,15 +107,14 @@ Formatting rules:
 
 export async function describeRoute(
   encodedPath: string,
+  mapProvider: MapProvider,
   modelId = "eu.anthropic.claude-3-7-sonnet-20250219-v1:0"
 ) {
   if (!encodedPath) return "";
   const coords = polyline.decode(encodedPath);
   const [lat, lng] = coords[0];
   const weatherSentence = await fetchWeather(lat, lng);
-
-  const googleKey = await getGoogleKey();
-  const city = await getCityName(lat, lng, googleKey);
+  const city = await mapProvider.getCityName(lat, lng);
   const seed = Date.now();
   const variant = (seed % 6) + 1;
 
