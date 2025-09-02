@@ -9,6 +9,8 @@ import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 import { corsHeaders } from "../../../http/cors";
 import { describeRoute } from "../../handlers/describe-route";
+import { getGoogleKey } from "../shared/utils";
+import { GoogleMapsProvider } from "../../infrastructure/google-maps/google-maps-provider";
 
 const dynamo = new DynamoDBClient({});
 const sqs = new SQSClient({});
@@ -75,7 +77,9 @@ export const handler = async (
     }
     if (!route.description && route.path) {
       try {
-        const desc = await describeRoute(route.path.Encoded);
+        const key = await getGoogleKey();
+        const mapProvider = new GoogleMapsProvider(key);
+        const desc = await describeRoute(route.path.Encoded, mapProvider);
         if (desc) {
           route.description = desc;
           await routeRepository.save(route);

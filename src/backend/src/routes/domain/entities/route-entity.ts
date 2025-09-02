@@ -2,6 +2,9 @@ import { DistanceKm } from "../value-objects/distance-value-object";
 import { Duration } from "../value-objects/duration-value-object";
 import { Path } from "../value-objects/path-value-object";
 import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
+import { DomainEvent } from "../../../shared/domain/events/domain-event";
+import { RouteRequestedEvent } from "../events/route-requested";
+import { RouteGeneratedEvent } from "../events/route-generated";
 
 export interface RouteProps {
   readonly routeId: UUID;
@@ -14,12 +17,36 @@ export interface RouteProps {
 
 export class Route {
   private props: RouteProps;
+  private events: DomainEvent[] = [];
 
-  constructor(props: RouteProps) {
+  private constructor(props: RouteProps) {
     if (!props.routeId) {
       throw new Error("routeId is required");
     }
-    this.props = { ...props};
+    this.props = { ...props };
+  }
+
+  static request(props: RouteProps): Route {
+    const route = new Route(props);
+    route.record(new RouteRequestedEvent({ routeId: route.routeId }));
+    return route;
+  }
+
+  generate(distanceKm: DistanceKm, duration: Duration, path: Path): void {
+    this.props.distanceKm = distanceKm;
+    this.props.duration = duration;
+    this.props.path = path;
+    this.record(new RouteGeneratedEvent({ route: this }));
+  }
+
+  private record(event: DomainEvent): void {
+    this.events.push(event);
+  }
+
+  pullEvents(): DomainEvent[] {
+    const events = [...this.events];
+    this.events = [];
+    return events;
   }
 
   get jobId(): UUID | undefined {
