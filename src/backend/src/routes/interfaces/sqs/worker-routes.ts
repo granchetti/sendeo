@@ -2,6 +2,7 @@ import { SQSHandler } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { request as httpsRequest, RequestOptions } from "node:https";
+import { createHash } from "node:crypto";
 import { Route } from "../../domain/entities/route-entity";
 import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
@@ -14,6 +15,7 @@ import { fetchJson, getGoogleKey } from "../shared/utils";
 const dynamo = new DynamoDBClient({});
 const sqs = new SQSClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
+const SNAP_THRESHOLD_KM = 0.5;
 
 /** Geocode or parse “lat,lng” */
 async function geocode(address: string, apiKey: string) {
@@ -35,53 +37,64 @@ async function geocode(address: string, apiKey: string) {
 }
 
 /** POST → JSON for legacy Routes API */
-function postJson<T>(
+async function postJson<T>(
   host: string,
   path: string,
   apiKey: string,
-  body: any
+  body: any,
+  attempt = 0
 ): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const payload = JSON.stringify(body);
-    const opts: RequestOptions = {
-      method: "POST",
-      host,
-      path,
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-        "X-Goog-Api-Key": apiKey,
-        "X-Goog-FieldMask":
-          "routes.legs.duration,routes.legs.distanceMeters,routes.legs.polyline.encodedPolyline",
-      },
-    };
-    console.info(`[postJson] POST https://${host}${path}`, body);
-    const req = httpsRequest(opts, (res) => {
-      let data = "";
-      res.on("data", (c) => (data += c));
-      res.on("end", () => {
-        console.info(`[postJson] HTTP ${res.statusCode}`, data);
-        if (res.statusCode !== 200) {
-          console.error("[postJson] non-200 status");
-          return reject(
-            new Error(`Routes API returned HTTP ${res.statusCode}`)
-          );
-        }
-        try {
-          resolve(data ? JSON.parse(data) : null);
-        } catch (err) {
-          console.error("[postJson] JSON.parse error", data);
-          reject(err);
-        }
+  const payload = JSON.stringify(body);
+  const opts: RequestOptions = {
+    method: "POST",
+    host,
+    path,
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(payload),
+      "X-Goog-Api-Key": apiKey,
+      "X-Goog-FieldMask":
+        "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline",
+    },
+  };
+  console.info(`[postJson] POST https://${host}${path}`, body);
+  try {
+    const data = await new Promise<string>((resolve, reject) => {
+      const req = httpsRequest(opts, (res) => {
+        let data = "";
+        res.on("data", (c) => (data += c));
+        res.on("end", () => {
+          console.info(`[postJson] HTTP ${res.statusCode}`, data);
+          if (res.statusCode !== 200) {
+            const err: any = new Error(
+              `Routes API returned HTTP ${res.statusCode}`
+            );
+            err.statusCode = res.statusCode;
+            err.body = data;
+            return reject(err);
+          }
+          resolve(data);
+        });
       });
+      req.on("error", (err) => reject(err));
+      req.write(payload);
+      req.end();
     });
-    req.on("error", (err) => {
-      console.error("[postJson] HTTP error", err);
-      reject(err);
-    });
-    req.write(payload);
-    req.end();
-  });
+    return data ? JSON.parse(data) : null;
+  } catch (err: any) {
+    const status = err?.statusCode;
+    if (
+      (status === 429 || (status >= 500 && status < 600)) &&
+      attempt < 2
+    ) {
+      const delay = 500 * Math.pow(2, attempt);
+      console.warn(`[postJson] retry ${attempt + 1} in ${delay}ms due to ${status}`);
+      await new Promise((r) => setTimeout(r, delay));
+      return postJson<T>(host, path, apiKey, body, attempt + 1);
+    }
+    console.error("[postJson] HTTP error", err);
+    throw err;
+  }
 }
 
 /** Compute alternative walking routes */
@@ -111,16 +124,14 @@ async function computeRoutes(
   );
   return (resp.routes || [])
     .map((r: any) => {
-      const leg = r.legs?.[0];
-      if (!leg) return null;
       const seconds =
-        typeof leg.duration === "object"
-          ? leg.duration.seconds
-          : parseInt(leg.duration.replace(/\D/g, ""), 10);
+        typeof r.duration === "object"
+          ? r.duration.seconds
+          : parseInt(r.duration.replace(/\D/g, ""), 10);
       return {
-        distanceMeters: leg.distanceMeters!,
+        distanceMeters: r.distanceMeters!,
         durationSeconds: seconds,
-        encoded: leg.polyline?.encodedPolyline,
+        encoded: r.polyline?.encodedPolyline,
       };
     })
     .filter((x): x is any => !!x);
@@ -145,21 +156,64 @@ function offsetCoordinate(lat: number, lng: number, dKm: number, bDeg = 90) {
   return { lat: (φ2 * 180) / Math.PI, lng: (λ2 * 180) / Math.PI };
 }
 
+/** Simple haversine distance in km */
+function distanceKm(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+) {
+  const R = 6371;
+  const φ1 = (a.lat * Math.PI) / 180,
+    φ2 = (b.lat * Math.PI) / 180;
+  const Δφ = ((b.lat - a.lat) * Math.PI) / 180;
+  const Δλ = ((b.lng - a.lng) * Math.PI) / 180;
+  const s =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  return 2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
 /** Snap a point to the nearest road */
-async function snapToRoad(pt: { lat: number; lng: number }, apiKey: string) {
+async function snapToRoad(
+  pt: { lat: number; lng: number },
+  apiKey: string,
+  maxKm = 1
+) {
   const url = `https://roads.googleapis.com/v1/nearestRoads?points=${pt.lat},${pt.lng}&key=${apiKey}`;
   console.info("[snapToRoad]", pt);
   try {
     const data: any = await fetchJson(url);
     const loc = data?.snappedPoints?.[0]?.location;
     console.info("[snapToRoad] snapped:", loc);
-    return loc
-      ? { lat: loc.latitude ?? loc.lat, lng: loc.longitude ?? loc.lng }
-      : pt;
+    if (!loc) return pt;
+    const snapped = {
+      lat: loc.latitude ?? loc.lat,
+      lng: loc.longitude ?? loc.lng,
+    };
+    const d = distanceKm(pt, snapped);
+    if (
+      d > maxKm ||
+      Math.abs(snapped.lat - pt.lat) > 1 ||
+      Math.abs(snapped.lng - pt.lng) > 1
+    ) {
+      console.warn("[snapToRoad] snapped too far, ignored");
+      return pt;
+    }
+    return snapped;
   } catch (err) {
     console.warn("[snapToRoad] failed:", err);
     return pt;
   }
+}
+
+function withinTarget(
+  km: number,
+  targetKm: number,
+  pct = 0.15,
+  absMax = 2
+) {
+  const delta = Math.abs(km - targetKm);
+  const tol = Math.min(targetKm * pct, absMax);
+  return delta <= tol;
 }
 
 /**
@@ -180,17 +234,16 @@ async function computeCircularRoute(
   console.info("[computeCircularRoute] start", origin, "dKm=", dKm);
   const baseRadius = (dKm / (2 * Math.PI)) * radiusMultiplier;
   const step = 360 / segments;
-
+  const angles: number[] = [];
   // build & snap waypoints at full radius
   const waypoints = [];
   for (let i = 0; i < segments; i++) {
-    const raw = offsetCoordinate(
-      origin.lat,
-      origin.lng,
-      baseRadius,
-      startBearing + step * i
-    );
-    const snapped = await snapToRoad(raw, apiKey);
+    const jitter = (Math.random() * 2 - 1) * step * 0.25;
+    const angle = startBearing + step * i + jitter;
+    angles.push(angle);
+    const raw = offsetCoordinate(origin.lat, origin.lng, baseRadius, angle);
+    const snapped =
+      baseRadius > SNAP_THRESHOLD_KM ? await snapToRoad(raw, apiKey) : raw;
     const pt =
       snapped.lat === origin.lat && snapped.lng === origin.lng ? raw : snapped;
     waypoints.push(pt);
@@ -203,10 +256,16 @@ async function computeCircularRoute(
     prev = origin,
     success = 0;
   for (let i = 0; i < segments; i++) {
-    const angle = startBearing + step * i;
+    const angle = angles[i];
     const primary = waypoints[i];
-    const halfRaw = offsetCoordinate(origin.lat, origin.lng, baseRadius * 0.5, angle);
-    const halfSnap = await snapToRoad(halfRaw, apiKey);
+    const halfRaw = offsetCoordinate(
+      origin.lat,
+      origin.lng,
+      baseRadius * 0.5,
+      angle
+    );
+    const halfSnap =
+      baseRadius > SNAP_THRESHOLD_KM ? await snapToRoad(halfRaw, apiKey) : halfRaw;
     const half =
       halfSnap.lat === origin.lat && halfSnap.lng === origin.lng ? halfRaw : halfSnap;
     const candidates = [primary, half, origin];
@@ -274,7 +333,8 @@ async function computeCircularRoute(
     }
   }
 
-  if (!encoded || success < segments / 2) return null;
+  const closed = prev.lat === origin.lat && prev.lng === origin.lng;
+  if (!encoded || (!closed && success < segments / 2)) return null;
   return { distanceMeters: totalDist, durationSeconds: totalDur, encoded };
 }
 
@@ -313,7 +373,6 @@ export const handler: SQSHandler = async (event) => {
       distanceKm,
       roundTrip = false,
       circle = false,
-      maxDeltaKm = 1,
       routesCount = 3,
     } = JSON.parse(body);
 
@@ -321,6 +380,9 @@ export const handler: SQSHandler = async (event) => {
     const dCoords = destination ? await geocode(destination, key) : undefined;
 
     const saved: Route[] = [];
+    const seen = new Set<string>();
+    let circularCount = 0;
+    const circularGoal = Math.ceil(routesCount * 0.66);
     let attempts = 0,
       maxAt = routesCount * 10;
     console.info(`[handler] max attempts: ${maxAt}`);
@@ -333,19 +395,24 @@ export const handler: SQSHandler = async (event) => {
       if (dCoords) {
         // ——— point→point ———
         const alts = await computeRoutes(oCoords, dCoords, key);
-        for (const alt of alts) {
+        const shuffled = alts.sort(() => Math.random() - 0.5);
+        for (const alt of shuffled) {
           if (saved.length >= routesCount) break;
           const km = alt.distanceMeters / 1000;
-          if (Math.abs(km - (distanceKm ?? km)) > maxDeltaKm) {
+          const target = distanceKm ?? km;
+          if (!withinTarget(km, target)) {
             console.warn("[handler] p2p out of range", km);
             continue;
           }
+          const hash = createHash("md5").update(alt.encoded || "").digest("hex");
+          if (seen.has(hash)) continue;
           const r = await persistRoute(
             jobId,
             km,
             alt.durationSeconds,
             alt.encoded,
           );
+          seen.add(hash);
           saved.push(r);
         }
       } else {
@@ -355,22 +422,52 @@ export const handler: SQSHandler = async (event) => {
           durationSeconds: number;
           encoded: string;
         } | null = null;
+        let isCircular = false;
         if (roundTrip && circle) {
           // try multiple circular configurations (segments, radius, bearing)
-          const segOptions = [4, 6, 8];
-          const radiusOpts = [1, 0.75, 0.5];
+          const segOptions = [4, 5, 6, 8, 10];
+          const radiusOpts = [1.1, 1, 0.85, 0.7, 0.55, 0.4];
           outer: for (const segs of segOptions) {
+            const step = 360 / segs;
             for (const rMul of radiusOpts) {
-              const bearing = Math.random() * 360;
-              leg = await computeCircularRoute(
-                oCoords,
-                distanceKm!,
-                segs,
-                key,
-                bearing,
-                rMul
-              );
-              if (leg) break outer;
+              const tries = 2 + Math.floor(Math.random() * 2);
+              for (let t = 0; t < tries; t++) {
+                const bearing =
+                  Math.random() * 360 + (Math.random() * 2 - 1) * step * 0.25;
+                leg = await computeCircularRoute(
+                  oCoords,
+                  distanceKm!,
+                  segs,
+                  key,
+                  bearing,
+                  rMul
+                );
+                if (leg) {
+                  let km = leg.distanceMeters / 1000;
+                  let adjust = 0;
+                  while (!withinTarget(km, distanceKm!) && adjust < 2) {
+                    const rm = Math.min(
+                      1.3,
+                      Math.max(0.4, distanceKm! / km)
+                    );
+                    leg = await computeCircularRoute(
+                      oCoords,
+                      distanceKm!,
+                      segs,
+                      key,
+                      bearing,
+                      rm
+                    );
+                    if (!leg) break;
+                    km = leg.distanceMeters / 1000;
+                    adjust++;
+                  }
+                  if (leg && withinTarget(leg.distanceMeters / 1000, distanceKm!)) {
+                    isCircular = true;
+                    break outer;
+                  }
+                }
+              }
             }
           }
           if (!leg) {
@@ -386,7 +483,8 @@ export const handler: SQSHandler = async (event) => {
               half,
               bearing
             );
-            const snapped = await snapToRoad(rawDest, key);
+            const snapped =
+              half > SNAP_THRESHOLD_KM ? await snapToRoad(rawDest, key) : rawDest;
             const [out] = await computeRoutes(oCoords, snapped, key);
             const [back] = await computeRoutes(snapped, oCoords, key);
             if (out?.encoded && back?.encoded) {
@@ -411,7 +509,8 @@ export const handler: SQSHandler = async (event) => {
             half,
             bearing
           );
-          const snapped = await snapToRoad(rawDest, key);
+          const snapped =
+            half > SNAP_THRESHOLD_KM ? await snapToRoad(rawDest, key) : rawDest;
           const [out] = await computeRoutes(oCoords, snapped, key);
           if (!out) continue;
 
@@ -432,17 +531,27 @@ export const handler: SQSHandler = async (event) => {
 
         if (leg) {
           const km = leg.distanceMeters / 1000;
-          if (Math.abs(km - distanceKm!) > maxDeltaKm) {
+          if (!withinTarget(km, distanceKm!)) {
             console.warn("[handler] dist-only out of range", km);
             continue;
           }
+          if (!isCircular && circularCount < circularGoal) {
+            console.warn(
+              "[handler] skipping fallback until enough circular routes"
+            );
+            continue;
+          }
+          const hash = createHash("md5").update(leg.encoded || "").digest("hex");
+          if (seen.has(hash)) continue;
           const r = await persistRoute(
             jobId,
             km,
             leg.durationSeconds,
             leg.encoded,
           );
+          seen.add(hash);
           saved.push(r);
+          if (isCircular) circularCount++;
         }
       }
     }

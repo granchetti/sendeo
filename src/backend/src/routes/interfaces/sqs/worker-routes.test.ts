@@ -78,15 +78,11 @@ describe("worker routes handler", () => {
     responseDataHolder.data = JSON.stringify({
       routes: [
         {
-          legs: [
-            {
-              distanceMeters: 1500,
-              duration: { seconds: 600 },
-              polyline: {
-                encodedPolyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
-              },
-            },
-          ],
+          distanceMeters: 1500,
+          duration: { seconds: 600 },
+          polyline: {
+            encodedPolyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
+          },
         },
       ],
     });
@@ -135,9 +131,9 @@ describe("worker routes handler", () => {
     expect(msg.input.MessageBody).toContain("routes_generated");
   });
 
-  it("does not save when response has no legs", async () => {
+  it("does not save when response has no distance", async () => {
     responseDataHolder.data = JSON.stringify({
-      routes: [{ legs: [] }],
+      routes: [{}],
     });
 
     const handler = loadHandler();
@@ -170,13 +166,9 @@ describe("worker routes handler", () => {
     responseDataHolder.data = JSON.stringify({
       routes: [
         {
-          legs: [
-            {
-              distanceMeters: 1500,
-              duration: { seconds: 600 },
-              polyline: {},
-            },
-          ],
+          distanceMeters: 1500,
+          duration: { seconds: 600 },
+          polyline: {},
         },
       ],
     });
@@ -205,15 +197,11 @@ describe("worker routes handler", () => {
     const forward = JSON.stringify({
       routes: [
         {
-          legs: [
-            {
-              distanceMeters: 1500,
-              duration: { seconds: 600 },
-              polyline: {
-                encodedPolyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
-              },
-            },
-          ],
+          distanceMeters: 1500,
+          duration: { seconds: 600 },
+          polyline: {
+            encodedPolyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
+          },
         },
       ],
     });
@@ -221,15 +209,11 @@ describe("worker routes handler", () => {
     const back = JSON.stringify({
       routes: [
         {
-          legs: [
-            {
-              distanceMeters: 1500,
-              duration: { seconds: 600 },
-              polyline: {
-                encodedPolyline: "_t~fGfzxbW~lqNwxq`@~tlLonqC",
-              },
-            },
-          ],
+          distanceMeters: 1500,
+          duration: { seconds: 600 },
+          polyline: {
+            encodedPolyline: "_t~fGfzxbW~lqNwxq`@~tlLonqC",
+          },
         },
       ],
     });
@@ -314,13 +298,9 @@ describe("worker routes handler", () => {
     const forward = JSON.stringify({
       routes: [
         {
-          legs: [
-            {
-              distanceMeters: 1500,
-              duration: { seconds: 600 },
-              polyline: { encodedPolyline: polyline.encode(forwardCoords) },
-            },
-          ],
+          distanceMeters: 1500,
+          duration: { seconds: 600 },
+          polyline: { encodedPolyline: polyline.encode(forwardCoords) },
         },
       ],
     });
@@ -328,13 +308,9 @@ describe("worker routes handler", () => {
     const back = JSON.stringify({
       routes: [
         {
-          legs: [
-            {
-              distanceMeters: 1500,
-              duration: { seconds: 600 },
-              polyline: { encodedPolyline: polyline.encode(backCoords) },
-            },
-          ],
+          distanceMeters: 1500,
+          duration: { seconds: 600 },
+          polyline: { encodedPolyline: polyline.encode(backCoords) },
         },
       ],
     });
@@ -401,13 +377,9 @@ describe("worker routes handler", () => {
       JSON.stringify({
         routes: [
           {
-            legs: [
-              {
-                distanceMeters: 1000,
-                duration: { seconds: 600 },
-                polyline: { encodedPolyline: poly },
-              },
-            ],
+            distanceMeters: 1000,
+            duration: { seconds: 600 },
+            polyline: { encodedPolyline: poly },
           },
         ],
       });
@@ -491,17 +463,13 @@ describe("worker routes handler", () => {
     ]);
   });
 
-  it("skips save when distance difference exceeds maxDeltaKm", async () => {
+  it("skips save when distance difference exceeds tolerance", async () => {
     responseDataHolder.data = JSON.stringify({
       routes: [
         {
-          legs: [
-            {
-              distanceMeters: 9000,
-              duration: { seconds: 600 },
-              polyline: {},
-            },
-          ],
+          distanceMeters: 7000,
+          duration: { seconds: 600 },
+          polyline: {},
         },
       ],
     });
@@ -515,7 +483,6 @@ describe("worker routes handler", () => {
             origin: "a",
             destination: "b",
             distanceKm: 10,
-            maxDeltaKm: 0.5,
             routesCount: 1,
           }),
         },
@@ -532,13 +499,9 @@ describe("worker routes handler", () => {
     responseDataHolder.data = JSON.stringify({
       routes: [
         {
-          legs: [
-            {
-              distanceMeters: 1500,
-              duration: { seconds: 600 },
-              polyline: {},
-            },
-          ],
+          distanceMeters: 1500,
+          duration: { seconds: 600 },
+          polyline: {},
         },
       ],
     });
@@ -569,13 +532,9 @@ describe("worker routes handler", () => {
     responseDataHolder.data = JSON.stringify({
       routes: [
         {
-          legs: [
-            {
-              distanceMeters: 1500,
-              duration: { seconds: 600 },
-              polyline: {},
-            },
-          ],
+          distanceMeters: 1500,
+          duration: { seconds: 600 },
+          polyline: {},
         },
       ],
     });
