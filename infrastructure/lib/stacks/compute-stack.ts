@@ -133,6 +133,12 @@ export class ComputeStack extends cdk.Stack {
         resources: [props.userStateTable.tableArn],
       })
     );
+    favoriteRoutes.fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["appsync:GraphQL"],
+        resources: ["*"], // or the specific API ARN
+      })
+    );
 
     // 4) ProfileRoutes → GET/PUT /profile
     const profileRoutes = new HttpLambda(this, "ProfileRoutes", {
