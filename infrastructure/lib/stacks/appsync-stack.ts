@@ -5,6 +5,7 @@ import {
   AuthorizationType,
   FieldLogLevel,
   SchemaFile,
+  MappingTemplate,
 } from "aws-cdk-lib/aws-appsync";
 import { IUserPool } from "aws-cdk-lib/aws-cognito";
 import * as path from "path";
@@ -35,6 +36,29 @@ export class AppSyncStack extends cdk.Stack {
         },
       },
     });
+
+    const noneDs = this.api.addNoneDataSource("NoneDS");
+
+    const mutations = [
+      "publishRoutesGenerated",
+      "publishFavouriteSaved",
+      "publishFavouriteDeleted",
+      "publishRouteStarted",
+      "publishRouteFinished",
+    ];
+
+    mutations.forEach((field) =>
+      noneDs.createResolver(field, {
+        typeName: "Mutation",
+        fieldName: field,
+        requestMappingTemplate: MappingTemplate.fromString(
+          "$util.toJson($context.arguments)"
+        ),
+        responseMappingTemplate: MappingTemplate.fromString(
+          "$util.toJson($context.arguments)"
+        ),
+      })
+    );
 
     new cdk.CfnOutput(this, "AppSyncUrl", {
       value: this.api.graphqlUrl,
