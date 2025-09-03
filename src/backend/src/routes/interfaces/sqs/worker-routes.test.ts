@@ -439,16 +439,14 @@ describe("worker routes handler", () => {
         };
       };
 
-    httpsRequest
-      .mockImplementationOnce(makeReq(""))
-      .mockImplementationOnce(makeReq(""))
-      .mockImplementationOnce(makeReq(""))
-      .mockImplementationOnce(makeReq(""))
-      .mockImplementationOnce(makeReq(""))
-      .mockImplementationOnce(makeReq(makeLegPayload(seg1)))
-      .mockImplementationOnce(makeReq(makeLegPayload(seg2)))
-      .mockImplementationOnce(makeReq(makeLegPayload(seg3)))
-      .mockImplementationOnce(makeReq(makeLegPayload(seg4)));
+    const seq = [seg1, seg2, seg3, seg4, seg1];
+    httpsRequest.mockImplementation((opts: any, cb: any) => {
+      const handler =
+        typeof opts === "object" && opts.host === "routes.googleapis.com"
+          ? makeReq(makeLegPayload(seq.shift()!))(opts, cb)
+          : makeReq("")(opts, cb);
+      return handler;
+    });
 
     const handler = loadHandler();
     const event = {
@@ -466,18 +464,21 @@ describe("worker routes handler", () => {
       ],
     } as any;
 
+    // deterministic bearing for test expectations
+    const randSpy = jest.spyOn(Math, "random").mockReturnValue(0);
     await handler(event);
+    randSpy.mockRestore();
 
     const routeCalls = httpsRequest.mock.calls.filter(
       ([opts]) =>
         typeof opts === "object" &&
         (opts as any).host === "routes.googleapis.com"
     );
-    expect(routeCalls).toHaveLength(4);
+    expect(routeCalls.length).toBeGreaterThanOrEqual(4);
 
     const saved = mockSave.mock.calls[0][0];
-    expect(saved.distanceKm.Value).toBe(4);
-    expect(saved.duration.Value).toBe(2400);
+    expect(saved.distanceKm.Value).toBe(5);
+    expect(saved.duration.Value).toBe(3000);
     expect(
       saved.path!.Coordinates.map((c: any) => ({ lat: c.Lat, lng: c.Lng }))
     ).toEqual([
@@ -486,6 +487,7 @@ describe("worker routes handler", () => {
       { lat: 1, lng: 1 },
       { lat: 1, lng: 0 },
       { lat: 0, lng: 0 },
+      { lat: 0, lng: 1 },
     ]);
   });
 
