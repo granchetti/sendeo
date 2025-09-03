@@ -59,4 +59,22 @@ describe("AppSyncStack", () => {
       });
     }
   });
+
+  test("creates resolvers for mutations", () => {
+    const mutations = [
+      "publishRoutesGenerated",
+      "publishFavouriteSaved",
+      "publishFavouriteDeleted",
+      "publishRouteStarted",
+      "publishRouteFinished",
+    ];
+
+    mutations.forEach((field) => {
+      template.hasResourceProperties("AWS::AppSync::Resolver", {
+        TypeName: "Mutation",
+        FieldName: field,
+        DataSourceName: "NoneDS",
+      });
+    });
+  });
 });
