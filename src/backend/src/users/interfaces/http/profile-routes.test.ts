@@ -1,8 +1,8 @@
 const mockGetProfile = jest.fn();
 const mockPutProfile = jest.fn();
 
-jest.mock("../../infrastructure/dynamodb/dynamo-user-state-repository", () => ({
-  DynamoUserStateRepository: jest.fn().mockImplementation(() => ({
+jest.mock("../../infrastructure/dynamodb/dynamo-user-profile-repository", () => ({
+  DynamoUserProfileRepository: jest.fn().mockImplementation(() => ({
     getProfile: mockGetProfile,
     putProfile: mockPutProfile,
   })),

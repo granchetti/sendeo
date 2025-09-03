@@ -1,16 +1,13 @@
 import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from './add-favourite';
-import { UserStateRepository } from '../../domain/repositories/user-state-repository';
+import { UserProfileRepository } from '../../domain/repositories/user-profile-repository';
 
 describe('AddFavouriteUseCase', () => {
   const email = 'user@example.com';
   const routeId = '1';
   it('adds favourite when not existing', async () => {
-    const repo: UserStateRepository = {
+    const repo: UserProfileRepository = {
       getFavourites: jest.fn().mockResolvedValue([]),
       putFavourite: jest.fn(),
-      deleteFavourite: jest.fn(),
-      getProfile: jest.fn(),
-      putProfile: jest.fn(),
     } as any;
     const useCase = new AddFavouriteUseCase(repo);
     await useCase.execute(email, routeId);
@@ -19,12 +16,9 @@ describe('AddFavouriteUseCase', () => {
   });
 
   it('throws FavouriteAlreadyExistsError when already saved', async () => {
-    const repo: UserStateRepository = {
+    const repo: UserProfileRepository = {
       getFavourites: jest.fn().mockResolvedValue(['FAV#1']),
       putFavourite: jest.fn(),
-      deleteFavourite: jest.fn(),
-      getProfile: jest.fn(),
-      putProfile: jest.fn(),
     } as any;
     const useCase = new AddFavouriteUseCase(repo);
     await expect(useCase.execute(email, routeId)).rejects.toBeInstanceOf(FavouriteAlreadyExistsError);

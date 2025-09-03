@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-user-state-repository";
+import { DynamoUserProfileRepository } from "../../infrastructure/dynamodb/dynamo-user-profile-repository";
 import { GetUserProfileUseCase } from "../../application/use-cases/get-user-profile";
 import { UpdateUserProfileUseCase } from "../../application/use-cases/update-user-profile";
 import { Email } from "../../../shared/domain/value-objects/email-value-object";
@@ -8,7 +8,7 @@ import { UserProfile } from "../../domain/entities/user-profile";
 import { corsHeaders } from "../../../http/cors";
 
 const dynamo = new DynamoDBClient({});
-const repository = new DynamoUserStateRepository(
+const repository = new DynamoUserProfileRepository(
   dynamo,
   process.env.USER_STATE_TABLE!
 );

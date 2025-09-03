@@ -4,8 +4,8 @@ const mockGet = jest.fn();
 const mockPublishSaved = jest.fn();
 const mockPublishDeleted = jest.fn();
 
-jest.mock("../../infrastructure/dynamodb/dynamo-user-state-repository", () => ({
-  DynamoUserStateRepository: jest.fn().mockImplementation(() => ({
+jest.mock("../../infrastructure/dynamodb/dynamo-user-profile-repository", () => ({
+  DynamoUserProfileRepository: jest.fn().mockImplementation(() => ({
     putFavourite: mockPut,
     deleteFavourite: mockDelete,
     getFavourites: mockGet,

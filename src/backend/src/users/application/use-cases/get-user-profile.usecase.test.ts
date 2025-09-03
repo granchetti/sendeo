@@ -1,15 +1,12 @@
 import { GetUserProfileUseCase } from './get-user-profile';
-import { UserStateRepository } from '../../domain/repositories/user-state-repository';
+import { UserProfileRepository } from '../../domain/repositories/user-profile-repository';
 import { Email } from '../../../shared/domain/value-objects/email-value-object';
 
 describe('GetUserProfileUseCase', () => {
   it('creates profile when missing', async () => {
-    const repo: UserStateRepository = {
+    const repo: UserProfileRepository = {
       getProfile: jest.fn().mockResolvedValue(null),
       putProfile: jest.fn(),
-      putFavourite: jest.fn(),
-      deleteFavourite: jest.fn(),
-      getFavourites: jest.fn(),
     } as any;
     const useCase = new GetUserProfileUseCase(repo);
     const email = Email.fromString('u@e.com');

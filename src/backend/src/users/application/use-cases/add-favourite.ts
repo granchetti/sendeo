@@ -1,4 +1,4 @@
-import { UserStateRepository } from '../../domain/repositories/user-state-repository';
+import { UserProfileRepository } from '../../domain/repositories/user-profile-repository';
 
 export class FavouriteAlreadyExistsError extends Error {
   constructor() {
@@ -7,7 +7,7 @@ export class FavouriteAlreadyExistsError extends Error {
 }
 
 export class AddFavouriteUseCase {
-  constructor(private repository: UserStateRepository) {}
+  constructor(private repository: UserProfileRepository) {}
 
   async execute(email: string, routeId: string): Promise<void> {
     const existing = await this.repository.getFavourites(email);

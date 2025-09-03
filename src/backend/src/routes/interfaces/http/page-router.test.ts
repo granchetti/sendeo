@@ -1,7 +1,6 @@
 const mockFindById = jest.fn();
 const mockFindAll = jest.fn();
 const mockFindByJobId = jest.fn();
-const mockGetFavourites = jest.fn();
 const mockPutRouteStart = jest.fn();
 const mockGetRouteStart = jest.fn();
 const mockDeleteRouteStart = jest.fn();
@@ -21,9 +20,8 @@ jest.mock("../../infrastructure/dynamodb/dynamo-route-repository", () => ({
   })),
 }));
 
-jest.mock("../../../users/infrastructure/dynamodb/dynamo-user-state-repository", () => ({
-  DynamoUserStateRepository: jest.fn().mockImplementation(() => ({
-    getFavourites: mockGetFavourites,
+jest.mock("../../../users/infrastructure/dynamodb/dynamo-user-activity-repository", () => ({
+  DynamoUserActivityRepository: jest.fn().mockImplementation(() => ({
     putRouteStart: (...args: any[]) => mockPutRouteStart(...args),
     getRouteStart: (...args: any[]) => mockGetRouteStart(...args),
     deleteRouteStart: (...args: any[]) => mockDeleteRouteStart(...args),
@@ -61,7 +59,6 @@ beforeEach(() => {
   mockFindById.mockReset();
   mockFindAll.mockReset();
   mockFindByJobId.mockReset();
-  mockGetFavourites.mockReset();
   mockPutRouteStart.mockReset();
   mockGetRouteStart.mockReset();
   mockDeleteRouteStart.mockReset();

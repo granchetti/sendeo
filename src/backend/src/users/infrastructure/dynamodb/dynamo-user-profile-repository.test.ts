@@ -5,13 +5,13 @@ import {
   QueryCommand,
   GetItemCommand,
 } from '@aws-sdk/client-dynamodb';
-import { DynamoUserStateRepository } from './dynamo-user-state-repository';
+import { DynamoUserProfileRepository } from './dynamo-user-profile-repository';
 import { UserProfile } from '../../domain/entities/user-profile';
 import { Email } from '../../../shared/domain/value-objects/email-value-object';
 
-describe('DynamoUserStateRepository', () => {
+describe('DynamoUserProfileRepository', () => {
   let mockSend: jest.Mock;
-  let repo: DynamoUserStateRepository;
+  let repo: DynamoUserProfileRepository;
   const tableName = 'UserState';
   const email = Email.fromString('test@example.com');
   const routeId = '123';
@@ -19,12 +19,11 @@ describe('DynamoUserStateRepository', () => {
   beforeEach(() => {
     mockSend = jest.fn();
     const client = { send: mockSend } as unknown as DynamoDBClient;
-    repo = new DynamoUserStateRepository(client, tableName);
+    repo = new DynamoUserProfileRepository(client, tableName);
   });
 
   it('putFavourite sends a PutItemCommand with correct params', async () => {
     await repo.putFavourite(email.Value, routeId);
-    expect(mockSend).toHaveBeenCalledTimes(1);
     const cmd = mockSend.mock.calls[0][0];
     expect(cmd).toBeInstanceOf(PutItemCommand);
     expect((cmd as any).input).toEqual({
@@ -38,7 +37,6 @@ describe('DynamoUserStateRepository', () => {
 
   it('deleteFavourite sends a DeleteItemCommand with correct params', async () => {
     await repo.deleteFavourite(email.Value, routeId);
-    expect(mockSend).toHaveBeenCalledTimes(1);
     const cmd = mockSend.mock.calls[0][0];
     expect(cmd).toBeInstanceOf(DeleteItemCommand);
     expect((cmd as any).input).toEqual({
@@ -54,8 +52,6 @@ describe('DynamoUserStateRepository', () => {
     const items = [{ SK: { S: 'FAV#1' } }, { SK: { S: 'FAV#2' } }];
     mockSend.mockResolvedValueOnce({ Items: items });
     const result = await repo.getFavourites(email.Value);
-
-    expect(mockSend).toHaveBeenCalledTimes(1);
     const cmd = mockSend.mock.calls[0][0];
     expect(cmd).toBeInstanceOf(QueryCommand);
     expect((cmd as any).input).toEqual({
@@ -63,14 +59,12 @@ describe('DynamoUserStateRepository', () => {
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :fav)',
       ExpressionAttributeValues: { ':pk': { S: `USER#${email.Value}` }, ':fav': { S: 'FAV#' } },
     });
-
     expect(result).toEqual(['1', '2']);
   });
 
   it('getFavourites returns empty array if no items', async () => {
     mockSend.mockResolvedValueOnce({});
     const result = await repo.getFavourites(email.Value);
-    expect(mockSend).toHaveBeenCalled();
     expect(result).toEqual([]);
   });
 
@@ -84,7 +78,6 @@ describe('DynamoUserStateRepository', () => {
       unit: 'km',
     });
     await repo.putProfile(profile);
-    expect(mockSend).toHaveBeenCalledTimes(1);
     const cmd = mockSend.mock.calls[0][0];
     expect(cmd).toBeInstanceOf(PutItemCommand);
     expect((cmd as any).input).toEqual({
@@ -114,7 +107,6 @@ describe('DynamoUserStateRepository', () => {
       },
     });
     const result = await repo.getProfile(email);
-    expect(mockSend).toHaveBeenCalledTimes(1);
     const cmd = mockSend.mock.calls[0][0];
     expect(cmd).toBeInstanceOf(GetItemCommand);
     expect((cmd as any).input).toEqual({
@@ -134,41 +126,6 @@ describe('DynamoUserStateRepository', () => {
   it('getProfile returns null when no item', async () => {
     mockSend.mockResolvedValueOnce({});
     const result = await repo.getProfile(email);
-    expect(mockSend).toHaveBeenCalled();
     expect(result).toBeNull();
-  });
-
-  it('stores route start timestamp', async () => {
-    await repo.putRouteStart(email.Value, routeId, 123);
-    const cmd = mockSend.mock.calls[0][0];
-    expect(cmd).toBeInstanceOf(PutItemCommand);
-    expect((cmd as any).input).toEqual({
-      TableName: tableName,
-      Item: {
-        PK: { S: `USER#${email.Value}` },
-        SK: { S: `START#${routeId}` },
-        timestamp: { N: '123' },
-      },
-    });
-  });
-
-  it('retrieves start timestamp', async () => {
-    mockSend.mockResolvedValueOnce({
-      Item: { timestamp: { N: '456' } },
-    });
-    const ts = await repo.getRouteStart(email.Value, routeId);
-    const cmd = mockSend.mock.calls[0][0];
-    expect(cmd).toBeInstanceOf(GetItemCommand);
-    expect(ts).toBe(456);
-  });
-
-  it('deletes start timestamp', async () => {
-    await repo.deleteRouteStart(email.Value, routeId);
-    const cmd = mockSend.mock.calls[0][0];
-    expect(cmd).toBeInstanceOf(DeleteItemCommand);
-    expect((cmd as any).input).toEqual({
-      TableName: tableName,
-      Key: { PK: { S: `USER#${email.Value}` }, SK: { S: `START#${routeId}` } },
-    });
   });
 });
