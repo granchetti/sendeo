@@ -3,7 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoUserProfileRepository } from "../../infrastructure/dynamodb/dynamo-user-profile-repository";
 import { GetUserProfileUseCase } from "../../application/use-cases/get-user-profile";
 import { UpdateUserProfileUseCase } from "../../application/use-cases/update-user-profile";
-import { Email } from "../../../routes/domain/value-objects/email-value-object";
+import { Email } from "../../../shared/domain/value-objects/email-value-object";
 import { UserProfile } from "../../domain/entities/user-profile";
 import { corsHeaders } from "../../../http/cors";
 

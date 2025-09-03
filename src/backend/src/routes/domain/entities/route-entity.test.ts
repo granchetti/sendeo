@@ -1,11 +1,12 @@
 import { Route } from "./route-entity";
-import { UUID } from "../value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { DistanceKm } from "../value-objects/distance-value-object";
 import { Duration } from "../value-objects/duration-value-object";
 import { Path } from "../value-objects/path-value-object";
 import { LatLng } from "../value-objects/lat-lng-value-object";
 import { RouteRequestedEvent } from "../events/route-requested";
 import { RouteGeneratedEvent } from "../events/route-generated";
+import { RouteStatus } from "../value-objects/route-status";
 
 describe("Route", () => {
   it("should create a Route and record RouteRequestedEvent", () => {
@@ -14,6 +15,7 @@ describe("Route", () => {
     const events = route.pullEvents();
     expect(events[0]).toBeInstanceOf(RouteRequestedEvent);
     expect(route.routeId.equals(routeId)).toBe(true);
+    expect(route.status).toBe(RouteStatus.Requested);
   });
 
   it("should generate details and record RouteGeneratedEvent", () => {
@@ -39,6 +41,13 @@ describe("Route", () => {
 
     const events = route.pullEvents();
     expect(events[0]).toBeInstanceOf(RouteGeneratedEvent);
+    expect(route.status).toBe(RouteStatus.Generated);
+
+    route.start();
+    expect(route.status).toBe(RouteStatus.Started);
+
+    route.finish();
+    expect(route.status).toBe(RouteStatus.Finished);
   });
 
   it("should throw an error if routeId is missing", () => {

@@ -1,5 +1,5 @@
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { RouteRequestedEvent } from "./route-requested";
-import { UUID } from "../value-objects/uuid-value-object";
 
 describe("RouteRequestedEvent", () => {
   it("should store provided properties", () => {

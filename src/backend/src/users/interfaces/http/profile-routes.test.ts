@@ -14,7 +14,7 @@ jest.mock("@aws-sdk/client-dynamodb", () => ({
 
 import { handler } from "./profile-routes";
 import { UserProfile } from "../../domain/entities/user-profile";
-import { Email } from "../../../routes/domain/value-objects/email-value-object";
+import { Email } from "../../../shared/domain/value-objects/email-value-object";
 
 const baseCtx = {
   requestContext: { authorizer: { claims: { email: "test@example.com" } } },

@@ -1,5 +1,5 @@
 import { Route } from "../entities/route-entity";
-import { UUID } from "../value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 
 export interface RouteRepository {
   save(route: Route): Promise<void>;

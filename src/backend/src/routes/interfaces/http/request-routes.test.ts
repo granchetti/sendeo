@@ -9,7 +9,7 @@ jest.mock("@aws-sdk/client-sqs", () => {
 });
 
 import { handler } from "./request-routes";
-import { UUID } from "../../domain/value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 
 beforeEach(() => {
   mockSend.mockReset();

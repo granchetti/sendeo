@@ -43,7 +43,7 @@ jest.mock("../appsync-client", () => ({
 
 import { handler } from "./page-router";
 import { Route } from "../../domain/entities/route-entity";
-import { UUID } from "../../domain/value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { DistanceKm } from "../../domain/value-objects/distance-value-object";
 import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
@@ -92,16 +92,16 @@ describe("page router get route", () => {
   });
 
   it("returns route when found", async () => {
-    const route = new Route({
-      routeId: UUID.generate(),
-      distanceKm: new DistanceKm(2),
-      duration: new Duration(100),
-      path: Path.fromCoordinates([
+    const route = Route.request({ routeId: UUID.generate() });
+    route.generate(
+      new DistanceKm(2),
+      new Duration(100),
+      Path.fromCoordinates([
         LatLng.fromNumbers(0, 0),
         LatLng.fromNumbers(1, 1),
-      ]),
-      description: "desc",
-    });
+      ])
+    );
+    route.description = "desc";
     mockFindById.mockResolvedValueOnce(route);
 
     const res = await handler({
@@ -140,26 +140,26 @@ describe("page router list routes", () => {
   });
 
   it("returns 200 and list of routes when routes exist", async () => {
-    const route1 = new Route({
-      routeId: UUID.generate(),
-      distanceKm: new DistanceKm(1),
-      duration: new Duration(10),
-      path: Path.fromCoordinates([
+    const route1 = Route.request({ routeId: UUID.generate() });
+    route1.generate(
+      new DistanceKm(1),
+      new Duration(10),
+      Path.fromCoordinates([
         LatLng.fromNumbers(10, 10),
         LatLng.fromNumbers(20, 20),
-      ]),
-      description: "a",
-    });
-    const route2 = new Route({
-      routeId: UUID.generate(),
-      distanceKm: new DistanceKm(2),
-      duration: new Duration(20),
-      path: Path.fromCoordinates([
+      ])
+    );
+    route1.description = "a";
+    const route2 = Route.request({ routeId: UUID.generate() });
+    route2.generate(
+      new DistanceKm(2),
+      new Duration(20),
+      Path.fromCoordinates([
         LatLng.fromNumbers(30, 30),
         LatLng.fromNumbers(40, 40),
-      ]),
-      description: "b",
-    });
+      ])
+    );
+    route2.description = "b";
     mockFindAll.mockResolvedValueOnce([route1, route2]);
 
     const res = await handler(baseEvent);
@@ -202,7 +202,7 @@ describe("page router list routes by jobId", () => {
 
   it("returns list of routes for job", async () => {
     const jobId = UUID.generate()
-    const r = new Route({ routeId: UUID.generate(), jobId });
+    const r = Route.request({ routeId: UUID.generate(), jobId });
     mockFindByJobId.mockResolvedValueOnce([r]);
     const res = await handler({
       ...baseEvent,
@@ -287,16 +287,16 @@ describe("finish route", () => {
   });
 
   it("sends finish metric and returns route", async () => {
-    const route = new Route({
-      routeId: UUID.generate(),
-      distanceKm: new DistanceKm(2),
-      duration: new Duration(100),
-      path: Path.fromCoordinates([
+    const route = Route.request({ routeId: UUID.generate() });
+    route.generate(
+      new DistanceKm(2),
+      new Duration(100),
+      Path.fromCoordinates([
         LatLng.fromNumbers(0, 0),
         LatLng.fromNumbers(1, 1),
-      ]),
-      description: "desc",
-    });
+      ])
+    );
+    route.description = "desc";
     mockFindById.mockResolvedValueOnce(route);
     mockGetRouteStart.mockResolvedValueOnce(1000);
     mockSend.mockResolvedValueOnce({});

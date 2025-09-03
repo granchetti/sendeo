@@ -2,7 +2,7 @@ import { RouteRepository } from "../../domain/repositories/route-repository";
 import { Route, RouteProps } from "../../domain/entities/route-entity";
 import { InMemoryEventDispatcher } from "../../../shared/domain/events/event-dispatcher";
 
-export interface RequestRoutesInput extends RouteProps {}
+export interface RequestRoutesInput extends Omit<RouteProps, "status"> {}
 
 export class RequestRoutesUseCase {
   constructor(

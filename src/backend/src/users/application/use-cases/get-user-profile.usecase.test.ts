@@ -1,6 +1,6 @@
 import { GetUserProfileUseCase } from './get-user-profile';
 import { UserProfileRepository } from '../../domain/repositories/user-profile-repository';
-import { Email } from '../../../routes/domain/value-objects/email-value-object';
+import { Email } from '../../../shared/domain/value-objects/email-value-object';
 
 describe('GetUserProfileUseCase', () => {
   it('creates profile when missing', async () => {
