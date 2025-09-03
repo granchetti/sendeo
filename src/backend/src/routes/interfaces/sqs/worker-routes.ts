@@ -1,5 +1,6 @@
 import { SQSHandler } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { request as httpsRequest, RequestOptions } from "node:https";
 import { Route } from "../../domain/entities/route-entity";
 import { DistanceKm } from "../../domain/value-objects/distance-value-object";
@@ -11,6 +12,7 @@ import { publishRoutesGenerated } from "../appsync-client";
 import { fetchJson, getGoogleKey } from "../shared/utils";
 
 const dynamo = new DynamoDBClient({});
+const sqs = new SQSClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 
 /** Geocode or parse “lat,lng” */
@@ -363,6 +365,19 @@ export const handler: SQSHandler = async (event) => {
     if (saved.length) {
       console.info(`[handler] publishing ${saved.length} routes`);
       await publishRoutesGenerated(jobId, saved);
+      if (process.env.METRICS_QUEUE) {
+        await sqs.send(
+          new SendMessageCommand({
+            QueueUrl: process.env.METRICS_QUEUE!,
+            MessageBody: JSON.stringify({
+              event: "routes_generated",
+              jobId,
+              count: saved.length,
+              timestamp: Date.now(),
+            }),
+          })
+        );
+      }
     } else {
       console.warn(`[handler] no routes after ${maxAt} attempts`);
     }

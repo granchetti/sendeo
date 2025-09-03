@@ -83,6 +83,7 @@ export class ComputeStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
       environment: {
         ROUTES_TABLE: props.routesTable.tableName,
+        METRICS_QUEUE: props.metricsQueue.queueUrl,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
         ...(props.appSyncApiKey
           ? { APPSYNC_API_KEY: props.appSyncApiKey }
@@ -103,6 +104,7 @@ export class ComputeStack extends cdk.Stack {
         resources: ["*"],
       })
     );
+    props.metricsQueue.grantSendMessages(workerRoutes.fn);
 
     // 3) FavouriteRoutes → GET/POST /favourites & DELETE /favourites/{routeId}
     const favoriteRoutes = new HttpLambda(this, "FavoriteRoutes", {
@@ -222,7 +224,7 @@ export class ComputeStack extends cdk.Stack {
     );
 
     // 6) MetricsConsumer
-    new SqsConsumer(this, "MetricsConsumer", {
+    const metricsConsumer = new SqsConsumer(this, "MetricsConsumer", {
       entry: path.join(
         __dirname,
         "../../../src/backend/src/routes/interfaces/sqs"
@@ -230,7 +232,14 @@ export class ComputeStack extends cdk.Stack {
 
       handler: "metrics-processor.handler",
       queue: props.metricsQueue,
+      environment: { METRICS_NAMESPACE: `SendeoMetrics-${suffix}` },
     });
+    metricsConsumer.fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["cloudwatch:PutMetricData"],
+        resources: ["*"],
+      })
+    );
 
     // 7) SwaggerDocs → GET /swagger & GET /swagger.json
     new HttpLambda(this, "SwaggerDocs", {
