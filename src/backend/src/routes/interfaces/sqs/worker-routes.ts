@@ -162,7 +162,10 @@ async function snapToRoad(pt: { lat: number; lng: number }, apiKey: string) {
   }
 }
 
-/** Compute an 8‑segment loop */
+/** Compute an N‑segment loop.  Attempts to repair missing legs by trying a
+ *  smaller detour or skipping the problem waypoint.  If a segment cannot be
+ *  repaired after a few retries, the previous point is connected directly back
+ *  to the origin to close the loop. */
 async function computeCircularRoute(
   origin: { lat: number; lng: number },
   dKm: number,
@@ -170,31 +173,89 @@ async function computeCircularRoute(
   apiKey: string
 ) {
   console.info("[computeCircularRoute] start", origin, "dKm=", dKm);
-  const radius = dKm / (2 * Math.PI),
-    pts = [];
+  const radius = dKm / (2 * Math.PI);
+  const pts: { lat: number; lng: number }[] = [];
+  const bearings: number[] = [];
   // build & snap waypoints
   for (let i = 0; i < segments; i++) {
-    const raw = offsetCoordinate(
-      origin.lat,
-      origin.lng,
-      radius,
-      (360 / segments) * i
-    );
+    const bearing = (360 / segments) * i;
+    bearings.push(bearing);
+    const raw = offsetCoordinate(origin.lat, origin.lng, radius, bearing);
     pts.push(await snapToRoad(raw, apiKey));
   }
-  // stitch legs
+
+  // stitch legs with retry logic
   let totalDist = 0,
     totalDur = 0,
-    encoded: string | undefined;
-  for (let i = 0; i < segments; i++) {
-    const a = pts[i],
-      b = pts[(i + 1) % segments];
-    const legs = await computeRoutes(a, b, apiKey);
-    const leg = legs[0];
-    if (!leg) {
-      console.warn("[computeCircularRoute] missing leg at segment", i);
-      return null;
+    encoded: string | undefined,
+    successes = 0;
+  const maxRetries = 3;
+
+  let idx = 0;
+  let processed = 0;
+  while (processed < segments) {
+    const start = pts[idx];
+    let endIdx = (idx + 1) % segments;
+    let end = pts[endIdx];
+    let leg: any | undefined;
+
+    for (let attempt = 0; attempt < maxRetries && !leg; attempt++) {
+      const legs = await computeRoutes(start, end, apiKey);
+      leg = legs[0];
+      if (leg) break;
+
+      if (attempt === 0) {
+        // first retry with a smaller detour
+        console.warn(
+          "[computeCircularRoute] segment",
+          idx,
+          "failed; retrying with smaller detour"
+        );
+        const raw = offsetCoordinate(
+          origin.lat,
+          origin.lng,
+          radius * 0.5,
+          bearings[endIdx]
+        );
+        end = await snapToRoad(raw, apiKey);
+        pts[endIdx] = end;
+      } else if (attempt === 1) {
+        // second retry: direct leg skipping the next waypoint
+        console.warn(
+          "[computeCircularRoute] segment",
+          idx,
+          "failed; connecting directly to waypoint",
+          (endIdx + 1) % segments
+        );
+        endIdx = (endIdx + 1) % segments;
+        end = pts[endIdx];
+      }
     }
+
+    if (!leg) {
+      // connect back to origin and finish
+      console.warn(
+        "[computeCircularRoute] segment",
+        idx,
+        "unresolved after retries; closing loop to origin"
+      );
+      const closeLegs = await computeRoutes(start, origin, apiKey);
+      const close = closeLegs[0];
+      if (close) {
+        totalDist += close.distanceMeters;
+        totalDur += close.durationSeconds;
+        if (encoded) {
+          const c1 = new Path(encoded).Coordinates;
+          const c2 = new Path(close.encoded).Coordinates.slice(1);
+          encoded = Path.fromCoordinates([...c1, ...c2]).Encoded;
+        } else {
+          encoded = close.encoded;
+        }
+        successes++;
+      }
+      break;
+    }
+
     totalDist += leg.distanceMeters;
     totalDur += leg.durationSeconds;
     if (encoded) {
@@ -204,8 +265,23 @@ async function computeCircularRoute(
     } else {
       encoded = leg.encoded;
     }
+
+    successes++;
+    idx = endIdx;
+    processed++;
+    if (idx === 0) break; // loop closed
   }
-  if (!encoded) return null;
+
+  if (!encoded || successes < segments / 2) {
+    console.warn(
+      "[computeCircularRoute] insufficient segments",
+      successes,
+      "of",
+      segments
+    );
+    return null;
+  }
+
   return { distanceMeters: totalDist, durationSeconds: totalDur, encoded };
 }
 
