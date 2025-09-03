@@ -43,7 +43,7 @@ async function postJson<T>(
   apiKey: string,
   body: any,
   attempt = 0
-): Promise<T> {
+): Promise<T | null> {
   const payload = JSON.stringify(body);
   const opts: RequestOptions = {
     method: "POST",
@@ -83,12 +83,11 @@ async function postJson<T>(
     return data ? JSON.parse(data) : null;
   } catch (err: any) {
     const status = err?.statusCode;
-    if (
-      (status === 429 || (status >= 500 && status < 600)) &&
-      attempt < 2
-    ) {
+    if ((status === 429 || (status >= 500 && status < 600)) && attempt < 2) {
       const delay = 500 * Math.pow(2, attempt);
-      console.warn(`[postJson] retry ${attempt + 1} in ${delay}ms due to ${status}`);
+      console.warn(
+        `[postJson] retry ${attempt + 1} in ${delay}ms due to ${status}`
+      );
       await new Promise((r) => setTimeout(r, delay));
       return postJson<T>(host, path, apiKey, body, attempt + 1);
     }
@@ -122,19 +121,38 @@ async function computeRoutes(
     apiKey,
     body
   );
-  return (resp.routes || [])
+
+  return (resp?.routes ?? [])
     .map((r: any) => {
+      const dist =
+        typeof r.distanceMeters === "number" ? r.distanceMeters : undefined;
+
+      const durRaw = r?.duration;
       const seconds =
-        typeof r.duration === "object"
-          ? r.duration.seconds
-          : parseInt(r.duration.replace(/\D/g, ""), 10);
+        typeof durRaw === "object"
+          ? Number(durRaw?.seconds ?? durRaw?.value ?? durRaw)
+          : typeof durRaw === "string"
+          ? parseInt(durRaw.replace(/\D/g, ""), 10)
+          : undefined;
+
+      if (dist == null || seconds == null || Number.isNaN(seconds)) {
+        return null;
+      }
       return {
-        distanceMeters: r.distanceMeters!,
+        distanceMeters: dist,
         durationSeconds: seconds,
-        encoded: r.polyline?.encodedPolyline,
+        encoded: r?.polyline?.encodedPolyline,
       };
     })
-    .filter((x): x is any => !!x);
+    .filter(
+      (
+        x
+      ): x is {
+        distanceMeters: number;
+        durationSeconds: number;
+        encoded?: string;
+      } => !!x
+    );
 }
 
 /** Offset a point by km & bearing */
@@ -205,14 +223,9 @@ async function snapToRoad(
   }
 }
 
-function withinTarget(
-  km: number,
-  targetKm: number,
-  pct = 0.15,
-  absMax = 2
-) {
+function withinTarget(km: number, targetKm: number, pct = 0.15, absMax = 2) {
   const delta = Math.abs(km - targetKm);
-  const tol = Math.min(targetKm * pct, absMax);
+  const tol = Math.max(absMax, targetKm * pct);
   return delta <= tol;
 }
 
@@ -265,9 +278,13 @@ async function computeCircularRoute(
       angle
     );
     const halfSnap =
-      baseRadius > SNAP_THRESHOLD_KM ? await snapToRoad(halfRaw, apiKey) : halfRaw;
+      baseRadius > SNAP_THRESHOLD_KM
+        ? await snapToRoad(halfRaw, apiKey)
+        : halfRaw;
     const half =
-      halfSnap.lat === origin.lat && halfSnap.lng === origin.lng ? halfRaw : halfSnap;
+      halfSnap.lat === origin.lat && halfSnap.lng === origin.lng
+        ? halfRaw
+        : halfSnap;
     const candidates = [primary, half, origin];
     let leg: any = null,
       used = primary;
@@ -330,6 +347,7 @@ async function computeCircularRoute(
         encoded = leg.encoded;
       }
       success++;
+      prev = origin;
     }
   }
 
@@ -343,7 +361,7 @@ async function persistRoute(
   jobId: string,
   km: number,
   dur: number,
-  poly?: string,
+  poly?: string
 ) {
   const r = Route.request({
     routeId: UUID.generate(),
@@ -404,19 +422,21 @@ export const handler: SQSHandler = async (event) => {
             console.warn("[handler] p2p out of range", km);
             continue;
           }
-          const hash = createHash("md5").update(alt.encoded || "").digest("hex");
-          if (seen.has(hash)) continue;
+          const hash = alt.encoded
+            ? createHash("md5").update(alt.encoded).digest("hex")
+            : undefined;
+          if (hash && seen.has(hash)) continue;
           const r = await persistRoute(
             jobId,
             km,
             alt.durationSeconds,
-            alt.encoded,
+            alt.encoded
           );
-          seen.add(hash);
+          if (hash) seen.add(hash);
           saved.push(r);
         }
       } else {
-        // ——— distance‑only ———
+        // ——— distance-only ———
         let leg: {
           distanceMeters: number;
           durationSeconds: number;
@@ -446,10 +466,7 @@ export const handler: SQSHandler = async (event) => {
                   let km = leg.distanceMeters / 1000;
                   let adjust = 0;
                   while (!withinTarget(km, distanceKm!) && adjust < 2) {
-                    const rm = Math.min(
-                      1.3,
-                      Math.max(0.4, distanceKm! / km)
-                    );
+                    const rm = Math.min(1.3, Math.max(0.4, distanceKm! / km));
                     leg = await computeCircularRoute(
                       oCoords,
                       distanceKm!,
@@ -462,7 +479,10 @@ export const handler: SQSHandler = async (event) => {
                     km = leg.distanceMeters / 1000;
                     adjust++;
                   }
-                  if (leg && withinTarget(leg.distanceMeters / 1000, distanceKm!)) {
+                  if (
+                    leg &&
+                    withinTarget(leg.distanceMeters / 1000, distanceKm!)
+                  ) {
                     isCircular = true;
                     break outer;
                   }
@@ -484,7 +504,9 @@ export const handler: SQSHandler = async (event) => {
               bearing
             );
             const snapped =
-              half > SNAP_THRESHOLD_KM ? await snapToRoad(rawDest, key) : rawDest;
+              half > SNAP_THRESHOLD_KM
+                ? await snapToRoad(rawDest, key)
+                : rawDest;
             const [out] = await computeRoutes(oCoords, snapped, key);
             const [back] = await computeRoutes(snapped, oCoords, key);
             if (out?.encoded && back?.encoded) {
@@ -499,7 +521,7 @@ export const handler: SQSHandler = async (event) => {
             }
           }
         } else {
-          // existing out‑and‑back
+          // existing out-and-back
           const bearing = Math.random() * 360;
           console.info("[handler] random bearing", bearing);
           const half = roundTrip ? distanceKm! / 2 : distanceKm!;
@@ -535,21 +557,24 @@ export const handler: SQSHandler = async (event) => {
             console.warn("[handler] dist-only out of range", km);
             continue;
           }
-          if (!isCircular && circularCount < circularGoal) {
+          // Solo aplaza el fallback si se pidieron circulares explícitamente
+          if (circle && !isCircular && circularCount < circularGoal) {
             console.warn(
               "[handler] skipping fallback until enough circular routes"
             );
             continue;
           }
-          const hash = createHash("md5").update(leg.encoded || "").digest("hex");
-          if (seen.has(hash)) continue;
+          const hash2 = leg.encoded
+            ? createHash("md5").update(leg.encoded).digest("hex")
+            : undefined;
+          if (hash2 && seen.has(hash2)) continue;
           const r = await persistRoute(
             jobId,
             km,
             leg.durationSeconds,
-            leg.encoded,
+            leg.encoded
           );
-          seen.add(hash);
+          if (hash2) seen.add(hash2);
           saved.push(r);
           if (isCircular) circularCount++;
         }
