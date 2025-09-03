@@ -162,7 +162,10 @@ async function snapToRoad(pt: { lat: number; lng: number }, apiKey: string) {
   }
 }
 
-/** Compute an 8‑segment loop */
+/**
+ * Compute a multi-segment loop.
+ * Typical segment counts are 4, 6, or 8.
+ */
 async function computeCircularRoute(
   origin: { lat: number; lng: number },
   dKm: number,
