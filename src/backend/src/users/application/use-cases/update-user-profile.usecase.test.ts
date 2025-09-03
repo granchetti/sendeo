@@ -1,15 +1,11 @@
 import { UpdateUserProfileUseCase } from './update-user-profile';
-import { UserStateRepository } from '../../domain/repositories/user-state-repository';
+import { UserProfileRepository } from '../../domain/repositories/user-profile-repository';
 import { UserProfile } from '../../domain/entities/user-profile';
 
 describe('UpdateUserProfileUseCase', () => {
   it('calls repository with provided profile', async () => {
-    const repo: UserStateRepository = {
+    const repo: UserProfileRepository = {
       putProfile: jest.fn(),
-      getProfile: jest.fn(),
-      putFavourite: jest.fn(),
-      deleteFavourite: jest.fn(),
-      getFavourites: jest.fn(),
     } as any;
     const useCase = new UpdateUserProfileUseCase(repo);
     const profile = UserProfile.fromPrimitives({ email: 'a@b.com' });

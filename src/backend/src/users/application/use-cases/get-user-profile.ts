@@ -1,9 +1,9 @@
 import { Email } from "../../../routes/domain/value-objects/email-value-object";
 import { UserProfile } from "../../domain/entities/user-profile";
-import { UserStateRepository } from "../../domain/repositories/user-state-repository";
+import { UserProfileRepository } from "../../domain/repositories/user-profile-repository";
 
 export class GetUserProfileUseCase {
-  constructor(private repository: UserStateRepository) {}
+  constructor(private repository: UserProfileRepository) {}
 
   async execute(email: Email): Promise<UserProfile> {
     let profile = await this.repository.getProfile(email);

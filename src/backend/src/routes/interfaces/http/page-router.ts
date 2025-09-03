@@ -2,7 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
-import { DynamoUserStateRepository } from "../../../users/infrastructure/dynamodb/dynamo-user-state-repository";
+import { DynamoUserActivityRepository } from "../../../users/infrastructure/dynamodb/dynamo-user-activity-repository";
 import { publishRouteStarted, publishRouteFinished } from "../appsync-client";
 import { UUID } from "../../domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
@@ -16,7 +16,7 @@ const routeRepository = new DynamoRouteRepository(
   dynamo,
   process.env.ROUTES_TABLE!
 );
-const userStateRepository = new DynamoUserStateRepository(
+const userActivityRepository = new DynamoUserActivityRepository(
   dynamo,
   process.env.USER_STATE_TABLE!
 );
@@ -156,7 +156,7 @@ export const handler = async (
     }
 
     const ts = Date.now();
-    await userStateRepository.putRouteStart(email, routeId, ts);
+    await userActivityRepository.putRouteStart(email, routeId, ts);
     await sqs.send(
       new SendMessageCommand({
         QueueUrl: process.env.METRICS_QUEUE!,
@@ -194,9 +194,9 @@ export const handler = async (
     }
 
     const finishTs = Date.now();
-    const startTs = await userStateRepository.getRouteStart(email, routeId);
+    const startTs = await userActivityRepository.getRouteStart(email, routeId);
     if (startTs != null) {
-      await userStateRepository.deleteRouteStart(email, routeId);
+      await userActivityRepository.deleteRouteStart(email, routeId);
     }
     const actualDurationMs = startTs != null ? finishTs - startTs : undefined;
     const actualDuration =

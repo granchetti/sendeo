@@ -1,14 +1,10 @@
 import { RemoveFavouriteUseCase } from './remove-favourite';
-import { UserStateRepository } from '../../domain/repositories/user-state-repository';
+import { UserProfileRepository } from '../../domain/repositories/user-profile-repository';
 
 describe('RemoveFavouriteUseCase', () => {
   it('calls deleteFavourite with provided params', async () => {
-    const repo: UserStateRepository = {
+    const repo: UserProfileRepository = {
       deleteFavourite: jest.fn(),
-      putFavourite: jest.fn(),
-      getFavourites: jest.fn(),
-      getProfile: jest.fn(),
-      putProfile: jest.fn(),
     } as any;
     const useCase = new RemoveFavouriteUseCase(repo);
     await useCase.execute('user@example.com', '1');

@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoUserStateRepository } from "../../infrastructure/dynamodb/dynamo-user-state-repository";
+import { DynamoUserProfileRepository } from "../../infrastructure/dynamodb/dynamo-user-profile-repository";
 import {
   publishFavouriteSaved,
   publishFavouriteDeleted,
@@ -10,7 +10,7 @@ import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favou
 import { corsHeaders } from "../../../http/cors";
 
 const dynamo = new DynamoDBClient({});
-const repository = new DynamoUserStateRepository(
+const repository = new DynamoUserProfileRepository(
   dynamo,
   process.env.USER_STATE_TABLE!
 );
