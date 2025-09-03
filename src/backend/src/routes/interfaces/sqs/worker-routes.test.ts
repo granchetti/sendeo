@@ -18,6 +18,12 @@ jest.mock("../appsync-client", () => ({
   publishRoutesGenerated: (...args: any[]) => mockPublish(...args),
 }));
 
+const sqsSend = jest.fn();
+jest.mock("@aws-sdk/client-sqs", () => ({
+  SQSClient: jest.fn().mockImplementation(() => ({ send: sqsSend })),
+  SendMessageCommand: jest.fn().mockImplementation((input) => ({ input })),
+}));
+
 const responseDataHolder: { data: string } = { data: "" };
 const httpsRequest = jest.fn((opts: string | any, cb: (res: any) => void) => {
   const res = new EventEmitter();
@@ -54,8 +60,10 @@ describe("worker routes handler", () => {
     mockSave.mockReset();
     httpsRequest.mockClear();
     mockPublish.mockReset();
+    sqsSend.mockReset();
     process.env.ROUTES_TABLE = "t";
     process.env.GOOGLE_API_KEY = "k";
+    process.env.METRICS_QUEUE = "http://localhost";
   });
 
   function loadHandler() {
@@ -122,6 +130,9 @@ describe("worker routes handler", () => {
       "550e8400-e29b-41d4-a716-446655440000",
       [saved]
     );
+    expect(sqsSend).toHaveBeenCalledTimes(1);
+    const msg = sqsSend.mock.calls[0][0];
+    expect(msg.input.MessageBody).toContain("routes_generated");
   });
 
   it("does not save when response has no legs", async () => {
