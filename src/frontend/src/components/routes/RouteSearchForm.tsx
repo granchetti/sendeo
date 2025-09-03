@@ -192,13 +192,17 @@ const RouteSearchForm: React.FC<RouteSearchFormProps> = ({
                 <HStack spacing={6}>
                   <Checkbox
                     isChecked={roundTrip}
-                    onChange={(e) => setRoundTrip(e.target.checked)}
+                    onChange={(e) => {
+                      setRoundTrip(e.target.checked);
+                      if (!e.target.checked) setCircle(false);
+                    }}
                   >
                     Round Trip
                   </Checkbox>
                   <Checkbox
                     isChecked={circle}
                     onChange={(e) => setCircle(e.target.checked)}
+                    isDisabled={!roundTrip}
                   >
                     Circular Loop
                   </Checkbox>
