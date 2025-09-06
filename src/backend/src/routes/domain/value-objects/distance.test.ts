@@ -1,4 +1,4 @@
-import { DistanceKm } from './distance-value-object';
+import { DistanceKm } from './distance';
 
 describe('DistanceKm', () => {
   it('should create a valid distance', () => {

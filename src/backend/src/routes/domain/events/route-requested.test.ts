@@ -1,4 +1,4 @@
-import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
 import { RouteRequestedEvent } from "./route-requested";
 
 describe("RouteRequestedEvent", () => {

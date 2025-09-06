@@ -1,6 +1,6 @@
-// domain/value-objects/path-value-object.ts
+// domain/value-objects/path.ts
 import polyline from '@mapbox/polyline';
-import { LatLng } from './lat-lng-value-object';
+import { LatLng } from './lat-lng';
 
 export class Path {
   constructor(private readonly encoded: string) {

@@ -1,4 +1,4 @@
-import { Email } from './email-value-object';
+import { Email } from './email';
 
 describe('Email', () => {
   it('creates from valid string', () => {

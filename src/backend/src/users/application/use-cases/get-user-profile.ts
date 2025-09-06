@@ -1,4 +1,4 @@
-import { Email } from "../../../shared/domain/value-objects/email-value-object";
+import { Email } from "../../../shared/domain/value-objects/email";
 import { UserProfile } from "../../domain/entities/user-profile";
 import { UserProfileRepository } from "../../domain/repositories/user-profile-repository";
 

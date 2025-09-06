@@ -2,7 +2,7 @@ import { HttpRequest } from "@aws-sdk/protocol-http";
 import { SignatureV4 } from "@aws-sdk/signature-v4";
 import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { Sha256 } from "@aws-crypto/sha256-js";
-import { Route } from "../domain/entities/route-entity";
+import { Route } from "../domain/entities/route";
 
 const url = process.env.APPSYNC_URL;
 const apiKey = process.env.APPSYNC_API_KEY;

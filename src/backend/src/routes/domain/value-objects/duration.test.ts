@@ -1,4 +1,4 @@
-import { Duration } from './duration-value-object';
+import { Duration } from './duration';
 
 describe('Duration', () => {
   it('should create a valid duration', () => {

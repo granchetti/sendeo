@@ -1,8 +1,8 @@
 import { RequestRoutesUseCase } from "./request-routes";
 import { RouteRepository } from "../../domain/repositories/route-repository";
-import { Route } from "../../domain/entities/route-entity";
+import { Route } from "../../domain/entities/route";
 import { RouteStatus } from "../../domain/value-objects/route-status";
-import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
 import {
   EventDispatcher,
   InMemoryEventDispatcher,

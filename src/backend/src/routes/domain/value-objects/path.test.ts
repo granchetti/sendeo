@@ -1,5 +1,5 @@
-import { Path } from './path-value-object';
-import { LatLng } from './lat-lng-value-object';
+import { Path } from './path';
+import { LatLng } from './lat-lng';
 
 describe('Path', () => {
   const coords: LatLng[] = [

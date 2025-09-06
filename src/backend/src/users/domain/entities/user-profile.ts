@@ -1,7 +1,7 @@
 
-import { Email } from '../../../shared/domain/value-objects/email-value-object';
-import { Age } from '../value-objects/age-value-object';
-import { DistanceUnit } from '../value-objects/distance-unit-value-object';
+import { Email } from '../../../shared/domain/value-objects/email';
+import { Age } from '../value-objects/age';
+import { DistanceUnit } from '../value-objects/distance-unit';
 
 export interface UserProfileProps {
   email: Email;

@@ -1,6 +1,6 @@
 import { RouteRepository } from '../../domain/repositories/route-repository';
-import { Route } from '../../domain/entities/route-entity';
-import { UUID } from '../../../shared/domain/value-objects/uuid-value-object';
+import { Route } from '../../domain/entities/route';
+import { UUID } from '../../../shared/domain/value-objects/uuid';
 
 export class GetRouteDetailsUseCase {
   constructor(private repository: RouteRepository) {}

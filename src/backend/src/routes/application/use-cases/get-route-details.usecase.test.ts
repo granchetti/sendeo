@@ -1,7 +1,7 @@
 import { GetRouteDetailsUseCase } from './get-route-details';
 import { RouteRepository } from '../../domain/repositories/route-repository';
-import { Route } from '../../domain/entities/route-entity';
-import { UUID } from '../../../shared/domain/value-objects/uuid-value-object';
+import { Route } from '../../domain/entities/route';
+import { UUID } from '../../../shared/domain/value-objects/uuid';
 
 describe('GetRouteDetailsUseCase', () => {
   it('retrieves route from repository', async () => {
