@@ -7,7 +7,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { UserProfileRepository } from "../../domain/repositories/user-profile-repository";
 import { UserProfile } from "../../domain/entities/user-profile";
-import { Email } from "../../../shared/domain/value-objects/email-value-object";
+import { Email } from "../../../shared/domain/value-objects/email";
 
 export class DynamoUserProfileRepository implements UserProfileRepository {
   constructor(private client: DynamoDBClient, private tableName: string) {}

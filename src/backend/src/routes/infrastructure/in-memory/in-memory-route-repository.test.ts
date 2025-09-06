@@ -1,10 +1,10 @@
 import { InMemoryRouteRepository } from "./in-memory-route-repository";
-import { Route } from "../../domain/entities/route-entity";
-import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
-import { DistanceKm } from "../../domain/value-objects/distance-value-object";
-import { Duration } from "../../domain/value-objects/duration-value-object";
-import { Path } from "../../domain/value-objects/path-value-object";
-import { LatLng } from "../../domain/value-objects/lat-lng-value-object";
+import { Route } from "../../domain/entities/route";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
+import { DistanceKm } from "../../domain/value-objects/distance";
+import { Duration } from "../../domain/value-objects/duration";
+import { Path } from "../../domain/value-objects/path";
+import { LatLng } from "../../domain/value-objects/lat-lng";
 
 describe("InMemoryRouteRepository", () => {
   let repo: InMemoryRouteRepository;

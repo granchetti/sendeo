@@ -7,7 +7,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { DynamoUserProfileRepository } from './dynamo-user-profile-repository';
 import { UserProfile } from '../../domain/entities/user-profile';
-import { Email } from '../../../shared/domain/value-objects/email-value-object';
+import { Email } from '../../../shared/domain/value-objects/email';
 
 describe('DynamoUserProfileRepository', () => {
   let mockSend: jest.Mock;

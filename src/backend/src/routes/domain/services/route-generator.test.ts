@@ -1,8 +1,8 @@
 import { RouteGenerator } from "./route-generator";
 import type { RouteRepository } from "../repositories/route-repository";
-import { Route } from "../entities/route-entity";
+import { Route } from "../entities/route";
 import { RouteStatus } from "../value-objects/route-status";
-import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
 import { fetchJson } from "../../interfaces/shared/utils";
 
 jest.mock("../../interfaces/shared/utils", () => ({

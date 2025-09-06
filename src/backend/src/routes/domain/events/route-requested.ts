@@ -1,5 +1,5 @@
 import { DomainEvent } from "../../../shared/domain/events/domain-event";
-import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
 
 export interface RouteRequestedProps {
   readonly routeId: UUID;

@@ -1,10 +1,10 @@
 import { DescribeRouteUseCase } from './describe-route';
 import { RouteRepository } from '../../domain/repositories/route-repository';
-import { Route } from '../../domain/entities/route-entity';
-import { UUID } from '../../../shared/domain/value-objects/uuid-value-object';
+import { Route } from '../../domain/entities/route';
+import { UUID } from '../../../shared/domain/value-objects/uuid';
 import { MapProvider } from '../../domain/services/map-provider';
-import { Path } from '../../domain/value-objects/path-value-object';
-import { LatLng } from '../../domain/value-objects/lat-lng-value-object';
+import { Path } from '../../domain/value-objects/path';
+import { LatLng } from '../../domain/value-objects/lat-lng';
 import { RouteStatus } from '../../domain/value-objects/route-status';
 import { describeRoute } from '../../handlers/describe-route';
 

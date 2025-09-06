@@ -1,4 +1,4 @@
-import { Address } from './address-value-object';
+import { Address } from './address';
 
 describe('Address', () => {
   it('should create a valid address', () => {

@@ -7,12 +7,12 @@ import {
   QueryCommand,
 } from "@aws-sdk/client-dynamodb";
 import { RouteRepository } from "../../domain/repositories/route-repository";
-import { Route } from "../../domain/entities/route-entity";
+import { Route } from "../../domain/entities/route";
 import { RouteStatus } from "../../domain/value-objects/route-status";
-import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
-import { DistanceKm } from "../../domain/value-objects/distance-value-object";
-import { Duration } from "../../domain/value-objects/duration-value-object";
-import { Path } from "../../domain/value-objects/path-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
+import { DistanceKm } from "../../domain/value-objects/distance";
+import { Duration } from "../../domain/value-objects/duration";
+import { Path } from "../../domain/value-objects/path";
 
 export class DynamoRouteRepository implements RouteRepository {
   constructor(private client: DynamoDBClient, private tableName: string) {}

@@ -1,4 +1,4 @@
-import { LatLng } from './lat-lng-value-object';
+import { LatLng } from './lat-lng';
 
 describe('LatLng', () => {
   it('creates valid coordinates', () => {

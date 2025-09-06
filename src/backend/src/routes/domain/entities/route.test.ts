@@ -1,9 +1,9 @@
-import { Route } from "./route-entity";
-import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
-import { DistanceKm } from "../value-objects/distance-value-object";
-import { Duration } from "../value-objects/duration-value-object";
-import { Path } from "../value-objects/path-value-object";
-import { LatLng } from "../value-objects/lat-lng-value-object";
+import { Route } from "./route";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
+import { DistanceKm } from "../value-objects/distance";
+import { Duration } from "../value-objects/duration";
+import { Path } from "../value-objects/path";
+import { LatLng } from "../value-objects/lat-lng";
 import { RouteRequestedEvent } from "../events/route-requested";
 import { RouteGeneratedEvent } from "../events/route-generated";
 import { RouteStatus } from "../value-objects/route-status";

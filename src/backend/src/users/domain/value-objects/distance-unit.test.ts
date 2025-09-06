@@ -1,4 +1,4 @@
-import { DistanceUnit } from './distance-unit-value-object';
+import { DistanceUnit } from './distance-unit';
 
 describe('DistanceUnit', () => {
   it('creates from valid unit', () => {

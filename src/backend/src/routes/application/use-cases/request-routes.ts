@@ -1,5 +1,5 @@
 import { RouteRepository } from "../../domain/repositories/route-repository";
-import { Route, RouteProps } from "../../domain/entities/route-entity";
+import { Route, RouteProps } from "../../domain/entities/route";
 import { EventDispatcher } from "../../../shared/domain/events/event-dispatcher";
 
 export interface RequestRoutesInput extends Omit<RouteProps, "status"> {}

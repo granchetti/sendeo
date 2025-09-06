@@ -1,4 +1,4 @@
-import { Age } from './age-value-object';
+import { Age } from './age';
 
 describe('Age', () => {
   it('creates from valid number', () => {
