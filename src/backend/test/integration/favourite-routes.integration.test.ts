@@ -16,6 +16,10 @@ let client: DynamoDBClient;
 
 beforeAll(async () => {
   await dynamodbLocal.launch(PORT, null, ["-inMemory", "-sharedDb"]);
+  // dynamodb-local may take a moment to accept connections after launching
+  // which can lead to ECONNREFUSED errors when creating the table. Pause
+  // briefly to give the local instance time to start listening on the port.
+  await new Promise((resolve) => setTimeout(resolve, 500));
 
   process.env.AWS_REGION = "us-east-1";
   process.env.AWS_ACCESS_KEY_ID = "x";
@@ -24,6 +28,7 @@ beforeAll(async () => {
   process.env.USER_STATE_TABLE = TABLE_NAME;
 
   client = new DynamoDBClient({
+    region: process.env.AWS_REGION,
     endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
   });
   await client.send(
