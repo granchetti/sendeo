@@ -1,5 +1,14 @@
 import { handler } from "../../src/users/interfaces/http/favourite-routes";
-import { DynamoDBClient, CreateTableCommand, DeleteTableCommand, PutItemCommand, QueryCommand, ScanCommand, DeleteItemCommand } from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBClient,
+  CreateTableCommand,
+  DeleteTableCommand,
+  PutItemCommand,
+  QueryCommand,
+  ScanCommand,
+  DeleteItemCommand,
+  ListTablesCommand,
+} from "@aws-sdk/client-dynamodb";
 import { publishFavouriteSaved, publishFavouriteDeleted } from "../../src/routes/interfaces/appsync-client";
 
 // Mock the appsync client publish functions
@@ -31,25 +40,10 @@ beforeAll(async () => {
     region: process.env.AWS_REGION,
     endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
   });
-  await client.send(
-    new CreateTableCommand({
-      TableName: TABLE_NAME,
-      AttributeDefinitions: [
-        { AttributeName: "PK", AttributeType: "S" },
-        { AttributeName: "SK", AttributeType: "S" },
-      ],
-      KeySchema: [
-        { AttributeName: "PK", KeyType: "HASH" },
-        { AttributeName: "SK", KeyType: "RANGE" },
-      ],
-      BillingMode: "PAY_PER_REQUEST",
-    })
-  );
-});
 
 afterAll(async () => {
   await client.send(new DeleteTableCommand({ TableName: TABLE_NAME }));
-  dynamodbLocal.stop(PORT);
+  await dynamodbLocal.stop(PORT);
 });
 
 beforeEach(async () => {
