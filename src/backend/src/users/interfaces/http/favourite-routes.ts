@@ -9,7 +9,9 @@ import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../applicat
 import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
 import { corsHeaders } from "../../../http/cors";
 
-const dynamo = new DynamoDBClient({});
+const dynamo = new DynamoDBClient({
+  endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
+});
 const repository = new DynamoUserProfileRepository(
   dynamo,
   process.env.USER_STATE_TABLE!

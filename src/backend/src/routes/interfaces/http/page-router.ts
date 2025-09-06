@@ -21,7 +21,9 @@ import {
 import { RouteStartedEvent } from "../../domain/events/route-started";
 import { RouteFinishedEvent } from "../../domain/events/route-finished";
 
-const dynamo = new DynamoDBClient({});
+const dynamo = new DynamoDBClient({
+  endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
+});
 const sqs = new SQSClient({});
 const routeRepository = new DynamoRouteRepository(
   dynamo,

@@ -7,7 +7,9 @@ import { Email } from "../../../shared/domain/value-objects/email";
 import { UserProfile } from "../../domain/entities/user-profile";
 import { corsHeaders } from "../../../http/cors";
 
-const dynamo = new DynamoDBClient({});
+const dynamo = new DynamoDBClient({
+  endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
+});
 const repository = new DynamoUserProfileRepository(
   dynamo,
   process.env.USER_STATE_TABLE!

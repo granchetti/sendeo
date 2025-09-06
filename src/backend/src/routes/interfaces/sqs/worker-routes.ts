@@ -10,7 +10,9 @@ import { publishRoutesGenerated } from "../appsync-client";
 import { fetchJson, getGoogleKey } from "../shared/utils";
 import { RouteGenerator } from "../../domain/services/route-generator";
 
-const dynamo = new DynamoDBClient({});
+const dynamo = new DynamoDBClient({
+  endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
+});
 const sqs = new SQSClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 const generator = new RouteGenerator(repository);
