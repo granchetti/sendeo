@@ -24,28 +24,6 @@ export const openApiSpec = {
           "200": { description: "OK" },
         },
       },
-      post: {
-        summary: "Request routes",
-        requestBody: {
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  preference: {
-                    type: "string",
-                    enum: ["park", "countryside", "scenic"],
-                  },
-                },
-              },
-            },
-          },
-          required: false,
-        },
-        responses: {
-          "202": { description: "Accepted" },
-        },
-      },
     },
     "/routes/{routeId}": {
       get: {
@@ -55,12 +33,26 @@ export const openApiSpec = {
         ],
         responses: { "200": { description: "OK" }, "404": { description: "Not Found" } },
       },
+    },
+    "/routes/{routeId}/finish": {
       post: {
         summary: "Finish route",
         parameters: [
           { name: "routeId", in: "path", required: true, schema: { type: "string" } },
         ],
         responses: { "200": { description: "OK" } },
+      },
+    },
+    "/jobs/{jobId}/routes": {
+      get: {
+        summary: "List routes for job",
+        parameters: [
+          { name: "jobId", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "OK" },
+          "400": { description: "Bad Request" },
+        },
       },
     },
     "/favourites": {
