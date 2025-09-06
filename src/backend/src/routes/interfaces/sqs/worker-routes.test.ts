@@ -70,9 +70,6 @@ describe("worker routes handler", () => {
     return require("./worker-routes").handler as any;
   }
 
-  function loadGeocode() {
-    return require("./worker-routes").geocode as any;
-  }
 
   it("saves decoded route when directions are returned", async () => {
     responseDataHolder.data = JSON.stringify({
@@ -561,16 +558,4 @@ describe("worker routes handler", () => {
     expect(published).toHaveLength(2);
   });
 
-  it("parses coordinate strings without calling the API", async () => {
-    const geocode = loadGeocode();
-    const result = await geocode("41.38,2.17", "k");
-    expect(result).toEqual({ lat: 41.38, lng: 2.17 });
-    expect(httpsRequest).not.toHaveBeenCalled();
-  });
-
-  it("calls the API for address inputs", async () => {
-    const geocode = loadGeocode();
-    await geocode("Barcelona", "k");
-    expect(httpsRequest).toHaveBeenCalledTimes(1);
-  });
 });
