@@ -1,8 +1,8 @@
-import { InMemoryEventDispatcher } from "../../../shared/domain/events/event-dispatcher";
+import { EventDispatcher } from "../../../shared/domain/events/event-dispatcher";
 import { RouteRequestedEvent } from "../../domain/events/route-requested";
 import { RouteGeneratedEvent } from "../../domain/events/route-generated";
 
-export function registerTelemetrySubscribers(dispatcher: InMemoryEventDispatcher): void {
+export function registerTelemetrySubscribers(dispatcher: EventDispatcher): void {
   dispatcher.subscribe("RouteRequested", (event: RouteRequestedEvent) => {
     console.log("Telemetry: route requested", event.routeId.Value);
   });

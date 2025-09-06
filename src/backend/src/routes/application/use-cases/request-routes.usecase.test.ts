@@ -3,14 +3,17 @@ import { RouteRepository } from "../../domain/repositories/route-repository";
 import { Route } from "../../domain/entities/route-entity";
 import { RouteStatus } from "../../domain/value-objects/route-status";
 import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
-import { InMemoryEventDispatcher } from "../../../shared/domain/events/event-dispatcher";
+import {
+  EventDispatcher,
+  InMemoryEventDispatcher,
+} from "../../../shared/domain/events/event-dispatcher";
 import { RouteRequestedEvent } from "../../domain/events/route-requested";
 
 describe("RequestRoutesUseCase", () => {
   it("saves, returns a Route instance and publishes events", async () => {
     const save = jest.fn();
     const repo: RouteRepository = { save } as any;
-    const dispatcher = new InMemoryEventDispatcher();
+    const dispatcher: EventDispatcher = new InMemoryEventDispatcher();
     const handler = jest.fn();
     dispatcher.subscribe("RouteRequested", handler);
     const useCase = new RequestRoutesUseCase(repo, dispatcher);

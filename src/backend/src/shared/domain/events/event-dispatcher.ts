@@ -1,11 +1,25 @@
 import { DomainEvent } from "./domain-event";
 
-type EventHandler<T extends DomainEvent = DomainEvent> = (event: T) => void | Promise<void>;
+export type EventHandler<T extends DomainEvent = DomainEvent> = (
+  event: T
+) => void | Promise<void>;
 
-export class InMemoryEventDispatcher {
+export interface EventDispatcher {
+  subscribe<T extends DomainEvent>(
+    eventName: string,
+    handler: EventHandler<T>
+  ): void;
+  publish(event: DomainEvent): Promise<void>;
+  publishAll(events: DomainEvent[]): Promise<void>;
+}
+
+export class InMemoryEventDispatcher implements EventDispatcher {
   private handlers: { [eventName: string]: EventHandler[] } = {};
 
-  subscribe<T extends DomainEvent>(eventName: string, handler: EventHandler<T>): void {
+  subscribe<T extends DomainEvent>(
+    eventName: string,
+    handler: EventHandler<T>
+  ): void {
     if (!this.handlers[eventName]) {
       this.handlers[eventName] = [];
     }
