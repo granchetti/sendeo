@@ -91,7 +91,6 @@ const describeRouteUseCase = new DescribeRouteUseCase(
   routeRepository,
   routeDescriptionService
 );
-const getRouteDetails = new GetRouteDetailsUseCase(routeRepository);
 const startRouteUseCase = new StartRouteUseCase(routeRepository, dispatcher);
 const finishRouteUseCase = new FinishRouteUseCase(routeRepository, dispatcher);
 
@@ -101,7 +100,11 @@ export const handler = async (
   const { httpMethod, resource, pathParameters } = event;
   const email = (event.requestContext as any).authorizer?.claims?.email;
   if (!email) {
-    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Unauthorized" }),
+    };
   }
   // GET /routes
   if (httpMethod === "GET" && resource === "/routes") {
@@ -143,7 +146,11 @@ export const handler = async (
 
     const route = await routeRepository.findById(UUID.fromString(routeId));
     if (!route) {
-      return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ error: "Not Found" }) };
+      return {
+        statusCode: 404,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Not Found" }),
+      };
     }
     if (!route.description && route.path) {
       try {
@@ -184,9 +191,7 @@ export const handler = async (
       };
     }
     try {
-      const list = await routeRepository.findByJobId(
-        UUID.fromString(jobId)
-      );
+      const list = await routeRepository.findByJobId(UUID.fromString(jobId));
       return {
         statusCode: 200,
         headers: corsHeaders,
@@ -247,7 +252,11 @@ export const handler = async (
         body: JSON.stringify({ error: "Not Found" }),
       };
     }
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true }) };
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({ ok: true }),
+    };
   }
 
   if (resource === "/routes/{routeId}/finish" && httpMethod === "POST") {
@@ -277,7 +286,11 @@ export const handler = async (
       actualDuration,
     });
     if (!route) {
-      return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ error: "Not Found" }) };
+      return {
+        statusCode: 404,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Not Found" }),
+      };
     }
 
     return {

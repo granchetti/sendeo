@@ -30,7 +30,6 @@ export class AuthStack extends cdk.Stack {
       },
     });
 
-    // 🔸 Trigger SOLO fuera de prod
     if (suffix !== "prod") {
       const backendRoot = path.join(__dirname, "../../../src/backend");
       const backendLock = path.join(backendRoot, "package-lock.json");
@@ -45,8 +44,6 @@ export class AuthStack extends cdk.Stack {
         handler: "handler",
         environment: {
           STAGE: suffix,
-          // Opcional: limitar emails auto-confirmados a un dominio controlado:
-          // ALLOWED_EMAIL_DOMAIN: "e2e.local",
         },
         depsLockFilePath: backendLock,
         bundling: {
@@ -56,7 +53,6 @@ export class AuthStack extends cdk.Stack {
           sourceMap: true,
           sourcesContent: false,
           tsconfig: backendTsconfig,
-          // nodeModules: [] // añade aquí módulos nativos si hiciera falta
         },
       });
 
