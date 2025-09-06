@@ -1,13 +1,13 @@
 import { RouteRepository } from "../../domain/repositories/route-repository";
 import { Route, RouteProps } from "../../domain/entities/route-entity";
-import { InMemoryEventDispatcher } from "../../../shared/domain/events/event-dispatcher";
+import { EventDispatcher } from "../../../shared/domain/events/event-dispatcher";
 
 export interface RequestRoutesInput extends Omit<RouteProps, "status"> {}
 
 export class RequestRoutesUseCase {
   constructor(
     private repository: RouteRepository,
-    private dispatcher: InMemoryEventDispatcher
+    private dispatcher: EventDispatcher
   ) {}
 
   async execute(input: RequestRoutesInput): Promise<Route> {
