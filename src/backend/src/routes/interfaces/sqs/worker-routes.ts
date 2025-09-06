@@ -3,37 +3,19 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { request as httpsRequest, RequestOptions } from "node:https";
 import { createHash } from "node:crypto";
-import { Route } from "../../domain/entities/route-entity";
-import { DistanceKm } from "../../domain/value-objects/distance-value-object";
-import { Duration } from "../../domain/value-objects/duration-value-object";
 import { Path } from "../../domain/value-objects/path-value-object";
-import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
+import type { Route } from "../../domain/entities/route-entity";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { publishRoutesGenerated } from "../appsync-client";
 import { fetchJson, getGoogleKey } from "../shared/utils";
+import { RouteGenerator } from "../../domain/services/route-generator";
 
 const dynamo = new DynamoDBClient({});
 const sqs = new SQSClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
+const generator = new RouteGenerator(repository);
 const SNAP_THRESHOLD_KM = 0.5;
 
-async function geocode(address: string, apiKey: string) {
-  console.info("[geocode] start:", address);
-  const coordRx = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
-  if (coordRx.test(address)) {
-    const [lat, lng] = address.split(/\s*,\s*/).map(Number);
-    console.info("[geocode] parsed coords:", lat, lng);
-    return { lat, lng };
-  }
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-    address
-  )}&key=${apiKey}`;
-  const res: any = await fetchJson(url);
-  const loc = res?.results?.[0]?.geometry?.location;
-  if (!loc) throw new Error(`Geocoding failed for "${address}"`);
-  console.info("[geocode] geocoded to:", loc.lat, loc.lng);
-  return { lat: loc.lat, lng: loc.lng };
-}
 
 async function postJson<T>(
   host: string,
@@ -231,141 +213,6 @@ function withinTarget(km: number, targetKm: number, pct = 0.15, absMax = 2) {
  * and finally a direct leg to the origin if needed. If fewer than half the
  * segments succeed the route is discarded.
  */
-async function computeCircularRoute(
-  origin: { lat: number; lng: number },
-  dKm: number,
-  segments: number,
-  apiKey: string,
-  startBearing = 0,
-  radiusMultiplier = 1
-) {
-  console.info("[computeCircularRoute] start", origin, "dKm=", dKm);
-  const baseRadius = (dKm / (2 * Math.PI)) * radiusMultiplier;
-  const step = 360 / segments;
-  const angles: number[] = [];
-  const waypoints = [];
-  for (let i = 0; i < segments; i++) {
-    const jitter = (Math.random() * 2 - 1) * step * 0.25;
-    const angle = startBearing + step * i + jitter;
-    angles.push(angle);
-    const raw = offsetCoordinate(origin.lat, origin.lng, baseRadius, angle);
-    const snapped =
-      baseRadius > SNAP_THRESHOLD_KM ? await snapToRoad(raw, apiKey) : raw;
-    const pt =
-      snapped.lat === origin.lat && snapped.lng === origin.lng ? raw : snapped;
-    waypoints.push(pt);
-  }
-  let totalDist = 0,
-    totalDur = 0,
-    encoded: string | undefined,
-    prev = origin,
-    success = 0;
-  for (let i = 0; i < segments; i++) {
-    const angle = angles[i];
-    const primary = waypoints[i];
-    const halfRaw = offsetCoordinate(
-      origin.lat,
-      origin.lng,
-      baseRadius * 0.5,
-      angle
-    );
-    const halfSnap =
-      baseRadius > SNAP_THRESHOLD_KM
-        ? await snapToRoad(halfRaw, apiKey)
-        : halfRaw;
-    const half =
-      halfSnap.lat === origin.lat && halfSnap.lng === origin.lng
-        ? halfRaw
-        : halfSnap;
-    const candidates = [primary, half, origin];
-    let leg: any = null,
-      used = primary;
-    for (let attempt = 0; attempt < candidates.length; attempt++) {
-      const dest = candidates[attempt];
-      const legs = await computeRoutes(prev, dest, apiKey);
-      const cand = legs[0];
-      if (cand?.encoded) {
-        leg = cand;
-        used = dest;
-        if (attempt > 0)
-          console.warn(
-            `[computeCircularRoute] segment ${i} fallback attempt ${attempt}`
-          );
-        break;
-      }
-    }
-    if (!leg) {
-      console.warn(`[computeCircularRoute] segment ${i} failed`);
-      const legs = await computeRoutes(prev, origin, apiKey);
-      const closeLeg = legs[0];
-      if (closeLeg?.encoded) {
-        console.warn(
-          `[computeCircularRoute] segment ${i} forced direct origin to close`
-        );
-        leg = closeLeg;
-        used = origin;
-      } else {
-        break;
-      }
-    }
-    totalDist += leg.distanceMeters;
-    totalDur += leg.durationSeconds;
-    if (encoded) {
-      const c1 = new Path(encoded).Coordinates;
-      const c2 = new Path(leg.encoded).Coordinates.slice(1);
-      encoded = Path.fromCoordinates([...c1, ...c2]).Encoded;
-    } else {
-      encoded = leg.encoded;
-    }
-    prev = used;
-    success++;
-    if (prev.lat === origin.lat && prev.lng === origin.lng) break;
-  }
-
-  // ensure loop closure
-  if (prev.lat !== origin.lat || prev.lng !== origin.lng) {
-    const legs = await computeRoutes(prev, origin, apiKey);
-    const leg = legs[0];
-    if (leg?.encoded) {
-      console.warn("[computeCircularRoute] closing loop to origin");
-      totalDist += leg.distanceMeters;
-      totalDur += leg.durationSeconds;
-      if (encoded) {
-        const c1 = new Path(encoded).Coordinates;
-        const c2 = new Path(leg.encoded).Coordinates.slice(1);
-        encoded = Path.fromCoordinates([...c1, ...c2]).Encoded;
-      } else {
-        encoded = leg.encoded;
-      }
-      success++;
-      prev = origin;
-    }
-  }
-
-  const closed = prev.lat === origin.lat && prev.lng === origin.lng;
-  if (!encoded || (!closed && success < segments / 2)) return null;
-  return { distanceMeters: totalDist, durationSeconds: totalDur, encoded };
-}
-
-async function persistRoute(
-  jobId: string,
-  km: number,
-  dur: number,
-  poly?: string
-) {
-  const r = Route.request({
-    routeId: UUID.generate(),
-    jobId: UUID.fromString(jobId),
-  });
-  r.generate(
-    new DistanceKm(km),
-    new Duration(dur),
-    poly ? new Path(poly) : undefined
-  );
-  await repository.save(r);
-  console.info("[persistRoute] saved:", r);
-  return r;
-}
 
 /** MAIN LAMBDA HANDLER */
 export const handler: SQSHandler = async (event) => {
@@ -384,8 +231,10 @@ export const handler: SQSHandler = async (event) => {
       routesCount = 3,
     } = JSON.parse(body);
 
-    const oCoords = await geocode(origin, key);
-    const dCoords = destination ? await geocode(destination, key) : undefined;
+    const oCoords = await generator.geocode(origin, key);
+    const dCoords = destination
+      ? await generator.geocode(destination, key)
+      : undefined;
 
     const saved: Route[] = [];
     const seen = new Set<string>();
@@ -415,7 +264,7 @@ export const handler: SQSHandler = async (event) => {
             ? createHash("md5").update(alt.encoded).digest("hex")
             : undefined;
           if (hash && seen.has(hash)) continue;
-          const r = await persistRoute(
+          const r = await generator.persistRoute(
             jobId,
             km,
             alt.durationSeconds,
@@ -441,7 +290,7 @@ export const handler: SQSHandler = async (event) => {
               for (let t = 0; t < tries; t++) {
                 const bearing =
                   Math.random() * 360 + (Math.random() * 2 - 1) * step * 0.25;
-                leg = await computeCircularRoute(
+                leg = await generator.computeCircularRoute(
                   oCoords,
                   distanceKm!,
                   segs,
@@ -454,7 +303,7 @@ export const handler: SQSHandler = async (event) => {
                   let adjust = 0;
                   while (!withinTarget(km, distanceKm!) && adjust < 2) {
                     const rm = Math.min(1.3, Math.max(0.4, distanceKm! / km));
-                    leg = await computeCircularRoute(
+                    leg = await generator.computeCircularRoute(
                       oCoords,
                       distanceKm!,
                       segs,
@@ -553,7 +402,7 @@ export const handler: SQSHandler = async (event) => {
             ? createHash("md5").update(leg.encoded).digest("hex")
             : undefined;
           if (hash2 && seen.has(hash2)) continue;
-          const r = await persistRoute(
+          const r = await generator.persistRoute(
             jobId,
             km,
             leg.durationSeconds,
@@ -588,4 +437,3 @@ export const handler: SQSHandler = async (event) => {
   }
 };
 
-export { geocode };
