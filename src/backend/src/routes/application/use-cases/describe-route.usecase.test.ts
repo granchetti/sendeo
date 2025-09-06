@@ -6,11 +6,7 @@ import { MapProvider } from '../../domain/services/map-provider';
 import { Path } from '../../domain/value-objects/path-value-object';
 import { LatLng } from '../../domain/value-objects/lat-lng-value-object';
 import { RouteStatus } from '../../domain/value-objects/route-status';
-import { describeRoute } from '../../handlers/describe-route';
-
-jest.mock('../../handlers/describe-route', () => ({
-  describeRoute: jest.fn().mockResolvedValue('generated description'),
-}));
+import { RouteDescriptionService } from '../../domain/services/route-description-service';
 
 describe('DescribeRouteUseCase', () => {
   it('generates and saves description when missing', async () => {
@@ -30,7 +26,10 @@ describe('DescribeRouteUseCase', () => {
     const mapProvider: MapProvider = {
       getCityName: jest.fn().mockResolvedValue('City'),
     };
-    const useCase = new DescribeRouteUseCase(repo);
+    const service: RouteDescriptionService = {
+      describe: jest.fn().mockResolvedValue('generated description'),
+    };
+    const useCase = new DescribeRouteUseCase(repo, service);
 
     const result = await useCase.execute(routeId, mapProvider);
 
@@ -38,6 +37,6 @@ describe('DescribeRouteUseCase', () => {
     expect(result).toBe(route);
     expect(result?.description).toBe('generated description');
     expect(repo.save).toHaveBeenCalledWith(route);
-    expect((describeRoute as jest.Mock).mock.calls[0][0]).toBe(path.Encoded);
+    expect(service.describe).toHaveBeenCalledWith(path.Encoded, mapProvider);
   });
 });

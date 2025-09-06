@@ -7,6 +7,7 @@ import { publishRouteStarted, publishRouteFinished } from "../appsync-client";
 import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { DescribeRouteUseCase } from "../../application/use-cases/describe-route";
+import { BedrockRouteDescriptionService } from "../../infrastructure/bedrock-route-description-service";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 import { corsHeaders } from "../../../http/cors";
 import { getGoogleKey } from "../shared/utils";
@@ -23,7 +24,11 @@ const userActivityRepository = new DynamoUserActivityRepository(
   process.env.USER_STATE_TABLE!
 );
 const listRoutes = new ListRoutesUseCase(routeRepository);
-const describeRouteUseCase = new DescribeRouteUseCase(routeRepository);
+const routeDescriptionService = new BedrockRouteDescriptionService();
+const describeRouteUseCase = new DescribeRouteUseCase(
+  routeRepository,
+  routeDescriptionService
+);
 const getRouteDetails = new GetRouteDetailsUseCase(routeRepository);
 
 export const handler = async (
