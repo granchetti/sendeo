@@ -6,9 +6,9 @@ import { DynamoUserActivityRepository } from "../../../users/infrastructure/dyna
 import { publishRouteStarted, publishRouteFinished } from "../appsync-client";
 import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
+import { DescribeRouteUseCase } from "../../application/use-cases/describe-route";
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 import { corsHeaders } from "../../../http/cors";
-import { describeRoute } from "../../handlers/describe-route";
 import { getGoogleKey } from "../shared/utils";
 import { GoogleMapsProvider } from "../../infrastructure/google-maps/google-maps-provider";
 
@@ -23,6 +23,7 @@ const userActivityRepository = new DynamoUserActivityRepository(
   process.env.USER_STATE_TABLE!
 );
 const listRoutes = new ListRoutesUseCase(routeRepository);
+const describeRouteUseCase = new DescribeRouteUseCase(routeRepository);
 const getRouteDetails = new GetRouteDetailsUseCase(routeRepository);
 
 export const handler = async (
@@ -71,7 +72,7 @@ export const handler = async (
       };
     }
 
-    const route = await getRouteDetails.execute(UUID.fromString(routeId));
+    const route = await routeRepository.findById(UUID.fromString(routeId));
     if (!route) {
       return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ error: "Not Found" }) };
     }
@@ -79,10 +80,12 @@ export const handler = async (
       try {
         const key = await getGoogleKey();
         const mapProvider = new GoogleMapsProvider(key);
-        const desc = await describeRoute(route.path.Encoded, mapProvider);
-        if (desc) {
-          route.description = desc;
-          await routeRepository.save(route);
+        const updated = await describeRouteUseCase.execute(
+          route.routeId,
+          mapProvider
+        );
+        if (updated) {
+          route.description = updated.description;
         }
       } catch (err) {
         console.warn("describeRoute failed:", err);
