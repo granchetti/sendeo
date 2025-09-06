@@ -25,7 +25,9 @@ beforeAll(async () => {
   process.env.AWS_ENDPOINT_URL_DYNAMODB = `http://localhost:${PORT}`;
   process.env.USER_STATE_TABLE = TABLE_NAME;
 
-  client = new DynamoDBClient({});
+  client = new DynamoDBClient({
+    endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
+  });
   await client.send(
     new CreateTableCommand({
       TableName: TABLE_NAME,
