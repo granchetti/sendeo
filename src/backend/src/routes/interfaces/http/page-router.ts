@@ -7,6 +7,8 @@ import { publishRouteStarted, publishRouteFinished } from "../appsync-client";
 import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import { ListRoutesUseCase } from "../../application/use-cases/list-routes";
 import { DescribeRouteUseCase } from "../../application/use-cases/describe-route";
+import { BedrockRouteDescriptionService } from "../../infrastructure/bedrock-route-description-service";
+import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 import { StartRouteUseCase } from "../../application/use-cases/start-route";
 import { FinishRouteUseCase } from "../../application/use-cases/finish-route";
 import { corsHeaders } from "../../../http/cors";
@@ -84,7 +86,12 @@ dispatcher.subscribe("RouteFinished", async (event: RouteFinishedEvent) => {
 });
 
 const listRoutes = new ListRoutesUseCase(routeRepository);
-const describeRouteUseCase = new DescribeRouteUseCase(routeRepository);
+const routeDescriptionService = new BedrockRouteDescriptionService();
+const describeRouteUseCase = new DescribeRouteUseCase(
+  routeRepository,
+  routeDescriptionService
+);
+const getRouteDetails = new GetRouteDetailsUseCase(routeRepository);
 const startRouteUseCase = new StartRouteUseCase(routeRepository, dispatcher);
 const finishRouteUseCase = new FinishRouteUseCase(routeRepository, dispatcher);
 

@@ -5,8 +5,7 @@ import {
 import polyline from "@mapbox/polyline";
 import { calcDistanceKm } from "../interfaces/shared/utils";
 import { MapProvider } from "../domain/services/map-provider";
-
-const bedrock = new BedrockRuntimeClient({});
+import { RouteDescriptionService } from "../domain/services/route-description-service";
 
 async function fetchWeather(lat: number, lng: number): Promise<string> {
   try {
@@ -78,84 +77,89 @@ Use this guidance to keep wording fresh on every call:
 
 ### Please write a single text response following **exactly** this structure:
 
-**Overview (≤ 2 sentences)**  
-• Mention total distance (approx.), estimated walking time (assume 4.5 km/h)  
+**Overview (≤ 2 sentences)**
+• Mention total distance (approx.), estimated walking time (assume 4.5 km/h)
 • One-line mood/terrain teaser (e.g. “quiet coastal path”, “lively urban stroll”)
 
-**Points of Interest (max 4)**  
-Start each line with “- ”.  
+**Points of Interest (max 4)**
+Start each line with “- ”.
 Format: **Name** — reason (≤ 15 words).
 
-**Heads-up section**  
+**Heads-up section**
 Compact warnings about steep parts, stairs, busy crossings, surfaces, etc.
 
-**Practical tips**  
+**Practical tips**
 Good viewpoints, water fountains, cafés, shaded benches… 2–3 items max.
 
 At the end, add an encouraging sentence to motivate the reader to walk this route with emojis.
 ---
 
-Formatting rules:  
-* Use **Markdown**, but no code fences.  
-* Wrap lines naturally; do *not* truncate text.  
-* Do *not* repeat the GPS data.  
-* Stay under **250 words total**.  
+Formatting rules:
+* Use **Markdown**, but no code fences.
+* Wrap lines naturally; do *not* truncate text.
+* Do *not* repeat the GPS data.
+* Stay under **250 words total**.
 * The title must begin with the exact town/city name of the route.
 `.trim(),
   };
 }
 
-export async function describeRoute(
-  encodedPath: string,
-  mapProvider: MapProvider,
-  modelId = "eu.anthropic.claude-3-7-sonnet-20250219-v1:0"
-) {
-  if (!encodedPath) return "";
-  const coords = polyline.decode(encodedPath);
-  const [lat, lng] = coords[0];
-  const weatherSentence = await fetchWeather(lat, lng);
-  const city = await mapProvider.getCityName(lat, lng);
-  const seed = Date.now();
-  const variant = (seed % 6) + 1;
+export class BedrockRouteDescriptionService implements RouteDescriptionService {
+  private bedrock = new BedrockRuntimeClient({});
 
-  const systemPrompt = `
+  async describe(
+    encodedPath: string,
+    mapProvider: MapProvider,
+    modelId = "eu.anthropic.claude-3-7-sonnet-20250219-v1:0"
+  ): Promise<string> {
+    if (!encodedPath) return "";
+    const coords = polyline.decode(encodedPath);
+    const [lat, lng] = coords[0];
+    const weatherSentence = await fetchWeather(lat, lng);
+    const city = await mapProvider.getCityName(lat, lng);
+    const seed = Date.now();
+    const variant = (seed % 6) + 1;
+
+    const systemPrompt = `
 ${SYSTEM_PROMPT}
 
 The walk takes place in **${city}**.
 The **title must start with “${city}”**.
 `.trim();
 
-  const payload = {
-    anthropic_version: "bedrock-2023-05-31",
-    system: systemPrompt,
-    messages: [buildUserMessage(coords, weatherSentence, variant, seed)],
-    max_tokens: 512,
-    temperature: 0.85,
-    top_p: 0.95,
-    stop_sequences: ["\n\n### End"],
-  };
+    const payload = {
+      anthropic_version: "bedrock-2023-05-31",
+      system: systemPrompt,
+      messages: [buildUserMessage(coords, weatherSentence, variant, seed)],
+      max_tokens: 512,
+      temperature: 0.85,
+      top_p: 0.95,
+      stop_sequences: ["\n\n### End"],
+    };
 
-  try {
-    const resp = await bedrock.send(
-      new InvokeModelCommand({
-        modelId,
-        contentType: "application/json",
-        accept: "application/json",
-        body: Buffer.from(JSON.stringify(payload)),
-      })
-    );
+    try {
+      const resp = await this.bedrock.send(
+        new InvokeModelCommand({
+          modelId,
+          contentType: "application/json",
+          accept: "application/json",
+          body: Buffer.from(JSON.stringify(payload)),
+        })
+      );
 
-    const raw = await new Response(resp.body as any).text();
-    const data = JSON.parse(raw);
+      const raw = await new Response(resp.body as any).text();
+      const data = JSON.parse(raw);
 
-    return (
-      data.content?.map((c: any) => c.text).join("") ??
-      data.completion ??
-      data.output ??
-      raw
-    );
-  } catch (err) {
-    console.warn("[describeRoute] failed", err);
-    return "";
+      return (
+        data.content?.map((c: any) => c.text).join("") ??
+        data.completion ??
+        data.output ??
+        raw
+      );
+    } catch (err) {
+      console.warn("[describeRoute] failed", err);
+      return "";
+    }
   }
 }
+
