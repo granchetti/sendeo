@@ -1,3 +1,4 @@
+import { Email } from '../../../shared/domain/value-objects/email-value-object';
 import { UserProfileRepository } from '../../domain/repositories/user-profile-repository';
 
 export class FavouriteAlreadyExistsError extends Error {
@@ -9,7 +10,7 @@ export class FavouriteAlreadyExistsError extends Error {
 export class AddFavouriteUseCase {
   constructor(private repository: UserProfileRepository) {}
 
-  async execute(email: string, routeId: string): Promise<void> {
+  async execute(email: Email, routeId: string): Promise<void> {
     const existing = await this.repository.getFavourites(email);
     if (existing.some((e) => e === routeId || e === `FAV#${routeId}`)) {
       throw new FavouriteAlreadyExistsError();

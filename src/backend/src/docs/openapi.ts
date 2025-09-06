@@ -14,7 +14,7 @@ export const openApiSpec = {
       },
     },
   },
-  // Require the Cognito bearer token for all operations except Swagger itself.
+
   security: [{ cognitoAuth: [] }],
   paths: {
     "/routes": {

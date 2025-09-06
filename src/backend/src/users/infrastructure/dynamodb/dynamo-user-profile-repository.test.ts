@@ -23,7 +23,7 @@ describe('DynamoUserProfileRepository', () => {
   });
 
   it('putFavourite sends a PutItemCommand with correct params', async () => {
-    await repo.putFavourite(email.Value, routeId);
+    await repo.putFavourite(email, routeId);
     const cmd = mockSend.mock.calls[0][0];
     expect(cmd).toBeInstanceOf(PutItemCommand);
     expect((cmd as any).input).toEqual({
@@ -36,7 +36,7 @@ describe('DynamoUserProfileRepository', () => {
   });
 
   it('deleteFavourite sends a DeleteItemCommand with correct params', async () => {
-    await repo.deleteFavourite(email.Value, routeId);
+    await repo.deleteFavourite(email, routeId);
     const cmd = mockSend.mock.calls[0][0];
     expect(cmd).toBeInstanceOf(DeleteItemCommand);
     expect((cmd as any).input).toEqual({
@@ -51,7 +51,7 @@ describe('DynamoUserProfileRepository', () => {
   it('getFavourites returns SK values from QueryCommand results', async () => {
     const items = [{ SK: { S: 'FAV#1' } }, { SK: { S: 'FAV#2' } }];
     mockSend.mockResolvedValueOnce({ Items: items });
-    const result = await repo.getFavourites(email.Value);
+    const result = await repo.getFavourites(email);
     const cmd = mockSend.mock.calls[0][0];
     expect(cmd).toBeInstanceOf(QueryCommand);
     expect((cmd as any).input).toEqual({
@@ -64,7 +64,7 @@ describe('DynamoUserProfileRepository', () => {
 
   it('getFavourites returns empty array if no items', async () => {
     mockSend.mockResolvedValueOnce({});
-    const result = await repo.getFavourites(email.Value);
+    const result = await repo.getFavourites(email);
     expect(result).toEqual([]);
   });
 

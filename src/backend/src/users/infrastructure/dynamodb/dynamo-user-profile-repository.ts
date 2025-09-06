@@ -12,37 +12,37 @@ import { Email } from "../../../shared/domain/value-objects/email-value-object";
 export class DynamoUserProfileRepository implements UserProfileRepository {
   constructor(private client: DynamoDBClient, private tableName: string) {}
 
-  async putFavourite(email: string, routeId: string): Promise<void> {
+  async putFavourite(email: Email, routeId: string): Promise<void> {
     await this.client.send(
       new PutItemCommand({
         TableName: this.tableName,
         Item: {
-          PK: { S: `USER#${email}` },
+          PK: { S: `USER#${email.Value}` },
           SK: { S: `FAV#${routeId}` },
         },
       })
     );
   }
 
-  async deleteFavourite(email: string, routeId: string): Promise<void> {
+  async deleteFavourite(email: Email, routeId: string): Promise<void> {
     await this.client.send(
       new DeleteItemCommand({
         TableName: this.tableName,
         Key: {
-          PK: { S: `USER#${email}` },
+          PK: { S: `USER#${email.Value}` },
           SK: { S: `FAV#${routeId}` },
         },
       })
     );
   }
 
-  async getFavourites(email: string): Promise<string[]> {
+  async getFavourites(email: Email): Promise<string[]> {
     const res = await this.client.send(
       new QueryCommand({
         TableName: this.tableName,
         KeyConditionExpression: "PK = :pk AND begins_with(SK, :fav)",
         ExpressionAttributeValues: {
-          ":pk": { S: `USER#${email}` },
+          ":pk": { S: `USER#${email.Value}` },
           ":fav": { S: "FAV#" },
         },
       })

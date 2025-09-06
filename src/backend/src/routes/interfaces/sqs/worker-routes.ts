@@ -17,7 +17,6 @@ const sqs = new SQSClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 const SNAP_THRESHOLD_KM = 0.5;
 
-/** Geocode or parse “lat,lng” */
 async function geocode(address: string, apiKey: string) {
   console.info("[geocode] start:", address);
   const coordRx = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
@@ -36,7 +35,6 @@ async function geocode(address: string, apiKey: string) {
   return { lat: loc.lat, lng: loc.lng };
 }
 
-/** POST → JSON for legacy Routes API */
 async function postJson<T>(
   host: string,
   path: string,
@@ -96,7 +94,6 @@ async function postJson<T>(
   }
 }
 
-/** Compute alternative walking routes */
 async function computeRoutes(
   origin: { lat: number; lng: number },
   destination: { lat: number; lng: number },
@@ -174,7 +171,6 @@ function offsetCoordinate(lat: number, lng: number, dKm: number, bDeg = 90) {
   return { lat: (φ2 * 180) / Math.PI, lng: (λ2 * 180) / Math.PI };
 }
 
-/** Simple haversine distance in km */
 function distanceKm(
   a: { lat: number; lng: number },
   b: { lat: number; lng: number }
@@ -190,7 +186,6 @@ function distanceKm(
   return 2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
-/** Snap a point to the nearest road */
 async function snapToRoad(
   pt: { lat: number; lng: number },
   apiKey: string,
@@ -248,7 +243,6 @@ async function computeCircularRoute(
   const baseRadius = (dKm / (2 * Math.PI)) * radiusMultiplier;
   const step = 360 / segments;
   const angles: number[] = [];
-  // build & snap waypoints at full radius
   const waypoints = [];
   for (let i = 0; i < segments; i++) {
     const jitter = (Math.random() * 2 - 1) * step * 0.25;
@@ -261,8 +255,6 @@ async function computeCircularRoute(
       snapped.lat === origin.lat && snapped.lng === origin.lng ? raw : snapped;
     waypoints.push(pt);
   }
-
-  // stitch legs with per-segment recovery
   let totalDist = 0,
     totalDur = 0,
     encoded: string | undefined,
@@ -304,7 +296,6 @@ async function computeCircularRoute(
     }
     if (!leg) {
       console.warn(`[computeCircularRoute] segment ${i} failed`);
-      // try to close directly to origin and exit
       const legs = await computeRoutes(prev, origin, apiKey);
       const closeLeg = legs[0];
       if (closeLeg?.encoded) {
@@ -356,7 +347,6 @@ async function computeCircularRoute(
   return { distanceMeters: totalDist, durationSeconds: totalDur, encoded };
 }
 
-/** Persist a single Route entity */
 async function persistRoute(
   jobId: string,
   km: number,
@@ -411,7 +401,6 @@ export const handler: SQSHandler = async (event) => {
       );
 
       if (dCoords) {
-        // ——— point→point ———
         const alts = await computeRoutes(oCoords, dCoords, key);
         const shuffled = alts.sort(() => Math.random() - 0.5);
         for (const alt of shuffled) {
@@ -436,7 +425,6 @@ export const handler: SQSHandler = async (event) => {
           saved.push(r);
         }
       } else {
-        // ——— distance-only ———
         let leg: {
           distanceMeters: number;
           durationSeconds: number;
@@ -444,7 +432,6 @@ export const handler: SQSHandler = async (event) => {
         } | null = null;
         let isCircular = false;
         if (roundTrip && circle) {
-          // try multiple circular configurations (segments, radius, bearing)
           const segOptions = [4, 5, 6, 8, 10];
           const radiusOpts = [1.1, 1, 0.85, 0.7, 0.55, 0.4];
           outer: for (const segs of segOptions) {
@@ -494,7 +481,6 @@ export const handler: SQSHandler = async (event) => {
             console.warn(
               "[handler] circular failed, fallback to simple round-trip"
             );
-            // fall back to two legs: out and back
             const bearing = Math.random() * 360;
             const half = distanceKm! / 2;
             const rawDest = offsetCoordinate(
@@ -557,7 +543,6 @@ export const handler: SQSHandler = async (event) => {
             console.warn("[handler] dist-only out of range", km);
             continue;
           }
-          // Solo aplaza el fallback si se pidieron circulares explícitamente
           if (circle && !isCircular && circularCount < circularGoal) {
             console.warn(
               "[handler] skipping fallback until enough circular routes"
