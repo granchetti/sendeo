@@ -119,13 +119,13 @@ describe("DynamoRouteRepository", () => {
   });
 
   it("findByJobId queries using GSI2", async () => {
-    const routeId = UUID.generate().Value;
-    const jobId = UUID.generate().Value;
+    const routeId = UUID.generate();
+    const jobId = UUID.generate();
     const returned = {
       Items: [
         {
-          routeId: { S: routeId },
-          jobId: { S: jobId },
+          routeId: { S: routeId.Value },
+          jobId: { S: jobId.Value },
           description: { S: "d" },
           status: { S: RouteStatus.Requested },
         },
@@ -139,10 +139,10 @@ describe("DynamoRouteRepository", () => {
       TableName: tableName,
       IndexName: "GSI2",
       KeyConditionExpression: "jobId = :job",
-      ExpressionAttributeValues: { ":job": { S: jobId } },
+      ExpressionAttributeValues: { ":job": { S: jobId.Value } },
     });
     expect(res).toHaveLength(1);
-    expect(res[0].jobId?.Value).toBe(jobId);
+    expect(res[0].jobId?.Value).toBe(jobId.Value);
     expect(res[0].description).toBe("d");
   });
 });

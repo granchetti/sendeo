@@ -78,7 +78,7 @@ describe("InMemoryRouteRepository", () => {
     await repo.save(r1);
     await repo.save(r2);
 
-    const res = await repo.findByJobId(jobId.Value);
+    const res = await repo.findByJobId(jobId);
     expect(res.map((r) => r.routeId.Value)).toEqual([
       r1.routeId.Value,
       r2.routeId.Value,

@@ -208,7 +208,7 @@ describe("page router list routes by jobId", () => {
       ...baseEvent,
       pathParameters: { jobId: jobId.Value },
     });
-    expect(mockFindByJobId).toHaveBeenCalledWith(jobId.Value);
+    expect(mockFindByJobId).toHaveBeenCalledWith(jobId);
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual([
       {

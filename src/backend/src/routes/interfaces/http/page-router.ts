@@ -112,7 +112,9 @@ export const handler = async (
       };
     }
     try {
-      const list = await routeRepository.findByJobId(jobId);
+      const list = await routeRepository.findByJobId(
+        UUID.fromString(jobId)
+      );
       return {
         statusCode: 200,
         headers: corsHeaders,

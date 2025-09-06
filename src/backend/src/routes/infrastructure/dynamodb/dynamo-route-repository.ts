@@ -88,14 +88,14 @@ export class DynamoRouteRepository implements RouteRepository {
     );
   }
 
-  async findByJobId(jobId: string): Promise<Route[]> {
+  async findByJobId(jobId: UUID): Promise<Route[]> {
     const res = await this.client.send(
       new QueryCommand({
         TableName: this.tableName,
         IndexName: "GSI2",
         KeyConditionExpression: "jobId = :job",
         ExpressionAttributeValues: {
-          ":job": { S: jobId },
+          ":job": { S: jobId.Value },
         },
       })
     );
