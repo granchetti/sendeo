@@ -1,6 +1,7 @@
 const mockFindById = jest.fn();
 const mockFindAll = jest.fn();
 const mockFindByJobId = jest.fn();
+const mockSave = jest.fn();
 const mockPutRouteStart = jest.fn();
 const mockGetRouteStart = jest.fn();
 const mockDeleteRouteStart = jest.fn();
@@ -17,6 +18,7 @@ jest.mock("../../infrastructure/dynamodb/dynamo-route-repository", () => ({
     findById: mockFindById,
     findAll: mockFindAll,
     findByJobId: mockFindByJobId,
+    save: mockSave,
   })),
 }));
 
@@ -59,6 +61,7 @@ beforeEach(() => {
   mockFindById.mockReset();
   mockFindAll.mockReset();
   mockFindByJobId.mockReset();
+  mockSave.mockReset();
   mockPutRouteStart.mockReset();
   mockGetRouteStart.mockReset();
   mockDeleteRouteStart.mockReset();
@@ -242,12 +245,23 @@ describe("telemetry started", () => {
 
   it("enqueues started metric", async () => {
     mockSend.mockResolvedValueOnce({});
-    const routeId = UUID.generate().Value
+    const route = Route.request({ routeId: UUID.generate() });
+    route.generate(
+      new DistanceKm(1),
+      new Duration(10),
+      Path.fromCoordinates([
+        LatLng.fromNumbers(0, 0),
+        LatLng.fromNumbers(1, 1),
+      ])
+    );
+    mockFindById.mockResolvedValueOnce(route);
+    const routeId = route.routeId.Value;
     const res = await handler({
       ...baseEvent,
       body: JSON.stringify({ routeId }),
     });
     expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockSave).toHaveBeenCalledWith(route);
     expect(mockPutRouteStart).toHaveBeenCalledWith(
       "test@example.com",
       routeId,
@@ -297,6 +311,7 @@ describe("finish route", () => {
       ])
     );
     route.description = "desc";
+    route.start();
     mockFindById.mockResolvedValueOnce(route);
     mockGetRouteStart.mockResolvedValueOnce(1000);
     mockSend.mockResolvedValueOnce({});
@@ -314,6 +329,7 @@ describe("finish route", () => {
       "test@example.com",
       route.routeId.Value
     );
+    expect(mockSave).toHaveBeenCalledWith(route);
     expect(mockSend).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
     expect(payload.routeId).toBe(route.routeId.Value);
