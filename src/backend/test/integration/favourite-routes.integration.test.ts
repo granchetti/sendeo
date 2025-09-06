@@ -15,9 +15,7 @@ const PORT = 8000;
 let client: DynamoDBClient;
 
 beforeAll(async () => {
-  dynamodbLocal.launch(PORT, null, ["-inMemory", "-sharedDb"]);
-  // wait a bit for dynamodb to start
-  await new Promise((res) => setTimeout(res, 1000));
+  await dynamodbLocal.launch(PORT, null, ["-inMemory", "-sharedDb"]);
 
   process.env.AWS_REGION = "us-east-1";
   process.env.AWS_ACCESS_KEY_ID = "x";
