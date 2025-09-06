@@ -1,5 +1,14 @@
 import { handler } from "../../src/users/interfaces/http/favourite-routes";
-import { DynamoDBClient, CreateTableCommand, DeleteTableCommand, PutItemCommand, QueryCommand, ScanCommand, DeleteItemCommand } from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBClient,
+  CreateTableCommand,
+  DeleteTableCommand,
+  PutItemCommand,
+  QueryCommand,
+  ScanCommand,
+  DeleteItemCommand,
+  ListTablesCommand,
+} from "@aws-sdk/client-dynamodb";
 import { publishFavouriteSaved, publishFavouriteDeleted } from "../../src/routes/interfaces/appsync-client";
 
 // Mock the appsync client publish functions
@@ -23,28 +32,40 @@ beforeAll(async () => {
   process.env.AWS_ENDPOINT_URL_DYNAMODB = `http://localhost:${PORT}`;
   process.env.USER_STATE_TABLE = TABLE_NAME;
 
-  client = new DynamoDBClient({
-    endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
+    client = new DynamoDBClient({
+      endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
+      region: "us-east-1",
+    });
+
+    // wait for DynamoDB local to be ready
+    for (let i = 0; i < 5; i++) {
+      try {
+        await client.send(new ListTablesCommand({}));
+        break;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+
+    await client.send(
+      new CreateTableCommand({
+        TableName: TABLE_NAME,
+        AttributeDefinitions: [
+          { AttributeName: "PK", AttributeType: "S" },
+          { AttributeName: "SK", AttributeType: "S" },
+        ],
+        KeySchema: [
+          { AttributeName: "PK", KeyType: "HASH" },
+          { AttributeName: "SK", KeyType: "RANGE" },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+      })
+    );
   });
-  await client.send(
-    new CreateTableCommand({
-      TableName: TABLE_NAME,
-      AttributeDefinitions: [
-        { AttributeName: "PK", AttributeType: "S" },
-        { AttributeName: "SK", AttributeType: "S" },
-      ],
-      KeySchema: [
-        { AttributeName: "PK", KeyType: "HASH" },
-        { AttributeName: "SK", KeyType: "RANGE" },
-      ],
-      BillingMode: "PAY_PER_REQUEST",
-    })
-  );
-});
 
 afterAll(async () => {
   await client.send(new DeleteTableCommand({ TableName: TABLE_NAME }));
-  dynamodbLocal.stop(PORT);
+  await dynamodbLocal.stop(PORT);
 });
 
 beforeEach(async () => {
