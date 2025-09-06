@@ -1,17 +1,17 @@
 import { FinishRouteUseCase } from "./finish-route";
 import { RouteRepository } from "../../domain/repositories/route-repository";
-import { Route } from "../../domain/entities/route-entity";
-import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
 import {
   EventDispatcher,
   InMemoryEventDispatcher,
 } from "../../../shared/domain/events/event-dispatcher";
 import { RouteFinishedEvent } from "../../domain/events/route-finished";
-import { DistanceKm } from "../../domain/value-objects/distance-value-object";
-import { Duration } from "../../domain/value-objects/duration-value-object";
-import { Path } from "../../domain/value-objects/path-value-object";
-import { LatLng } from "../../domain/value-objects/lat-lng-value-object";
 import { RouteStatus } from "../../domain/value-objects/route-status";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
+import { Route } from "../../domain/entities/route";
+import { DistanceKm } from "../../domain/value-objects/distance";
+import { Duration } from "../../domain/value-objects/duration";
+import { LatLng } from "../../domain/value-objects/lat-lng";
+import { Path } from "../../domain/value-objects/path";
 
 describe("FinishRouteUseCase", () => {
   it("finishes route, saves and publishes event", async () => {

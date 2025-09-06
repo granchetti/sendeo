@@ -2,9 +2,9 @@ import { registerTelemetrySubscribers } from "./route-events-subscriber";
 import { EventDispatcher } from "../../../shared/domain/events/event-dispatcher";
 import { RouteRequestedEvent } from "../../domain/events/route-requested";
 import { RouteGeneratedEvent } from "../../domain/events/route-generated";
-import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
-import { Route } from "../../domain/entities/route-entity";
 import { RouteStatus } from "../../domain/value-objects/route-status";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
+import { Route } from "../../domain/entities/route";
 
 describe("registerTelemetrySubscribers", () => {
   let subscribe: jest.Mock;

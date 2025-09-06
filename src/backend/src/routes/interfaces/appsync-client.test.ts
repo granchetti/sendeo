@@ -2,12 +2,12 @@ process.env.APPSYNC_URL = 'https://example.com/graphql';
 process.env.APPSYNC_API_KEY = 'test-key';
 
 import { publishFavouriteSaved, publishFavouriteDeleted, publishRoutesGenerated, publishRouteStarted, publishRouteFinished } from './appsync-client';
-import { Route } from '../domain/entities/route-entity';
-import { UUID } from '../../shared/domain/value-objects/uuid-value-object';
-import { DistanceKm } from '../domain/value-objects/distance-value-object';
-import { Duration } from '../domain/value-objects/duration-value-object';
-import { Path } from '../domain/value-objects/path-value-object';
 import { RouteStatus } from '../domain/value-objects/route-status';
+import { Route } from '../domain/entities/route';
+import { UUID } from '../../shared/domain/value-objects/uuid';
+import { DistanceKm } from '../domain/value-objects/distance';
+import { Duration } from '../domain/value-objects/duration';
+import { Path } from '../domain/value-objects/path';
 
 describe('appsync-client', () => {
   let fetchMock: jest.Mock;
