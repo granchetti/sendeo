@@ -12,6 +12,7 @@ import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-de
 import { StartRouteUseCase } from "../../application/use-cases/start-route";
 import { FinishRouteUseCase } from "../../application/use-cases/finish-route";
 import { jsonHeaders } from "../../../http/cors";
+import { errorResponse } from "../../../http/error-response";
 import { getGoogleKey } from "../shared/utils";
 import { GoogleMapsProvider } from "../../infrastructure/google-maps/google-maps-provider";
 import {
@@ -20,6 +21,7 @@ import {
 } from "../../../shared/domain/events/event-dispatcher";
 import { RouteStartedEvent } from "../../domain/events/route-started";
 import { RouteFinishedEvent } from "../../domain/events/route-finished";
+import { hasScope, Scope } from "../../../auth/scopes";
 
 const dynamo = new DynamoDBClient({
   endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
@@ -108,59 +110,58 @@ export const handler = async (
     };
   }
   const { httpMethod, resource, pathParameters } = event;
-  const email = (event.requestContext as any).authorizer?.claims?.email;
+  const claims = (event.requestContext as any).authorizer?.claims;
+  const email = claims?.email;
   if (!email) {
+    return errorResponse(401, "Unauthorized");
+  }
+  if (!hasScope(claims, Scope.ROUTES)) {
     return {
-      statusCode: 401,
+      statusCode: 403,
       headers: jsonHeaders,
-      body: JSON.stringify({ error: "Unauthorized" }),
+      body: JSON.stringify({ error: "Forbidden" }),
     };
   }
-  // GET /routes
-  if (httpMethod === "GET" && resource === "/routes") {
+  // GET /v1/routes
+  if (httpMethod === "GET" && resource === "/v1/routes") {
     try {
-      const all = await listRoutes.execute();
+      const cursor = event.queryStringParameters?.cursor;
+      const limitParam = event.queryStringParameters?.limit;
+      const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+      const { items, nextCursor } = await listRoutes.execute({
+        cursor,
+        limit,
+      });
       return {
         statusCode: 200,
         headers: jsonHeaders,
-        body: JSON.stringify(
-          all.map((r) => ({
+        body: JSON.stringify({
+          items: items.map((r) => ({
             routeId: r.routeId.Value,
             distanceKm: r.distanceKm?.Value,
             duration: r.duration?.Value,
             path: r.path?.Encoded,
             description: r.description,
-          }))
-        ),
+          })),
+          ...(nextCursor ? { nextCursor } : {}),
+        }),
       };
     } catch (err) {
       console.error("Error listing routes:", err);
-      return {
-        statusCode: 500,
-        headers: jsonHeaders,
-        body: JSON.stringify({ error: "Could not list routes" }),
-      };
+      return errorResponse(500, "Could not list routes");
     }
   }
 
-  // GET /routes/{routeId}
-  if (httpMethod === "GET" && resource === "/routes/{routeId}") {
+  // GET /v1/routes/{routeId}
+  if (httpMethod === "GET" && resource === "/v1/routes/{routeId}") {
     const routeId = pathParameters?.routeId;
     if (!routeId) {
-      return {
-        statusCode: 400,
-        headers: jsonHeaders,
-        body: JSON.stringify({ error: "routeId parameter required" }),
-      };
+      return errorResponse(400, "routeId parameter required");
     }
 
     const route = await routeRepository.findById(UUID.fromString(routeId));
     if (!route) {
-      return {
-        statusCode: 404,
-        headers: jsonHeaders,
-        body: JSON.stringify({ error: "Not Found" }),
-      };
+      return errorResponse(404, "Not Found");
     }
     if (!route.description && route.path) {
       try {
@@ -190,15 +191,11 @@ export const handler = async (
     };
   }
 
-  // GET /jobs/{jobId}/routes
-  if (httpMethod === "GET" && resource === "/jobs/{jobId}/routes") {
+  // GET /v1/jobs/{jobId}/routes
+  if (httpMethod === "GET" && resource === "/v1/jobs/{jobId}/routes") {
     const jobId = pathParameters?.jobId;
     if (!jobId) {
-      return {
-        statusCode: 400,
-        headers: jsonHeaders,
-        body: JSON.stringify({ error: "jobId parameter required" }),
-      };
+      return errorResponse(400, "jobId parameter required");
     }
     try {
       const list = await routeRepository.findByJobId(UUID.fromString(jobId));
@@ -217,35 +214,23 @@ export const handler = async (
       };
     } catch (err) {
       console.error("Error listing job routes:", err);
-      return {
-        statusCode: 500,
-        headers: jsonHeaders,
-        body: JSON.stringify({ error: "Could not list routes" }),
-      };
+      return errorResponse(500, "Could not list routes");
     }
   }
 
-  if (resource === "/telemetry/started" && httpMethod === "POST") {
+  if (resource === "/v1/telemetry/started" && httpMethod === "POST") {
     let payload: any = {};
     if (event.body) {
       try {
         payload = JSON.parse(event.body);
       } catch {
-        return {
-          statusCode: 400,
-          headers: jsonHeaders,
-          body: JSON.stringify({ error: "Invalid JSON body" }),
-        };
+        return errorResponse(400, "Invalid JSON body");
       }
     }
 
     const routeId = payload.routeId;
     if (!routeId) {
-      return {
-        statusCode: 400,
-        headers: jsonHeaders,
-        body: JSON.stringify({ error: "routeId required" }),
-      };
+      return errorResponse(400, "routeId required");
     }
 
     const ts = Date.now();
@@ -256,11 +241,7 @@ export const handler = async (
       timestamp: ts,
     });
     if (!started) {
-      return {
-        statusCode: 404,
-        headers: jsonHeaders,
-        body: JSON.stringify({ error: "Not Found" }),
-      };
+      return errorResponse(404, "Not Found");
     }
     return {
       statusCode: 200,
@@ -269,14 +250,10 @@ export const handler = async (
     };
   }
 
-  if (resource === "/routes/{routeId}/finish" && httpMethod === "POST") {
+  if (resource === "/v1/routes/{routeId}/finish" && httpMethod === "POST") {
     const routeId = pathParameters?.routeId;
     if (!routeId) {
-      return {
-        statusCode: 400,
-        headers: jsonHeaders,
-        body: JSON.stringify({ error: "routeId parameter required" }),
-      };
+      return errorResponse(400, "routeId parameter required");
     }
 
     const finishTs = Date.now();
@@ -296,11 +273,7 @@ export const handler = async (
       actualDuration,
     });
     if (!route) {
-      return {
-        statusCode: 404,
-        headers: jsonHeaders,
-        body: JSON.stringify({ error: "Not Found" }),
-      };
+      return errorResponse(404, "Not Found");
     }
 
     return {
@@ -317,9 +290,5 @@ export const handler = async (
     };
   }
 
-  return {
-    statusCode: 501,
-    headers: jsonHeaders,
-    body: JSON.stringify({ error: "Not Implemented" }),
-  };
+  return errorResponse(501, "Not Implemented");
 };

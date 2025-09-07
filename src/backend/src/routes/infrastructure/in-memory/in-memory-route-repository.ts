@@ -13,8 +13,23 @@ export class InMemoryRouteRepository implements RouteRepository {
     return this.routes.get(id.Value) ?? null;
   }
 
-  async findAll(): Promise<Route[]> {
-    return Array.from(this.routes.values());
+  async findAll(
+    params?: { cursor?: string; limit?: number }
+  ): Promise<{ items: Route[]; nextCursor?: string }> {
+    const all = Array.from(this.routes.values());
+    let startIndex = 0;
+    if (params?.cursor) {
+      const idx = all.findIndex((r) => r.routeId.Value === params.cursor);
+      startIndex = idx >= 0 ? idx + 1 : 0;
+    }
+    const limit = params?.limit ?? all.length;
+    const items = all.slice(startIndex, startIndex + limit);
+    const nextIndex = startIndex + limit;
+    const nextCursor =
+      nextIndex < all.length && items.length > 0
+        ? items[items.length - 1].routeId.Value
+        : undefined;
+    return nextCursor ? { items, nextCursor } : { items };
   }
 
   async findByJobId(jobId: UUID): Promise<Route[]> {

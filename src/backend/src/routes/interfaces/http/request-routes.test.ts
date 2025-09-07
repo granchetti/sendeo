@@ -54,7 +54,10 @@ describe("request routes handler", () => {
   it("returns 400 when body parsing fails", async () => {
     const res = await handler({ headers: { Accept: "application/json" }, body: '{"invalid"' } as any);
     expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).error).toBeDefined();
+    expect(JSON.parse(res.body)).toEqual({
+      code: 400,
+      message: "Invalid JSON body",
+    });
     expect(mockSend).not.toHaveBeenCalled();
   });
 
@@ -62,8 +65,16 @@ describe("request routes handler", () => {
     mockSend.mockResolvedValueOnce({});
     const res1 = await handler({ headers: { Accept: "application/json" }, body: JSON.stringify({ destination: "B" }) } as any);
     expect(res1.statusCode).toBe(400);
+    expect(JSON.parse(res1.body)).toEqual({
+      code: 400,
+      message: "Must provide origin and (destination OR distanceKm)",
+    });
     const res2 = await handler({ headers: { Accept: "application/json" }, body: JSON.stringify({ origin: "A" }) } as any);
     expect(res2.statusCode).toBe(400);
+    expect(JSON.parse(res2.body)).toEqual({
+      code: 400,
+      message: "Must provide origin and (destination OR distanceKm)",
+    });
   });
 
   it("forwards maxDeltaKm when provided", async () => {

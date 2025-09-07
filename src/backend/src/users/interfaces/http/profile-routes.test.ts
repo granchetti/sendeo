@@ -15,15 +15,26 @@ jest.mock("@aws-sdk/client-dynamodb", () => ({
 import { handler } from "./profile-routes";
 import { UserProfile } from "../../domain/entities/user-profile";
 import { Email } from "../../../shared/domain/value-objects/email";
+import { Scope } from "../../../auth/scopes";
 
 const baseCtx = {
-  requestContext: { authorizer: { claims: { email: "test@example.com" } } },
+  requestContext: { authorizer: { claims: { email: "test@example.com", scope: Scope.PROFILE } } },
   headers: { Accept: "application/json" },
 } as any;
 
 beforeEach(() => {
   mockGetProfile.mockReset();
   mockPutProfile.mockReset();
+});
+
+describe("authorization", () => {
+  it("returns 403 when scope missing", async () => {
+    const res = await handler({
+      requestContext: { authorizer: { claims: { email: "test@example.com" } } },
+      httpMethod: "GET",
+    } as any);
+    expect(res.statusCode).toBe(403);
+  });
 });
 
 describe("profile routes handler", () => {

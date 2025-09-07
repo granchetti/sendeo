@@ -50,10 +50,11 @@ import { DistanceKm } from "../../domain/value-objects/distance";
 import { Duration } from "../../domain/value-objects/duration";
 import { Path } from "../../domain/value-objects/path";
 import { LatLng } from "../../domain/value-objects/lat-lng";
+import { Scope } from "../../../auth/scopes";
 
 const baseCtx = {
   requestContext: {
-    authorizer: { claims: { email: "test@example.com" } },
+    authorizer: { claims: { email: "test@example.com", scope: Scope.ROUTES } },
   },
   headers: { Accept: "application/json" },
 } as any;
@@ -72,10 +73,21 @@ beforeEach(() => {
   process.env.METRICS_QUEUE = "http://localhost";
 });
 
+describe("authorization", () => {
+  it("returns 403 when scope missing", async () => {
+    const res = await handler({
+      requestContext: { authorizer: { claims: { email: "test@example.com" } } },
+      resource: "/routes",
+      httpMethod: "GET",
+    } as any);
+    expect(res.statusCode).toBe(403);
+  });
+});
+
 describe("page router get route", () => {
   const baseEvent = {
     ...baseCtx,
-    resource: "/routes/{routeId}",
+    resource: "/v1/routes/{routeId}",
     httpMethod: "GET",
   } as any;
 
@@ -129,18 +141,17 @@ describe("page router get route", () => {
 describe("page router list routes", () => {
   const baseEvent = {
     ...baseCtx,
-    resource: "/routes",
+    resource: "/v1/routes",
     httpMethod: "GET",
   } as any;
 
   it("returns 200 and empty array when no routes exist", async () => {
-    mockFindAll.mockResolvedValueOnce([]);
+    mockFindAll.mockResolvedValueOnce({ items: [] });
     const res = await handler(baseEvent);
     expect(mockFindAll).toHaveBeenCalled();
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(Array.isArray(body)).toBe(true);
-    expect(body).toHaveLength(0);
+    expect(body).toEqual({ items: [] });
   });
 
   it("returns 200 and list of routes when routes exist", async () => {
@@ -164,7 +175,7 @@ describe("page router list routes", () => {
       ])
     );
     route2.description = "b";
-    mockFindAll.mockResolvedValueOnce([route1, route2]);
+    mockFindAll.mockResolvedValueOnce({ items: [route1, route2] });
 
     const res = await handler(baseEvent);
 
@@ -172,22 +183,47 @@ describe("page router list routes", () => {
     expect(res.statusCode).toBe(200);
 
     const body = JSON.parse(res.body);
-    expect(body).toEqual([
-      {
-        routeId: route1.routeId.Value,
-        distanceKm: 1,
-        duration: 10,
-        path: route1.path!.Encoded,
-        description: "a",
-      },
-      {
-        routeId: route2.routeId.Value,
-        distanceKm: 2,
-        duration: 20,
-        path: route2.path!.Encoded,
-        description: "b",
-      },
-    ]);
+    expect(body).toEqual({
+      items: [
+        {
+          routeId: route1.routeId.Value,
+          distanceKm: 1,
+          duration: 10,
+          path: route1.path!.Encoded,
+          description: "a",
+        },
+        {
+          routeId: route2.routeId.Value,
+          distanceKm: 2,
+          duration: 20,
+          path: route2.path!.Encoded,
+          description: "b",
+        },
+      ],
+    });
+  });
+
+  it("passes cursor and limit and returns nextCursor", async () => {
+    const route = Route.request({ routeId: UUID.generate() });
+    mockFindAll.mockResolvedValueOnce({ items: [route], nextCursor: "n1" });
+    const res = await handler({
+      ...baseEvent,
+      queryStringParameters: { cursor: "c0", limit: "1" },
+    });
+    expect(mockFindAll).toHaveBeenCalledWith({ cursor: "c0", limit: 1 });
+    const body = JSON.parse(res.body);
+    expect(body).toEqual({
+      items: [
+        {
+          routeId: route.routeId.Value,
+          distanceKm: undefined,
+          duration: undefined,
+          path: undefined,
+          description: undefined,
+        },
+      ],
+      nextCursor: "n1",
+    });
   });
 });
 
@@ -195,7 +231,7 @@ describe("page router list routes", () => {
 describe("page router list routes by jobId", () => {
   const baseEvent = {
     ...baseCtx,
-    resource: "/jobs/{jobId}/routes",
+    resource: "/v1/jobs/{jobId}/routes",
     httpMethod: "GET",
   } as any;
 
@@ -230,7 +266,7 @@ describe("page router list routes by jobId", () => {
 describe("telemetry started", () => {
   const baseEvent = {
     ...baseCtx,
-    resource: "/telemetry/started",
+    resource: "/v1/telemetry/started",
     httpMethod: "POST",
   } as any;
 
@@ -283,7 +319,7 @@ describe("telemetry started", () => {
 describe("finish route", () => {
   const baseEvent = {
     ...baseCtx,
-    resource: "/routes/{routeId}/finish",
+    resource: "/v1/routes/{routeId}/finish",
     httpMethod: "POST",
   } as any;
 

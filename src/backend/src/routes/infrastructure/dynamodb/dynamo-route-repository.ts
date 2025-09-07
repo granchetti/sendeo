@@ -68,24 +68,29 @@ export class DynamoRouteRepository implements RouteRepository {
     });
   }
 
-  async findAll(): Promise<Route[]> {
-    const res = await this.client.send(
-      new ScanCommand({ TableName: this.tableName })
+  async findAll(
+    params?: { cursor?: string; limit?: number }
+  ): Promise<{ items: Route[]; nextCursor?: string }> {
+    const scanParams: any = { TableName: this.tableName };
+    if (params?.limit) scanParams.Limit = params.limit;
+    if (params?.cursor)
+      scanParams.ExclusiveStartKey = { routeId: { S: params.cursor } };
+    const res = await this.client.send(new ScanCommand(scanParams));
+    const items = (res.Items || []).map((item) =>
+      Route.rehydrate({
+        routeId: UUID.fromString(item.routeId.S!),
+        jobId: item.jobId ? UUID.fromString(item.jobId.S!) : undefined,
+        distanceKm: item.distanceKm
+          ? new DistanceKm(+item.distanceKm.N!)
+          : undefined,
+        duration: item.duration ? new Duration(+item.duration.N!) : undefined,
+        path: item.path ? new Path(item.path.S!) : undefined,
+        description: item.description?.S,
+        status: (item.status?.S as RouteStatus) || RouteStatus.Requested,
+      })
     );
-    return (res.Items || []).map(
-      (item) =>
-        Route.rehydrate({
-          routeId: UUID.fromString(item.routeId.S!),
-          jobId: item.jobId ? UUID.fromString(item.jobId.S!) : undefined,
-          distanceKm: item.distanceKm
-            ? new DistanceKm(+item.distanceKm.N!)
-            : undefined,
-          duration: item.duration ? new Duration(+item.duration.N!) : undefined,
-          path: item.path ? new Path(item.path.S!) : undefined,
-          description: item.description?.S,
-          status: (item.status?.S as RouteStatus) || RouteStatus.Requested,
-        })
-    );
+    const nextCursor = res.LastEvaluatedKey?.routeId?.S;
+    return nextCursor ? { items, nextCursor } : { items };
   }
 
   async findByJobId(jobId: UUID): Promise<Route[]> {

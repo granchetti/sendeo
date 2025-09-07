@@ -27,11 +27,12 @@ const sendMock = jest
   });
 
 import { handler } from "../../src/users/interfaces/http/profile-routes";
+import { Scope } from "../../src/auth/scopes";
 
 describe("profile routes integration", () => {
   const email = "test@example.com";
   const baseEvent: any = {
-    requestContext: { authorizer: { claims: { email } } },
+    requestContext: { authorizer: { claims: { email, scope: Scope.PROFILE } } },
     headers: { Accept: "application/json" },
   };
   const key = `USER#${email}|PROFILE`;
@@ -79,6 +80,13 @@ describe("profile routes integration", () => {
     const item = store.get(key)!;
     expect(item.firstName.S).toBe("Jane");
     expect(item.lastName.S).toBe("Doe");
+  });
+
+  it("returns 401 when unauthorized", async () => {
+    const res = await handler({ httpMethod: "GET", requestContext: {} as any });
+
+    expect(res.statusCode).toBe(401);
+    expect(JSON.parse(res.body)).toEqual({ code: 401, message: "Unauthorized" });
   });
 });
 
