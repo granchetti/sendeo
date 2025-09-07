@@ -117,19 +117,26 @@ export const handler = async (
   // GET /routes
   if (httpMethod === "GET" && resource === "/routes") {
     try {
-      const all = await listRoutes.execute();
+      const cursor = event.queryStringParameters?.cursor;
+      const limitParam = event.queryStringParameters?.limit;
+      const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+      const { items, nextCursor } = await listRoutes.execute({
+        cursor,
+        limit,
+      });
       return {
         statusCode: 200,
         headers: corsHeaders,
-        body: JSON.stringify(
-          all.map((r) => ({
+        body: JSON.stringify({
+          items: items.map((r) => ({
             routeId: r.routeId.Value,
             distanceKm: r.distanceKm?.Value,
             duration: r.duration?.Value,
             path: r.path?.Encoded,
             description: r.description,
-          }))
-        ),
+          })),
+          ...(nextCursor ? { nextCursor } : {}),
+        }),
       };
     } catch (err) {
       console.error("Error listing routes:", err);

@@ -145,13 +145,12 @@ describe("page router list routes", () => {
   } as any;
 
   it("returns 200 and empty array when no routes exist", async () => {
-    mockFindAll.mockResolvedValueOnce([]);
+    mockFindAll.mockResolvedValueOnce({ items: [] });
     const res = await handler(baseEvent);
     expect(mockFindAll).toHaveBeenCalled();
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(Array.isArray(body)).toBe(true);
-    expect(body).toHaveLength(0);
+    expect(body).toEqual({ items: [] });
   });
 
   it("returns 200 and list of routes when routes exist", async () => {
@@ -175,7 +174,7 @@ describe("page router list routes", () => {
       ])
     );
     route2.description = "b";
-    mockFindAll.mockResolvedValueOnce([route1, route2]);
+    mockFindAll.mockResolvedValueOnce({ items: [route1, route2] });
 
     const res = await handler(baseEvent);
 
@@ -183,22 +182,47 @@ describe("page router list routes", () => {
     expect(res.statusCode).toBe(200);
 
     const body = JSON.parse(res.body);
-    expect(body).toEqual([
-      {
-        routeId: route1.routeId.Value,
-        distanceKm: 1,
-        duration: 10,
-        path: route1.path!.Encoded,
-        description: "a",
-      },
-      {
-        routeId: route2.routeId.Value,
-        distanceKm: 2,
-        duration: 20,
-        path: route2.path!.Encoded,
-        description: "b",
-      },
-    ]);
+    expect(body).toEqual({
+      items: [
+        {
+          routeId: route1.routeId.Value,
+          distanceKm: 1,
+          duration: 10,
+          path: route1.path!.Encoded,
+          description: "a",
+        },
+        {
+          routeId: route2.routeId.Value,
+          distanceKm: 2,
+          duration: 20,
+          path: route2.path!.Encoded,
+          description: "b",
+        },
+      ],
+    });
+  });
+
+  it("passes cursor and limit and returns nextCursor", async () => {
+    const route = Route.request({ routeId: UUID.generate() });
+    mockFindAll.mockResolvedValueOnce({ items: [route], nextCursor: "n1" });
+    const res = await handler({
+      ...baseEvent,
+      queryStringParameters: { cursor: "c0", limit: "1" },
+    });
+    expect(mockFindAll).toHaveBeenCalledWith({ cursor: "c0", limit: 1 });
+    const body = JSON.parse(res.body);
+    expect(body).toEqual({
+      items: [
+        {
+          routeId: route.routeId.Value,
+          distanceKm: undefined,
+          duration: undefined,
+          path: undefined,
+          description: undefined,
+        },
+      ],
+      nextCursor: "n1",
+    });
   });
 });
 

@@ -20,7 +20,7 @@ describe("RouteGenerator", () => {
     const repo: RouteRepository = {
       save: jest.fn(),
       findById: jest.fn(),
-      findAll: jest.fn(),
+      findAll: jest.fn().mockResolvedValue({ items: [] }),
       findByJobId: jest.fn(),
       remove: jest.fn(),
     } as any;
@@ -49,7 +49,7 @@ describe("RouteGenerator", () => {
     const repo: RouteRepository = {
       save,
       findById: jest.fn(),
-      findAll: jest.fn(),
+      findAll: jest.fn().mockResolvedValue({ items: [] }),
       findByJobId: jest.fn(),
       remove: jest.fn(),
     } as any;
