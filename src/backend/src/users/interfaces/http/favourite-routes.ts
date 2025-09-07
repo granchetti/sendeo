@@ -8,6 +8,7 @@ import {
 import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../application/use-cases/add-favourite";
 import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
 import { corsHeaders } from "../../../http/cors";
+import { Email } from "../../../shared/domain/value-objects/email";
 
 const dynamo = new DynamoDBClient({
   endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
@@ -22,10 +23,11 @@ const removeFavourite = new RemoveFavouriteUseCase(repository);
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const email = (event.requestContext as any).authorizer?.claims?.email;
-  if (!email) {
+  const emailStr = (event.requestContext as any).authorizer?.claims?.email;
+  if (!emailStr) {
     return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
   }
+  const email = Email.fromString(emailStr);
 
   const { httpMethod } = event;
 
@@ -81,7 +83,7 @@ export const handler = async (
       }
       throw err;
     }
-    await publishFavouriteSaved(email, routeId);
+    await publishFavouriteSaved(email.Value, routeId);
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ saved: true }) };
   }
 
@@ -95,7 +97,7 @@ export const handler = async (
       };
     }
     await removeFavourite.execute(email, routeId);
-    await publishFavouriteDeleted(email, routeId);
+    await publishFavouriteDeleted(email.Value, routeId);
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ deleted: true }) };
   }
 
