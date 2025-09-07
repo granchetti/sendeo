@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { openApiSpec } from "../../openapi";
-import { corsHeaders } from "../../../http/cors";
+import { corsHeaders, withTraceId } from "../../../http";
 
 const html = `<!DOCTYPE html>
 <html>
@@ -26,9 +26,8 @@ const html = `<!DOCTYPE html>
   </body>
 </html>`;
 
-export const handler = async (
-  event: APIGatewayProxyEvent
-): Promise<APIGatewayProxyResult> => {
+export const handler = withTraceId(
+  async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   if (event.path.endsWith("/swagger.json")) {
     return {
       statusCode: 200,
@@ -42,4 +41,4 @@ export const handler = async (
     headers: { ...corsHeaders, "Content-Type": "text/html" },
     body: html,
   };
-};
+});
