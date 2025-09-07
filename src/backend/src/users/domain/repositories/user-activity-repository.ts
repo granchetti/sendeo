@@ -1,10 +1,22 @@
+export interface ActiveRoute {
+  startedAt: number;
+  checkpointIndex?: number;
+  finishedAt?: number;
+}
+
 export interface UserActivityRepository {
-  /** Store the start timestamp for a route execution */
-  putRouteStart(email: string, routeId: string, timestamp: number): Promise<void>;
+  /** Store the active route information for a user */
+  putActiveRoute(
+    email: string,
+    routeId: string,
+    startedAt: number,
+    checkpointIndex?: number,
+    finishedAt?: number
+  ): Promise<void>;
 
-  /** Retrieve the start timestamp previously stored for a route execution */
-  getRouteStart(email: string, routeId: string): Promise<number | null>;
+  /** Retrieve the active route information for a user */
+  getActiveRoute(email: string, routeId: string): Promise<ActiveRoute | null>;
 
-  /** Remove the start timestamp once the route is finished */
-  deleteRouteStart(email: string, routeId: string): Promise<void>;
+  /** Remove the active route information once the route is finished */
+  deleteActiveRoute(email: string, routeId: string): Promise<void>;
 }

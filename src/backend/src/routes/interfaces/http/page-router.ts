@@ -235,7 +235,7 @@ export const handler = base(async (
     }
 
     const ts = Date.now();
-    await userActivityRepository.putRouteStart(email, routeId, ts);
+    await userActivityRepository.putActiveRoute(email, routeId, ts);
     const started = await startRouteUseCase.execute({
       routeId: UUID.fromString(routeId),
       email,
@@ -258,11 +258,11 @@ export const handler = base(async (
     }
 
     const finishTs = Date.now();
-    const startTs = await userActivityRepository.getRouteStart(email, routeId);
-    if (startTs != null) {
-      await userActivityRepository.deleteRouteStart(email, routeId);
+    const active = await userActivityRepository.getActiveRoute(email, routeId);
+    if (active) {
+      await userActivityRepository.deleteActiveRoute(email, routeId);
     }
-    const actualDurationMs = startTs != null ? finishTs - startTs : undefined;
+    const actualDurationMs = active ? finishTs - active.startedAt : undefined;
     const actualDuration =
       actualDurationMs != null
         ? Math.round(actualDurationMs / 1000)
