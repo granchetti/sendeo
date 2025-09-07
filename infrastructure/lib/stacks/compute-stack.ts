@@ -58,7 +58,7 @@ export class ComputeStack extends cdk.Stack {
       { cognitoUserPools: [props.userPool] }
     );
 
-    // 1) RequestRoutes → POST /routes
+    // 1) RequestRoutes → POST /v1/routes
     const requestRoutes = new HttpLambda(this, "RequestRoutes", {
       entry: path.join(
         __dirname,
@@ -67,7 +67,7 @@ export class ComputeStack extends cdk.Stack {
       handler: "request-routes.handler",
       environment: { QUEUE_URL: props.routeJobsQueue.queueUrl },
       api,
-      routes: [{ path: "routes", methods: ["POST"], authorizer }],
+      routes: [{ path: "v1/routes", methods: ["POST"], authorizer }],
     });
     props.routeJobsQueue.grantSendMessages(requestRoutes.fn);
 
@@ -106,7 +106,7 @@ export class ComputeStack extends cdk.Stack {
     );
     props.metricsQueue.grantSendMessages(workerRoutes.fn);
 
-    // 3) FavouriteRoutes → GET/POST /favourites & DELETE /favourites/{routeId}
+    // 3) FavouriteRoutes → GET/POST /v1/favourites & DELETE /v1/favourites/{routeId}
     const favoriteRoutes = new HttpLambda(this, "FavoriteRoutes", {
       entry: path.join(
         __dirname,
@@ -123,8 +123,8 @@ export class ComputeStack extends cdk.Stack {
       },
       api,
       routes: [
-        { path: "favourites", methods: ["GET", "POST"], authorizer },
-        { path: "favourites/{routeId}", methods: ["DELETE"], authorizer },
+        { path: "v1/favourites", methods: ["GET", "POST"], authorizer },
+        { path: "v1/favourites/{routeId}", methods: ["DELETE"], authorizer },
       ],
     });
     favoriteRoutes.fn.addToRolePolicy(
@@ -140,7 +140,7 @@ export class ComputeStack extends cdk.Stack {
       })
     );
 
-    // 4) ProfileRoutes → GET/PUT /profile
+    // 4) ProfileRoutes → GET/PUT /v1/profile
     const profileRoutes = new HttpLambda(this, "ProfileRoutes", {
       entry: path.join(
         __dirname,
@@ -156,7 +156,7 @@ export class ComputeStack extends cdk.Stack {
         ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
       },
       api,
-      routes: [{ path: "profile", methods: ["GET", "PUT"], authorizer }],
+      routes: [{ path: "v1/profile", methods: ["GET", "PUT"], authorizer }],
     });
     profileRoutes.fn.addToRolePolicy(
       new iam.PolicyStatement({
@@ -187,11 +187,11 @@ export class ComputeStack extends cdk.Stack {
       },
       api,
       routes: [
-        { path: "routes", methods: ["GET"], authorizer },
-        { path: "routes/{routeId}", methods: ["GET"], authorizer },
-        { path: "jobs/{jobId}/routes", methods: ["GET"], authorizer },
-        { path: "telemetry/started", methods: ["POST"], authorizer },
-        { path: "routes/{routeId}/finish", methods: ["POST"], authorizer },
+        { path: "v1/routes", methods: ["GET"], authorizer },
+        { path: "v1/routes/{routeId}", methods: ["GET"], authorizer },
+        { path: "v1/jobs/{jobId}/routes", methods: ["GET"], authorizer },
+        { path: "v1/telemetry/started", methods: ["POST"], authorizer },
+        { path: "v1/routes/{routeId}/finish", methods: ["POST"], authorizer },
       ],
     });
     googleSecret.grantRead(pageRouter.fn);

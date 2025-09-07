@@ -17,7 +17,7 @@ export const openApiSpec = {
 
   security: [{ cognitoAuth: [] }],
   paths: {
-    "/routes": {
+    "/v1/routes": {
       get: {
         summary: "List routes",
         responses: {
@@ -51,7 +51,7 @@ export const openApiSpec = {
         },
       },
     },
-    "/routes/{routeId}": {
+    "/v1/routes/{routeId}": {
       get: {
         summary: "Get route details",
         parameters: [
@@ -68,7 +68,7 @@ export const openApiSpec = {
         },
       },
     },
-    "/routes/{routeId}/finish": {
+    "/v1/routes/{routeId}/finish": {
       post: {
         summary: "Finish route",
         parameters: [
@@ -82,7 +82,7 @@ export const openApiSpec = {
         responses: { "200": { description: "OK" } },
       },
     },
-    "/jobs/{jobId}/routes": {
+    "/v1/jobs/{jobId}/routes": {
       get: {
         summary: "List routes for job",
         parameters: [
@@ -99,7 +99,7 @@ export const openApiSpec = {
         },
       },
     },
-    "/favourites": {
+    "/v1/favourites": {
       get: {
         summary: "List favourites",
         responses: { "200": { description: "OK" } },
@@ -109,7 +109,7 @@ export const openApiSpec = {
         responses: { "200": { description: "OK" } },
       },
     },
-    "/favourites/{routeId}": {
+    "/v1/favourites/{routeId}": {
       delete: {
         summary: "Remove favourite",
         parameters: [
@@ -123,7 +123,7 @@ export const openApiSpec = {
         responses: { "200": { description: "OK" } },
       },
     },
-    "/profile": {
+    "/v1/profile": {
       get: {
         summary: "Get profile",
         responses: { "200": { description: "OK" } },
@@ -133,7 +133,7 @@ export const openApiSpec = {
         responses: { "200": { description: "OK" } },
       },
     },
-    "/telemetry/started": {
+    "/v1/telemetry/started": {
       post: {
         summary: "Start telemetry",
         responses: { "200": { description: "OK" } },

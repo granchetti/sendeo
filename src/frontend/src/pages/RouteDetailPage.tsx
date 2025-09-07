@@ -124,7 +124,7 @@ export default function RouteDetailPage() {
   useEffect(() => {
     if (!routeId) return;
     api
-      .get(`/routes/${routeId}`)
+      .get(`/v1/routes/${routeId}`)
       .then(({ data }) => setRoute(data))
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -134,7 +134,7 @@ export default function RouteDetailPage() {
     if (!routeId) return;
     (async () => {
       try {
-        const { data } = await api.get('/favourites');
+        const { data } = await api.get('/v1/favourites');
         const ids: string[] = data.favourites || [];
         setFavCount(ids.length);
         setIsFav(ids.includes(routeId));
@@ -249,12 +249,12 @@ export default function RouteDetailPage() {
     setFavBusy(true);
     try {
       if (isFav) {
-        await api.delete(`/favourites/${routeId}`);
+        await api.delete(`/v1/favourites/${routeId}`);
         setIsFav(false);
         setFavCount((c) => Math.max(0, c - 1));
         toast({ title: 'Removed from favourites', status: 'info' });
       } else {
-        await api.post('/favourites', { routeId });
+        await api.post('/v1/favourites', { routeId });
         setIsFav(true);
         setFavCount((c) => c + 1);
 
@@ -280,7 +280,7 @@ export default function RouteDetailPage() {
   const handleStart = async () => {
     if (!routeId) return;
     try {
-      await api.post('/telemetry/started', { routeId });
+      await api.post('/v1/telemetry/started', { routeId });
     } catch (err) {
       console.error(err);
       toast({ title: 'Failed to start tracking', status: 'error' });
@@ -328,7 +328,7 @@ export default function RouteDetailPage() {
   const handleFinish = async () => {
     if (!routeId) return;
     try {
-      const { data } = await api.post(`/routes/${routeId}/finish`);
+      const { data } = await api.post(`/v1/routes/${routeId}/finish`);
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
       setWatchId(null);
       setPosition(null);

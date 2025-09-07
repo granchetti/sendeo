@@ -114,8 +114,8 @@ export const handler = async (
       body: JSON.stringify({ error: "Forbidden" }),
     };
   }
-  // GET /routes
-  if (httpMethod === "GET" && resource === "/routes") {
+  // GET /v1/routes
+  if (httpMethod === "GET" && resource === "/v1/routes") {
     try {
       const cursor = event.queryStringParameters?.cursor;
       const limitParam = event.queryStringParameters?.limit;
@@ -144,8 +144,8 @@ export const handler = async (
     }
   }
 
-  // GET /routes/{routeId}
-  if (httpMethod === "GET" && resource === "/routes/{routeId}") {
+  // GET /v1/routes/{routeId}
+  if (httpMethod === "GET" && resource === "/v1/routes/{routeId}") {
     const routeId = pathParameters?.routeId;
     if (!routeId) {
       return errorResponse(400, "routeId parameter required");
@@ -183,8 +183,8 @@ export const handler = async (
     };
   }
 
-  // GET /jobs/{jobId}/routes
-  if (httpMethod === "GET" && resource === "/jobs/{jobId}/routes") {
+  // GET /v1/jobs/{jobId}/routes
+  if (httpMethod === "GET" && resource === "/v1/jobs/{jobId}/routes") {
     const jobId = pathParameters?.jobId;
     if (!jobId) {
       return errorResponse(400, "jobId parameter required");
@@ -210,7 +210,7 @@ export const handler = async (
     }
   }
 
-  if (resource === "/telemetry/started" && httpMethod === "POST") {
+  if (resource === "/v1/telemetry/started" && httpMethod === "POST") {
     let payload: any = {};
     if (event.body) {
       try {
@@ -242,7 +242,7 @@ export const handler = async (
     };
   }
 
-  if (resource === "/routes/{routeId}/finish" && httpMethod === "POST") {
+  if (resource === "/v1/routes/{routeId}/finish" && httpMethod === "POST") {
     const routeId = pathParameters?.routeId;
     if (!routeId) {
       return errorResponse(400, "routeId parameter required");

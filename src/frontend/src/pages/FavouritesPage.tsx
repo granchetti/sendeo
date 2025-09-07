@@ -89,12 +89,12 @@ const FavouritesPage = () => {
   useEffect(() => {
     const fetchFavs = async () => {
       try {
-        const { data } = await api.get('/favourites');
+        const { data } = await api.get('/v1/favourites');
         const ids: string[] = data.favourites || [];
         const details: RouteDetails[] = await Promise.all(
           ids.map(async (id: string) => {
             try {
-              const { data } = await api.get(`/routes/${id}`);
+              const { data } = await api.get(`/v1/routes/${id}`);
               return data as RouteDetails;
             } catch {
               return { routeId: id };
@@ -114,7 +114,7 @@ const FavouritesPage = () => {
 
   const handleRemove = async (id: string) => {
     try {
-      await api.delete(`/favourites/${id}`);
+      await api.delete(`/v1/favourites/${id}`);
       setFavourites((prev) => prev.filter((f) => f.routeId !== id));
       toast({ title: 'Route removed from favourites', status: 'info' });
     } catch (err) {
