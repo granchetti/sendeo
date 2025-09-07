@@ -55,7 +55,7 @@ const LoginForm: React.FC<Props> = ({ onSuccess }) => {
       localStorage.setItem('refreshToken', refresh);
       setSession(id, refresh);
       await api.put(
-        '/profile',
+        '/v1/profile',
         { email },
         {
           headers: { Authorization: `Bearer ${id}` },
