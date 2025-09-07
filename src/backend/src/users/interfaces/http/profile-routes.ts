@@ -6,6 +6,7 @@ import { UpdateUserProfileUseCase } from "../../application/use-cases/update-use
 import { Email } from "../../../shared/domain/value-objects/email";
 import { UserProfile } from "../../domain/entities/user-profile";
 import { corsHeaders } from "../../../http/cors";
+import { errorResponse } from "../../../http/error-response";
 
 const dynamo = new DynamoDBClient({
   endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
@@ -22,7 +23,7 @@ export const handler = async (
 ): Promise<APIGatewayProxyResult> => {
   const email = (event.requestContext as any).authorizer?.claims?.email;
   if (!email) {
-    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
+    return errorResponse(401, "Unauthorized");
   }
   const { httpMethod } = event;
 
@@ -37,7 +38,7 @@ export const handler = async (
       try {
         payload = JSON.parse(event.body);
       } catch {
-        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid JSON body" }) };
+        return errorResponse(400, "Invalid JSON body");
       }
     }
     const profile = UserProfile.fromPrimitives({
@@ -52,5 +53,5 @@ export const handler = async (
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ updated: true }) };
   }
 
-  return { statusCode: 501, headers: corsHeaders, body: JSON.stringify({ error: "Not Implemented" }) };
+  return errorResponse(501, "Not Implemented");
 };

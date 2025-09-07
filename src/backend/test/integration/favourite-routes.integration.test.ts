@@ -83,6 +83,10 @@ describe("favourite routes integration", () => {
     });
 
     expect(res.statusCode).toBe(409);
+    expect(JSON.parse(res.body)).toEqual({
+      code: 409,
+      message: "Route already in favourites",
+    });
     expect(store.get(key("1"))).toBeDefined();
   });
 
@@ -97,5 +101,12 @@ describe("favourite routes integration", () => {
 
     expect(res.statusCode).toBe(200);
     expect(store.get(key("2"))).toBeUndefined();
+  });
+
+  it("returns 401 when unauthorized", async () => {
+    const res = await handler({ httpMethod: "GET", requestContext: {} as any });
+
+    expect(res.statusCode).toBe(401);
+    expect(JSON.parse(res.body)).toEqual({ code: 401, message: "Unauthorized" });
   });
 });
