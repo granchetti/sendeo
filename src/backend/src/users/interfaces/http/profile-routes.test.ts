@@ -30,8 +30,11 @@ beforeEach(() => {
 describe("authorization", () => {
   it("returns 403 when scope missing", async () => {
     const res = await handler({
+      ...baseCtx, // ya trae headers: { Accept: "application/json" }
       requestContext: { authorizer: { claims: { email: "test@example.com" } } },
       httpMethod: "GET",
+      // si tu handler comprueba resource, descomenta y ajusta:
+      // resource: "/v1/profile",
     } as any);
     expect(res.statusCode).toBe(403);
   });

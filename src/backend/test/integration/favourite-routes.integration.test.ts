@@ -106,7 +106,7 @@ describe("favourite routes integration", () => {
   });
 
   it("returns 401 when unauthorized", async () => {
-    const res = await handler({ httpMethod: "GET", requestContext: {} as any });
+    const res = await handler({ httpMethod: "GET", requestContext: {} as any, headers: { Accept: "application/json" } } as any);
 
     expect(res.statusCode).toBe(401);
     expect(JSON.parse(res.body)).toMatchObject({

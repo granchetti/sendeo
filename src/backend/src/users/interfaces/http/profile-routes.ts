@@ -37,7 +37,7 @@ export const handler = base(async (
     return errorResponse(401, "Unauthorized");
   }
   if (!hasScope(claims, Scope.PROFILE)) {
-    return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Forbidden" }) };
+    return { statusCode: 403, headers: jsonHeaders, body: JSON.stringify({ error: "Forbidden" }) };
   }
   const { httpMethod } = event;
 

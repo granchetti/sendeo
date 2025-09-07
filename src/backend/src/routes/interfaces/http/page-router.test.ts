@@ -22,13 +22,16 @@ jest.mock("../../infrastructure/dynamodb/dynamo-route-repository", () => ({
   })),
 }));
 
-jest.mock("../../../users/infrastructure/dynamodb/dynamo-user-activity-repository", () => ({
-  DynamoUserActivityRepository: jest.fn().mockImplementation(() => ({
-    putRouteStart: (...args: any[]) => mockPutRouteStart(...args),
-    getRouteStart: (...args: any[]) => mockGetRouteStart(...args),
-    deleteRouteStart: (...args: any[]) => mockDeleteRouteStart(...args),
-  })),
-}));
+jest.mock(
+  "../../../users/infrastructure/dynamodb/dynamo-user-activity-repository",
+  () => ({
+    DynamoUserActivityRepository: jest.fn().mockImplementation(() => ({
+      putRouteStart: (...args: any[]) => mockPutRouteStart(...args),
+      getRouteStart: (...args: any[]) => mockGetRouteStart(...args),
+      deleteRouteStart: (...args: any[]) => mockDeleteRouteStart(...args),
+    })),
+  })
+);
 
 jest.mock("@aws-sdk/client-sqs", () => {
   mockSend = jest.fn();
@@ -76,8 +79,9 @@ beforeEach(() => {
 describe("authorization", () => {
   it("returns 403 when scope missing", async () => {
     const res = await handler({
+      ...baseCtx,
       requestContext: { authorizer: { claims: { email: "test@example.com" } } },
-      resource: "/routes",
+      resource: "/v1/routes",
       httpMethod: "GET",
     } as any);
     expect(res.statusCode).toBe(403);
@@ -112,10 +116,7 @@ describe("page router get route", () => {
     route.generate(
       new DistanceKm(2),
       new Duration(100),
-      Path.fromCoordinates([
-        LatLng.fromNumbers(0, 0),
-        LatLng.fromNumbers(1, 1),
-      ])
+      Path.fromCoordinates([LatLng.fromNumbers(0, 0), LatLng.fromNumbers(1, 1)])
     );
     route.description = "desc";
     mockFindById.mockResolvedValueOnce(route);
@@ -227,7 +228,6 @@ describe("page router list routes", () => {
   });
 });
 
-
 describe("page router list routes by jobId", () => {
   const baseEvent = {
     ...baseCtx,
@@ -241,7 +241,7 @@ describe("page router list routes by jobId", () => {
   });
 
   it("returns list of routes for job", async () => {
-    const jobId = UUID.generate()
+    const jobId = UUID.generate();
     const r = Route.request({ routeId: UUID.generate(), jobId });
     mockFindByJobId.mockResolvedValueOnce([r]);
     const res = await handler({
@@ -261,7 +261,6 @@ describe("page router list routes by jobId", () => {
     ]);
   });
 });
-
 
 describe("telemetry started", () => {
   const baseEvent = {
@@ -286,10 +285,7 @@ describe("telemetry started", () => {
     route.generate(
       new DistanceKm(1),
       new Duration(10),
-      Path.fromCoordinates([
-        LatLng.fromNumbers(0, 0),
-        LatLng.fromNumbers(1, 1),
-      ])
+      Path.fromCoordinates([LatLng.fromNumbers(0, 0), LatLng.fromNumbers(1, 1)])
     );
     mockFindById.mockResolvedValueOnce(route);
     const routeId = route.routeId.Value;
@@ -311,7 +307,10 @@ describe("telemetry started", () => {
       routeId,
       email: "test@example.com",
     });
-    expect(mockPublishStarted).toHaveBeenCalledWith("test@example.com", routeId);
+    expect(mockPublishStarted).toHaveBeenCalledWith(
+      "test@example.com",
+      routeId
+    );
     expect(res.statusCode).toBe(200);
   });
 });
@@ -332,7 +331,7 @@ describe("finish route", () => {
     mockFindById.mockResolvedValueOnce(null);
     const res = await handler({
       ...baseEvent,
-      pathParameters: { routeId: 'a28f07d1-d0f3-4c1a-b2e4-8e31b6f0e84a' },
+      pathParameters: { routeId: "a28f07d1-d0f3-4c1a-b2e4-8e31b6f0e84a" },
     });
     expect(res.statusCode).toBe(404);
   });
@@ -342,10 +341,7 @@ describe("finish route", () => {
     route.generate(
       new DistanceKm(2),
       new Duration(100),
-      Path.fromCoordinates([
-        LatLng.fromNumbers(0, 0),
-        LatLng.fromNumbers(1, 1),
-      ])
+      Path.fromCoordinates([LatLng.fromNumbers(0, 0), LatLng.fromNumbers(1, 1)])
     );
     route.description = "desc";
     route.start();

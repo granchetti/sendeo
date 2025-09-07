@@ -4,13 +4,16 @@ const mockGet = jest.fn();
 const mockPublishSaved = jest.fn();
 const mockPublishDeleted = jest.fn();
 
-jest.mock("../../infrastructure/dynamodb/dynamo-user-profile-repository", () => ({
-  DynamoUserProfileRepository: jest.fn().mockImplementation(() => ({
-    putFavourite: mockPut,
-    deleteFavourite: mockDelete,
-    getFavourites: mockGet,
-  })),
-}));
+jest.mock(
+  "../../infrastructure/dynamodb/dynamo-user-profile-repository",
+  () => ({
+    DynamoUserProfileRepository: jest.fn().mockImplementation(() => ({
+      putFavourite: mockPut,
+      deleteFavourite: mockDelete,
+      getFavourites: mockGet,
+    })),
+  })
+);
 
 jest.mock("@aws-sdk/client-dynamodb", () => ({
   DynamoDBClient: jest.fn().mockImplementation(() => ({})),
@@ -26,7 +29,9 @@ import { Scope } from "../../../auth/scopes";
 
 const baseCtx = {
   requestContext: {
-    authorizer: { claims: { email: "test@example.com", scope: Scope.FAVOURITES } },
+    authorizer: {
+      claims: { email: "test@example.com", scope: Scope.FAVOURITES },
+    },
   },
   headers: { Accept: "application/json" },
 } as any;
@@ -42,7 +47,9 @@ beforeEach(() => {
 describe("authorization", () => {
   it("returns 403 when scope missing", async () => {
     const res = await handler({
+      ...baseCtx,
       requestContext: { authorizer: { claims: { email: "test@example.com" } } },
+      resource: "/v1/routes",
       httpMethod: "GET",
     } as any);
     expect(res.statusCode).toBe(403);
