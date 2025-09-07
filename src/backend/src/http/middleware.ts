@@ -14,7 +14,34 @@ export function withTraceId(
     console.log = (...args: any[]) => originalLog(`[${traceId}]`, ...args);
     console.error = (...args: any[]) => originalError(`[${traceId}]`, ...args);
     try {
-      const result = await handler(event, context);
+      const result = await new Promise<APIGatewayProxyResult | undefined>(
+        (resolve, reject) => {
+          try {
+            const maybe = handler(
+              event,
+              context,
+              (err?: any, res?: APIGatewayProxyResult) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(res);
+                }
+              }
+            );
+            if (maybe && typeof (maybe as any).then === "function") {
+              (maybe as Promise<APIGatewayProxyResult>).then(resolve, reject);
+            }
+          } catch (e) {
+            reject(e);
+          }
+        }
+      );
+      if (!result) {
+        return {
+          statusCode: 204,
+          body: "",
+        };
+      }
       if (result.statusCode >= 400) {
         try {
           const body = JSON.parse(result.body);
