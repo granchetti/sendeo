@@ -58,7 +58,11 @@ const LoginForm: React.FC<Props> = ({ onSuccess }) => {
         '/v1/profile',
         { email },
         {
-          headers: { Authorization: `Bearer ${id}` },
+          headers: {
+            Authorization: `Bearer ${id}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
         },
       );
       onSuccess?.();
