@@ -84,7 +84,7 @@ describe("favourite routes integration", () => {
     });
 
     expect(res.statusCode).toBe(409);
-    expect(JSON.parse(res.body)).toEqual({
+    expect(JSON.parse(res.body)).toMatchObject({
       code: 409,
       message: "Route already in favourites",
     });
@@ -108,6 +108,9 @@ describe("favourite routes integration", () => {
     const res = await handler({ httpMethod: "GET", requestContext: {} as any });
 
     expect(res.statusCode).toBe(401);
-    expect(JSON.parse(res.body)).toEqual({ code: 401, message: "Unauthorized" });
+    expect(JSON.parse(res.body)).toMatchObject({
+      code: 401,
+      message: "Unauthorized",
+    });
   });
 });

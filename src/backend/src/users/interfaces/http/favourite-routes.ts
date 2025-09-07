@@ -9,6 +9,7 @@ import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../applicat
 import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
 import { corsHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
+import { base } from "../../../http/base";
 import { Email } from "../../../shared/domain/value-objects/email";
 import { hasScope, Scope } from "../../../auth/scopes";
 
@@ -22,7 +23,7 @@ const repository = new DynamoUserProfileRepository(
 const addFavourite = new AddFavouriteUseCase(repository);
 const removeFavourite = new RemoveFavouriteUseCase(repository);
 
-export const handler = async (
+export const handler = base(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const claims = (event.requestContext as any).authorizer?.claims;
@@ -88,4 +89,4 @@ export const handler = async (
   }
 
   return errorResponse(501, "Not Implemented");
-};
+});
