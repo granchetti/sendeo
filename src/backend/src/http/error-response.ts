@@ -1,5 +1,5 @@
 import { APIGatewayProxyResult } from "aws-lambda";
-import { corsHeaders } from "./cors";
+import { jsonHeaders } from "./cors";
 import { getTraceId } from "./base";
 
 export function errorResponse(
@@ -18,7 +18,7 @@ export function errorResponse(
   }
   return {
     statusCode: code,
-    headers: corsHeaders,
+    headers: jsonHeaders,
     body: JSON.stringify(body),
   };
 }

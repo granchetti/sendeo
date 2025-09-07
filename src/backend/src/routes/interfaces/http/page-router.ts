@@ -11,7 +11,7 @@ import { BedrockRouteDescriptionService } from "../../infrastructure/bedrock-rou
 import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-details";
 import { StartRouteUseCase } from "../../application/use-cases/start-route";
 import { FinishRouteUseCase } from "../../application/use-cases/finish-route";
-import { corsHeaders } from "../../../http/cors";
+import { jsonHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
 import { getGoogleKey } from "../shared/utils";
@@ -102,6 +102,14 @@ const finishRouteUseCase = new FinishRouteUseCase(routeRepository, dispatcher);
 export const handler = base(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const accept = event.headers?.Accept || event.headers?.accept;
+  if (accept !== "application/json") {
+    return {
+      statusCode: 415,
+      headers: jsonHeaders,
+      body: JSON.stringify({ error: "Unsupported Media Type" }),
+    };
+  }
   const { httpMethod, resource, pathParameters } = event;
   const claims = (event.requestContext as any).authorizer?.claims;
   const email = claims?.email;
@@ -111,7 +119,7 @@ export const handler = base(async (
   if (!hasScope(claims, Scope.ROUTES)) {
     return {
       statusCode: 403,
-      headers: corsHeaders,
+      headers: jsonHeaders,
       body: JSON.stringify({ error: "Forbidden" }),
     };
   }
@@ -127,7 +135,7 @@ export const handler = base(async (
       });
       return {
         statusCode: 200,
-        headers: corsHeaders,
+        headers: jsonHeaders,
         body: JSON.stringify({
           items: items.map((r) => ({
             routeId: r.routeId.Value,
@@ -173,7 +181,7 @@ export const handler = base(async (
     }
     return {
       statusCode: 200,
-      headers: corsHeaders,
+      headers: jsonHeaders,
       body: JSON.stringify({
         routeId: route.routeId.Value,
         distanceKm: route.distanceKm?.Value,
@@ -194,7 +202,7 @@ export const handler = base(async (
       const list = await routeRepository.findByJobId(UUID.fromString(jobId));
       return {
         statusCode: 200,
-        headers: corsHeaders,
+        headers: jsonHeaders,
         body: JSON.stringify(
           list.map((r) => ({
             routeId: r.routeId.Value,
@@ -238,7 +246,7 @@ export const handler = base(async (
     }
     return {
       statusCode: 200,
-      headers: corsHeaders,
+      headers: jsonHeaders,
       body: JSON.stringify({ ok: true }),
     };
   }
@@ -271,7 +279,7 @@ export const handler = base(async (
 
     return {
       statusCode: 200,
-      headers: corsHeaders,
+      headers: jsonHeaders,
       body: JSON.stringify({
         routeId: route.routeId.Value,
         distanceKm: route.distanceKm?.Value,

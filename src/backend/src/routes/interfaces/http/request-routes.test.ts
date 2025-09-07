@@ -20,6 +20,7 @@ describe("request routes handler", () => {
   it("generates jobId when missing", async () => {
     mockSend.mockResolvedValueOnce({});
     const res = await handler({
+      headers: { Accept: "application/json" },
       body: JSON.stringify({ origin: "A", destination: "B" }),
     } as any);
 
@@ -37,6 +38,7 @@ describe("request routes handler", () => {
     const jobId = UUID.generate().Value;
     mockSend.mockResolvedValueOnce({});
     const res = await handler({
+      headers: { Accept: "application/json" },
       body: JSON.stringify({ jobId, origin: "A", destination: "B" }),
     } as any);
 
@@ -50,7 +52,7 @@ describe("request routes handler", () => {
   });
 
   it("returns 400 when body parsing fails", async () => {
-    const res = await handler({ body: '{"invalid"' } as any);
+    const res = await handler({ headers: { Accept: "application/json" }, body: '{"invalid"' } as any);
     expect(res.statusCode).toBe(400);
     expect(JSON.parse(res.body)).toMatchObject({
       code: 400,
@@ -61,13 +63,13 @@ describe("request routes handler", () => {
 
   it("returns 400 when missing origin or destination/distanceKm", async () => {
     mockSend.mockResolvedValueOnce({});
-    const res1 = await handler({ body: JSON.stringify({ destination: "B" }) } as any);
+    const res1 = await handler({ headers: { Accept: "application/json" }, body: JSON.stringify({ destination: "B" }) } as any);
     expect(res1.statusCode).toBe(400);
     expect(JSON.parse(res1.body)).toMatchObject({
       code: 400,
       message: "Must provide origin and (destination OR distanceKm)",
     });
-    const res2 = await handler({ body: JSON.stringify({ origin: "A" }) } as any);
+    const res2 = await handler({ headers: { Accept: "application/json" }, body: JSON.stringify({ origin: "A" }) } as any);
     expect(res2.statusCode).toBe(400);
     expect(JSON.parse(res2.body)).toMatchObject({
       code: 400,
@@ -78,6 +80,7 @@ describe("request routes handler", () => {
   it("forwards maxDeltaKm when provided", async () => {
     mockSend.mockResolvedValueOnce({});
     await handler({
+      headers: { Accept: "application/json" },
       body: JSON.stringify({ origin: "A", destination: "B", maxDeltaKm: "1" }),
     } as any);
 
@@ -89,6 +92,7 @@ describe("request routes handler", () => {
   it("forwards routesCount when provided", async () => {
     mockSend.mockResolvedValueOnce({});
     await handler({
+      headers: { Accept: "application/json" },
       body: JSON.stringify({ origin: "A", destination: "B", routesCount: 3 }),
     } as any);
 
@@ -100,6 +104,7 @@ describe("request routes handler", () => {
   it("forwards preference when provided", async () => {
     mockSend.mockResolvedValueOnce({});
     await handler({
+      headers: { Accept: "application/json" },
       body: JSON.stringify({ origin: "A", destination: "B", preference: "park" }),
     } as any);
 

@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { UUID } from "../../../shared/domain/value-objects/uuid";
-import { corsHeaders } from "../../../http/cors";
+import { jsonHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
 
@@ -10,6 +10,14 @@ const sqs = new SQSClient({});
 export const handler = base(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const accept = event.headers?.Accept || event.headers?.accept;
+  if (accept !== "application/json") {
+    return {
+      statusCode: 415,
+      headers: jsonHeaders,
+      body: JSON.stringify({ error: "Unsupported Media Type" }),
+    };
+  }
   let data: any = {};
   if (event.body) {
     try {
@@ -64,7 +72,7 @@ export const handler = base(async (
 
   return {
     statusCode: 202,
-    headers: corsHeaders,
+    headers: jsonHeaders,
     body: JSON.stringify({ enqueued: true, jobId: data.jobId }),
   };
 });

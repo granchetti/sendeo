@@ -7,7 +7,7 @@ import {
 } from "../../../routes/interfaces/appsync-client";
 import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../application/use-cases/add-favourite";
 import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
-import { corsHeaders } from "../../../http/cors";
+import { jsonHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
 import { Email } from "../../../shared/domain/value-objects/email";
@@ -26,6 +26,14 @@ const removeFavourite = new RemoveFavouriteUseCase(repository);
 export const handler = base(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const accept = event.headers?.Accept || event.headers?.accept;
+  if (accept !== "application/json") {
+    return {
+      statusCode: 415,
+      headers: jsonHeaders,
+      body: JSON.stringify({ error: "Unsupported Media Type" }),
+    };
+  }
   const claims = (event.requestContext as any).authorizer?.claims;
   const emailStr = claims?.email;
   if (!emailStr) {
@@ -44,7 +52,7 @@ export const handler = base(async (
       const favourites = items.map((s) => (s.startsWith("FAV#") ? s.slice(4) : s));
       return {
         statusCode: 200,
-        headers: corsHeaders,
+        headers: jsonHeaders,
         body: JSON.stringify({ favourites }),
       };
     } catch (err) {
@@ -75,7 +83,7 @@ export const handler = base(async (
       throw err;
     }
     await publishFavouriteSaved(email.Value, routeId);
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ saved: true }) };
+    return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ saved: true }) };
   }
 
   if (httpMethod === "DELETE") {
@@ -85,7 +93,7 @@ export const handler = base(async (
     }
     await removeFavourite.execute(email, routeId);
     await publishFavouriteDeleted(email.Value, routeId);
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ deleted: true }) };
+    return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ deleted: true }) };
   }
 
   return errorResponse(501, "Not Implemented");

@@ -19,6 +19,7 @@ import { Scope } from "../../../auth/scopes";
 
 const baseCtx = {
   requestContext: { authorizer: { claims: { email: "test@example.com", scope: Scope.PROFILE } } },
+  headers: { Accept: "application/json" },
 } as any;
 
 beforeEach(() => {

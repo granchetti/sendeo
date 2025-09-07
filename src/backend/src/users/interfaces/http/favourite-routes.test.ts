@@ -28,6 +28,7 @@ const baseCtx = {
   requestContext: {
     authorizer: { claims: { email: "test@example.com", scope: Scope.FAVOURITES } },
   },
+  headers: { Accept: "application/json" },
 } as any;
 
 beforeEach(() => {

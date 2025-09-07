@@ -5,7 +5,7 @@ import { GetUserProfileUseCase } from "../../application/use-cases/get-user-prof
 import { UpdateUserProfileUseCase } from "../../application/use-cases/update-user-profile";
 import { Email } from "../../../shared/domain/value-objects/email";
 import { UserProfile } from "../../domain/entities/user-profile";
-import { corsHeaders } from "../../../http/cors";
+import { jsonHeaders } from "../../../http/cors";
 import { hasScope, Scope } from "../../../auth/scopes";
 import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
@@ -23,6 +23,14 @@ const updateUserProfile = new UpdateUserProfileUseCase(repository);
 export const handler = base(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const accept = event.headers?.Accept || event.headers?.accept;
+  if (accept !== "application/json") {
+    return {
+      statusCode: 415,
+      headers: jsonHeaders,
+      body: JSON.stringify({ error: "Unsupported Media Type" }),
+    };
+  }
   const claims = (event.requestContext as any).authorizer?.claims;
   const email = claims?.email;
   if (!email) {
@@ -35,7 +43,11 @@ export const handler = base(async (
 
   if (httpMethod === "GET") {
     const profile = await getUserProfile.execute(Email.fromString(email));
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(profile.toPrimitives()) };
+    return {
+      statusCode: 200,
+      headers: jsonHeaders,
+      body: JSON.stringify(profile.toPrimitives()),
+    };
   }
 
   if (httpMethod === "PUT") {
@@ -56,7 +68,7 @@ export const handler = base(async (
       unit: payload.unit,
     });
     await updateUserProfile.execute(profile);
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ updated: true }) };
+    return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ updated: true }) };
   }
 
   return errorResponse(501, "Not Implemented");
