@@ -5,7 +5,7 @@ import { GetUserProfileUseCase } from "../../application/use-cases/get-user-prof
 import { UpdateUserProfileUseCase } from "../../application/use-cases/update-user-profile";
 import { Email } from "../../../shared/domain/value-objects/email";
 import { UserProfile } from "../../domain/entities/user-profile";
-import { corsHeaders } from "../../../http/cors";
+import { jsonHeaders } from "../../../http/cors";
 
 const dynamo = new DynamoDBClient({
   endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
@@ -20,15 +20,31 @@ const updateUserProfile = new UpdateUserProfileUseCase(repository);
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const accept = event.headers?.Accept || event.headers?.accept;
+  if (accept !== "application/json") {
+    return {
+      statusCode: 415,
+      headers: jsonHeaders,
+      body: JSON.stringify({ error: "Unsupported Media Type" }),
+    };
+  }
   const email = (event.requestContext as any).authorizer?.claims?.email;
   if (!email) {
-    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
+    return {
+      statusCode: 401,
+      headers: jsonHeaders,
+      body: JSON.stringify({ error: "Unauthorized" }),
+    };
   }
   const { httpMethod } = event;
 
   if (httpMethod === "GET") {
     const profile = await getUserProfile.execute(Email.fromString(email));
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(profile.toPrimitives()) };
+    return {
+      statusCode: 200,
+      headers: jsonHeaders,
+      body: JSON.stringify(profile.toPrimitives()),
+    };
   }
 
   if (httpMethod === "PUT") {
@@ -37,7 +53,11 @@ export const handler = async (
       try {
         payload = JSON.parse(event.body);
       } catch {
-        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid JSON body" }) };
+        return {
+          statusCode: 400,
+          headers: jsonHeaders,
+          body: JSON.stringify({ error: "Invalid JSON body" }),
+        };
       }
     }
     const profile = UserProfile.fromPrimitives({
@@ -49,8 +69,12 @@ export const handler = async (
       unit: payload.unit,
     });
     await updateUserProfile.execute(profile);
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ updated: true }) };
+    return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ updated: true }) };
   }
 
-  return { statusCode: 501, headers: corsHeaders, body: JSON.stringify({ error: "Not Implemented" }) };
+  return {
+    statusCode: 501,
+    headers: jsonHeaders,
+    body: JSON.stringify({ error: "Not Implemented" }),
+  };
 };

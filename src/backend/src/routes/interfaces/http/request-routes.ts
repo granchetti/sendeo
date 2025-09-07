@@ -1,13 +1,21 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { UUID } from "../../../shared/domain/value-objects/uuid";
-import { corsHeaders } from "../../../http/cors";
+import { jsonHeaders } from "../../../http/cors";
 
 const sqs = new SQSClient({});
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const accept = event.headers?.Accept || event.headers?.accept;
+  if (accept !== "application/json") {
+    return {
+      statusCode: 415,
+      headers: jsonHeaders,
+      body: JSON.stringify({ error: "Unsupported Media Type" }),
+    };
+  }
   let data: any = {};
   if (event.body) {
     try {
@@ -15,7 +23,7 @@ export const handler = async (
     } catch (err) {
       return {
         statusCode: 400,
-        headers: corsHeaders,
+        headers: jsonHeaders,
         body: JSON.stringify({ error: "Invalid JSON body" }),
       };
     }
@@ -27,7 +35,7 @@ export const handler = async (
   ) {
     return {
       statusCode: 400,
-      headers: corsHeaders,
+      headers: jsonHeaders,
       body: JSON.stringify({
         error: "Must provide origin and (destination OR distanceKm)",
       }),
@@ -69,7 +77,7 @@ export const handler = async (
 
   return {
     statusCode: 202,
-    headers: corsHeaders,
+    headers: jsonHeaders,
     body: JSON.stringify({ enqueued: true, jobId: data.jobId }),
   };
 };

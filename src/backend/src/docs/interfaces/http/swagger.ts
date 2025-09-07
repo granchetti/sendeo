@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { openApiSpec } from "../../openapi";
-import { corsHeaders } from "../../../http/cors";
+import { corsHeaders, jsonHeaders } from "../../../http/cors";
 
 const html = `<!DOCTYPE html>
 <html>
@@ -30,16 +30,24 @@ export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   if (event.path.endsWith("/swagger.json")) {
+    const accept = event.headers?.Accept || event.headers?.accept;
+    if (accept !== "application/json") {
+      return {
+        statusCode: 415,
+        headers: jsonHeaders,
+        body: JSON.stringify({ error: "Unsupported Media Type" }),
+      };
+    }
     return {
       statusCode: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: jsonHeaders,
       body: JSON.stringify(openApiSpec),
     };
   }
-  
+
   return {
     statusCode: 200,
-    headers: { ...corsHeaders, "Content-Type": "text/html" },
+    headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
     body: html,
   };
 };
