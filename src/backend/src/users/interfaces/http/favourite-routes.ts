@@ -11,7 +11,7 @@ import { jsonHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
 import { Email } from "../../../shared/domain/value-objects/email";
-import { hasScope, Scope } from "../../../auth/scopes";
+import { hasGroup, Scope } from "../../../auth/scopes";
 
 const dynamo = new DynamoDBClient({
   endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
@@ -39,7 +39,7 @@ export const handler = base(async (
   if (!emailStr) {
     return errorResponse(401, "Unauthorized");
   }
-  if (!hasScope(claims, Scope.FAVOURITES)) {
+  if (!hasGroup(claims, Scope.FAVOURITES)) {
     return { statusCode: 403, headers: jsonHeaders, body: JSON.stringify({ error: "Forbidden" }) };
   }
   const email = Email.fromString(emailStr);

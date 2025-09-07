@@ -1,10 +1,21 @@
 const sendMock = jest.fn();
+const addMock = jest.fn().mockReturnValue({ promise: () => Promise.resolve() });
 
 jest.mock(
   "@aws-sdk/client-cloudwatch",
   () => ({
     CloudWatchClient: jest.fn().mockImplementation(() => ({ send: sendMock })),
     PutMetricDataCommand: jest.fn().mockImplementation((input) => ({ input })),
+  }),
+  { virtual: true }
+);
+
+jest.mock(
+  "aws-sdk",
+  () => ({
+    CognitoIdentityServiceProvider: jest
+      .fn()
+      .mockImplementation(() => ({ adminAddUserToGroup: addMock })),
   }),
   { virtual: true }
 );
@@ -30,6 +41,8 @@ function createEvent(): PostConfirmationTriggerEvent {
 describe("post-confirmation trigger", () => {
   beforeEach(() => {
     sendMock.mockReset();
+    addMock.mockReset();
+    addMock.mockReturnValue({ promise: () => Promise.resolve() });
     process.env.METRICS_NAMESPACE = "TestNS";
   });
 
@@ -39,6 +52,11 @@ describe("post-confirmation trigger", () => {
     await handler(createEvent());
     expect(consoleSpy).toHaveBeenCalled();
     expect(consoleSpy.mock.calls[0][0]).toContain("UserSignedUp");
+    expect(addMock).toHaveBeenCalledWith({
+      UserPoolId: "pool",
+      Username: "user",
+      GroupName: "profile",
+    });
     expect(sendMock).toHaveBeenCalledTimes(1);
     const call = sendMock.mock.calls[0][0];
     expect(call.input.Namespace).toBe("TestNS");

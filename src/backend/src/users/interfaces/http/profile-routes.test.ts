@@ -18,7 +18,11 @@ import { Email } from "../../../shared/domain/value-objects/email";
 import { Scope } from "../../../auth/scopes";
 
 const baseCtx = {
-  requestContext: { authorizer: { claims: { email: "test@example.com", scope: Scope.PROFILE } } },
+  requestContext: {
+    authorizer: {
+      claims: { email: "test@example.com", "cognito:groups": [Scope.PROFILE] },
+    },
+  },
   headers: { Accept: "application/json" },
 } as any;
 
@@ -28,13 +32,11 @@ beforeEach(() => {
 });
 
 describe("authorization", () => {
-  it("returns 403 when scope missing", async () => {
+  it("returns 403 when group missing", async () => {
     const res = await handler({
-      ...baseCtx, // ya trae headers: { Accept: "application/json" }
+      ...baseCtx,
       requestContext: { authorizer: { claims: { email: "test@example.com" } } },
       httpMethod: "GET",
-      // si tu handler comprueba resource, descomenta y ajusta:
-      // resource: "/v1/profile",
     } as any);
     expect(res.statusCode).toBe(403);
   });

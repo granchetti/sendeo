@@ -32,7 +32,11 @@ import { Scope } from "../../src/auth/scopes";
 describe("profile routes integration", () => {
   const email = "test@example.com";
   const baseEvent: any = {
-    requestContext: { authorizer: { claims: { email, scope: Scope.PROFILE } } },
+    requestContext: {
+      authorizer: {
+        claims: { email, "cognito:groups": [Scope.PROFILE] },
+      },
+    },
     headers: { Accept: "application/json" },
   };
   const key = `USER#${email}|PROFILE`;

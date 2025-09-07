@@ -4,10 +4,19 @@ export enum Scope {
   FAVOURITES = "favourites",
 }
 
-export function hasScope(claims: any, required: Scope): boolean {
+export function hasGroup(claims: any, required: Scope): boolean {
   if (!claims) return false;
-  const raw = (claims.scope ?? claims.scopes) as string | string[] | undefined;
+  const raw =
+    (claims["cognito:groups"] ?? claims.scope ?? claims.scopes) as
+      | string
+      | string[]
+      | undefined;
   if (!raw) return false;
-  const scopes = Array.isArray(raw) ? raw : raw.split(/\s+/);
-  return scopes.includes(required);
+  const groups = Array.isArray(raw) ? raw : raw.split(/\s+/);
+  return groups.includes(required);
+}
+
+// backward compatibility
+export function hasScope(claims: any, required: Scope): boolean {
+  return hasGroup(claims, required);
 }

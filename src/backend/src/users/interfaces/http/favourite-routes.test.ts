@@ -30,7 +30,7 @@ import { Scope } from "../../../auth/scopes";
 const baseCtx = {
   requestContext: {
     authorizer: {
-      claims: { email: "test@example.com", scope: Scope.FAVOURITES },
+      claims: { email: "test@example.com", "cognito:groups": [Scope.FAVOURITES] },
     },
   },
   headers: { Accept: "application/json" },
@@ -45,7 +45,7 @@ beforeEach(() => {
 });
 
 describe("authorization", () => {
-  it("returns 403 when scope missing", async () => {
+  it("returns 403 when group missing", async () => {
     const res = await handler({
       ...baseCtx,
       requestContext: { authorizer: { claims: { email: "test@example.com" } } },

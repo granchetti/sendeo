@@ -38,6 +38,15 @@ describe('AuthStack', () => {
     });
   });
 
+  test('creates user pool groups and post-confirmation trigger', () => {
+    template.resourceCountIs('AWS::Cognito::UserPoolGroup', 3);
+    template.hasResourceProperties('AWS::Cognito::UserPool', {
+      LambdaConfig: Match.objectLike({
+        PostConfirmation: Match.anyValue(),
+      }),
+    });
+  });
+
   test('exports the UserPoolClientId output for cross-stack reference', () => {
     template.hasOutput('UserPoolClientId', {
       Export: {

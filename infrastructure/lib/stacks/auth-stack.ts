@@ -16,6 +16,9 @@ export class AuthStack extends cdk.Stack {
     super(scope, id, props);
 
     const suffix = props.stage;
+    const backendRoot = path.join(__dirname, "../../../src/backend");
+    const backendLock = path.join(backendRoot, "package-lock.json");
+    const backendTsconfig = path.join(backendRoot, "tsconfig.json");
 
     this.userPool = new cognito.UserPool(this, "UserPool", {
       userPoolName: `SendeoUserPool-${suffix}`,
@@ -31,10 +34,6 @@ export class AuthStack extends cdk.Stack {
     });
 
     if (suffix !== "prod") {
-      const backendRoot = path.join(__dirname, "../../../src/backend");
-      const backendLock = path.join(backendRoot, "package-lock.json");
-      const backendTsconfig = path.join(backendRoot, "tsconfig.json");
-
       const preSignUpFn = new NodejsFunction(this, "PreSignUpFn", {
         runtime: lambda.Runtime.NODEJS_18_X,
         entry: path.join(
@@ -61,6 +60,46 @@ export class AuthStack extends cdk.Stack {
         preSignUpFn
       );
     }
+
+    new cognito.CfnUserPoolGroup(this, "ProfileGroup", {
+      userPoolId: this.userPool.userPoolId,
+      groupName: "profile",
+    });
+    new cognito.CfnUserPoolGroup(this, "RoutesGroup", {
+      userPoolId: this.userPool.userPoolId,
+      groupName: "routes",
+    });
+    new cognito.CfnUserPoolGroup(this, "FavouritesGroup", {
+      userPoolId: this.userPool.userPoolId,
+      groupName: "favourites",
+    });
+
+    const postConfirmationFn = new NodejsFunction(this, "PostConfirmationFn", {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(
+        __dirname,
+        "../../../src/backend/src/auth/triggers/post-confirmation.ts"
+      ),
+      handler: "handler",
+      environment: {
+        DEFAULT_GROUP: "profile",
+      },
+      depsLockFilePath: backendLock,
+      bundling: {
+        target: "node18",
+        format: OutputFormat.CJS,
+        minify: true,
+        sourceMap: true,
+        sourcesContent: false,
+        tsconfig: backendTsconfig,
+        externalModules: ["aws-sdk"],
+      },
+    });
+
+    this.userPool.addTrigger(
+      cognito.UserPoolOperation.POST_CONFIRMATION,
+      postConfirmationFn
+    );
 
     this.userPoolClient = new cognito.UserPoolClient(this, "UserPoolClient", {
       userPool: this.userPool,

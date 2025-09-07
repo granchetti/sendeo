@@ -41,7 +41,11 @@ import { Scope } from "../../src/auth/scopes";
 describe("favourite routes integration", () => {
   const email = "test@example.com";
   const baseEvent: any = {
-    requestContext: { authorizer: { claims: { email, scope: Scope.FAVOURITES } } },
+    requestContext: {
+      authorizer: {
+        claims: { email, "cognito:groups": [Scope.FAVOURITES] },
+      },
+    },
     headers: { Accept: "application/json" },
   };
   const key = (routeId: string) => `USER#${email}|FAV#${routeId}`;
