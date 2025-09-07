@@ -6,6 +6,7 @@ import { UpdateUserProfileUseCase } from "../../application/use-cases/update-use
 import { Email } from "../../../shared/domain/value-objects/email";
 import { UserProfile } from "../../domain/entities/user-profile";
 import { corsHeaders } from "../../../http/cors";
+import { hasScope, Scope } from "../../../auth/scopes";
 import { errorResponse } from "../../../http/error-response";
 
 const dynamo = new DynamoDBClient({
@@ -21,9 +22,13 @@ const updateUserProfile = new UpdateUserProfileUseCase(repository);
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const email = (event.requestContext as any).authorizer?.claims?.email;
+  const claims = (event.requestContext as any).authorizer?.claims;
+  const email = claims?.email;
   if (!email) {
     return errorResponse(401, "Unauthorized");
+  }
+  if (!hasScope(claims, Scope.PROFILE)) {
+    return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Forbidden" }) };
   }
   const { httpMethod } = event;
 
