@@ -13,6 +13,7 @@ import { StartRouteUseCase } from "../../application/use-cases/start-route";
 import { FinishRouteUseCase } from "../../application/use-cases/finish-route";
 import { jsonHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
+import { base } from "../../../http/base";
 import { getGoogleKey } from "../shared/utils";
 import { GoogleMapsProvider } from "../../infrastructure/google-maps/google-maps-provider";
 import {
@@ -98,7 +99,7 @@ const describeRouteUseCase = new DescribeRouteUseCase(
 const startRouteUseCase = new StartRouteUseCase(routeRepository, dispatcher);
 const finishRouteUseCase = new FinishRouteUseCase(routeRepository, dispatcher);
 
-export const handler = async (
+export const handler = base(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const accept = event.headers?.Accept || event.headers?.accept;
@@ -291,4 +292,4 @@ export const handler = async (
   }
 
   return errorResponse(501, "Not Implemented");
-};
+});

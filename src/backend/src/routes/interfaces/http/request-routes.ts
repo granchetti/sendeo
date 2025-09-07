@@ -3,10 +3,11 @@ import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { UUID } from "../../../shared/domain/value-objects/uuid";
 import { jsonHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
+import { base } from "../../../http/base";
 
 const sqs = new SQSClient({});
 
-export const handler = async (
+export const handler = base(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const accept = event.headers?.Accept || event.headers?.accept;
@@ -74,4 +75,4 @@ export const handler = async (
     headers: jsonHeaders,
     body: JSON.stringify({ enqueued: true, jobId: data.jobId }),
   };
-};
+});
