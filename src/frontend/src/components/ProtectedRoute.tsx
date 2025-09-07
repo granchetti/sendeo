@@ -3,8 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const { idToken } = useContext(AuthContext);
-  if (!idToken) {
+  const { accessToken } = useContext(AuthContext);
+  if (!accessToken) {
     return <Navigate to="/login" />;
   }
   return children;

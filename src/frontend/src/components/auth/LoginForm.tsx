@@ -49,17 +49,17 @@ const LoginForm: React.FC<Props> = ({ onSuccess }) => {
     }
     try {
       const session = await signIn(email, password);
-      const id = session.getIdToken().getJwtToken();
+      const access = session.getAccessToken().getJwtToken();
       const refresh = session.getRefreshToken().getToken();
-      localStorage.setItem('idToken', id);
+      localStorage.setItem('accessToken', access);
       localStorage.setItem('refreshToken', refresh);
-      setSession(id, refresh);
+      setSession(access, refresh);
       await api.put(
         '/v1/profile',
         { email },
         {
           headers: {
-            Authorization: `Bearer ${id}`,
+            Authorization: `Bearer ${access}`,
             'Content-Type': 'application/json',
             Accept: 'application/json',
           },

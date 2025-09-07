@@ -19,7 +19,7 @@ import logoSrc from '../assets/logo.png';
 import { AuthContext } from '../contexts/AuthContext';
 
 const NavBar = () => {
-  const { idToken, signOut } = useContext(AuthContext);
+  const { accessToken, signOut } = useContext(AuthContext);
   const linkColor = useColorModeValue('gray.600', 'gray.300');
   const linkHover = useColorModeValue('brand.600', 'brand.400');
 
@@ -57,7 +57,7 @@ const NavBar = () => {
             Home
           </Link>
 
-          {!idToken && (
+          {!accessToken && (
             <>
               <Link
                 as={RouterLink}
@@ -78,7 +78,7 @@ const NavBar = () => {
             </>
           )}
 
-          {idToken && (
+          {accessToken && (
             <Menu>
               <MenuButton
                 as={IconButton}

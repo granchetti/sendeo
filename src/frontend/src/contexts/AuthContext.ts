@@ -1,14 +1,14 @@
 import { createContext } from 'react';
 
 export interface AuthContextType {
-  idToken: string | null;
+  accessToken: string | null;
   refreshToken: string | null;
-  setSession: (idToken: string, refreshToken: string) => void;
+  setSession: (accessToken: string, refreshToken: string) => void;
   signOut: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({
-  idToken: null,
+  accessToken: null,
   refreshToken: null,
   setSession: () => {},
   signOut: () => {},

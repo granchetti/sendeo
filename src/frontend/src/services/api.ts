@@ -27,30 +27,30 @@ function isTokenExpired(token: string): boolean {
 }
 
 api.interceptors.request.use(async (config) => {
-  let idToken = localStorage.getItem('idToken');
+  let accessToken = localStorage.getItem('accessToken');
   const refreshToken = localStorage.getItem('refreshToken');
 
-  if (idToken && refreshToken && isTokenExpired(idToken)) {
+  if (accessToken && refreshToken && isTokenExpired(accessToken)) {
     const user = getCurrentUser();
     if (user) {
       try {
         const session = await refreshSession(user, refreshToken);
-        idToken = session.getIdToken().getJwtToken();
+        accessToken = session.getAccessToken().getJwtToken();
         const newRefresh = session.getRefreshToken().getToken();
-        localStorage.setItem('idToken', idToken);
+        localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', newRefresh);
-        externalSetSession?.(idToken, newRefresh);
+        externalSetSession?.(accessToken, newRefresh);
       } catch {
-        localStorage.removeItem('idToken');
+        localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         externalSignOut?.();
       }
     }
   }
 
-  if (idToken) {
+  if (accessToken) {
     config.headers = config.headers || {};
-    config.headers['Authorization'] = `Bearer ${idToken}`;
+    config.headers['Authorization'] = `Bearer ${accessToken}`;
   }
   return config;
 });

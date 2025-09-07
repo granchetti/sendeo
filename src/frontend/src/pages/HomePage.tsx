@@ -10,11 +10,11 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 
 const HomePage = () => {
-  const { idToken } = useContext(AuthContext);
+  const { accessToken } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleStart = () => {
-    navigate(idToken ? '/routes' : '/login');
+    navigate(accessToken ? '/routes' : '/login');
   };
 
   return (
