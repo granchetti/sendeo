@@ -24,7 +24,7 @@ export const handler = base(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const accept = event.headers?.Accept || event.headers?.accept;
-  if (accept !== "application/json") {
+  if (!accept?.includes("application/json")) {
     return {
       statusCode: 415,
       headers: jsonHeaders,
