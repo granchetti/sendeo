@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@aws-sdk/lib-dynamodb": "^3.883.0",
     "@types/aws-lambda": "^8.10.150",
     "@types/jest": "^29.5.14",
     "@types/mapbox__polyline": "^1.0.5",
