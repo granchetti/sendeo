@@ -1,7 +1,7 @@
 process.env.APPSYNC_URL = 'https://example.com/graphql';
 process.env.APPSYNC_API_KEY = 'test-key';
 
-import { publishFavouriteSaved, publishFavouriteDeleted, publishRoutesGenerated, publishRouteStarted, publishRouteFinished } from './appsync-client';
+import { publishFavouriteSaved, publishFavouriteDeleted, publishRoutesGenerated, publishRouteStarted, publishRouteFinished, publishErrorOccurred } from './appsync-client';
 import { RouteStatus } from '../domain/value-objects/route-status';
 import { Route } from '../domain/entities/route';
 import { UUID } from '../../shared/domain/value-objects/uuid';
@@ -88,6 +88,16 @@ describe('appsync-client', () => {
     expect(body).toEqual({
       query: `mutation PublishRouteFinished($email: String!, $routeId: ID!, $summary: String!) {\n  publishRouteFinished(email: $email, routeId: $routeId, summary: $summary)\n}`,
       variables: { email: 'user@example.com', routeId: 'route-1', summary: 'summary' },
+    });
+  });
+
+  it('publishErrorOccurred sends correct payload', async () => {
+    await publishErrorOccurred('boom', { foo: 'bar' });
+    const [, opts] = fetchMock.mock.calls[0];
+    const body = JSON.parse(opts.body);
+    expect(body).toEqual({
+      query: `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON) {\n  publishErrorOccurred(message: $message, payload: $payload)\n}`,
+      variables: { message: 'boom', payload: { foo: 'bar' } },
     });
   });
 });
