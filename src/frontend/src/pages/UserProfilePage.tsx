@@ -43,7 +43,7 @@ const UserProfilePage = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const { data } = await api.get('/profile');
+        const { data } = await api.get('/v1/profile');
         setProfile(data);
         setForm(data);
       } finally {
@@ -68,7 +68,7 @@ const UserProfilePage = () => {
     if (!form) return;
     setSaving(true);
     try {
-      await api.put('/profile', form);
+      await api.put('/v1/profile', form);
       setProfile(form);
       toast({
         title: 'Profile updated.',

@@ -74,7 +74,7 @@ beforeEach(() => {
 describe("page router get route", () => {
   const baseEvent = {
     ...baseCtx,
-    resource: "/routes/{routeId}",
+    resource: "/v1/routes/{routeId}",
     httpMethod: "GET",
   } as any;
 
@@ -128,7 +128,7 @@ describe("page router get route", () => {
 describe("page router list routes", () => {
   const baseEvent = {
     ...baseCtx,
-    resource: "/routes",
+    resource: "/v1/routes",
     httpMethod: "GET",
   } as any;
 
@@ -194,7 +194,7 @@ describe("page router list routes", () => {
 describe("page router list routes by jobId", () => {
   const baseEvent = {
     ...baseCtx,
-    resource: "/jobs/{jobId}/routes",
+    resource: "/v1/jobs/{jobId}/routes",
     httpMethod: "GET",
   } as any;
 
@@ -229,7 +229,7 @@ describe("page router list routes by jobId", () => {
 describe("telemetry started", () => {
   const baseEvent = {
     ...baseCtx,
-    resource: "/telemetry/started",
+    resource: "/v1/telemetry/started",
     httpMethod: "POST",
   } as any;
 
@@ -282,7 +282,7 @@ describe("telemetry started", () => {
 describe("finish route", () => {
   const baseEvent = {
     ...baseCtx,
-    resource: "/routes/{routeId}/finish",
+    resource: "/v1/routes/{routeId}/finish",
     httpMethod: "POST",
   } as any;
 

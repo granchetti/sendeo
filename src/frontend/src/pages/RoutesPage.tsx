@@ -118,7 +118,7 @@ export default function RoutesPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get('/favourites');
+        const { data } = await api.get('/v1/favourites');
         setFavourites(data.favourites || []);
       } catch {}
     })();
@@ -154,7 +154,7 @@ export default function RoutesPage() {
   useEffect(() => {
     if (!jobId) return;
     const iv = setInterval(async () => {
-      const { data } = await api.get(`/jobs/${jobId}/routes`);
+      const { data } = await api.get(`/v1/jobs/${jobId}/routes`);
       if (data.length) {
         setRoutes(data);
         setLoading(false);
@@ -235,7 +235,7 @@ export default function RoutesPage() {
 
     setLoading(true);
     try {
-      const { data } = await api.post('/routes', payload);
+      const { data } = await api.post('/v1/routes', payload);
       setJobId(data.jobId);
       toast({ title: 'Route request submitted.', status: 'success' });
     } catch (err: unknown) {
@@ -317,10 +317,10 @@ export default function RoutesPage() {
 
     try {
       if (isFav) {
-        await api.delete(`/favourites/${routeId}`);
+        await api.delete(`/v1/favourites/${routeId}`);
         setFavourites((prev) => prev.filter((id) => id !== routeId));
       } else {
-        await api.post('/favourites', { routeId });
+        await api.post('/v1/favourites', { routeId });
         setFavourites((prev) => [...prev, routeId]);
       }
     } catch {
@@ -335,7 +335,7 @@ export default function RoutesPage() {
   const handleStartClick = async (routeId: string, navState?: any) => {
     setStartingRouteId(routeId);
     try {
-      await api.get(`/routes/${routeId}`);
+      await api.get(`/v1/routes/${routeId}`);
     } catch {}
     navigate(`/routes/${routeId}`, { state: navState });
   };
