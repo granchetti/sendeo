@@ -8,7 +8,8 @@ describe('GetRouteDetailsUseCase', () => {
     const route = Route.request({ routeId: UUID.generate() });
     const repo: RouteRepository = {
       findById: jest.fn().mockResolvedValue(route),
-      findAll: jest.fn(),
+      findAll: jest.fn().mockResolvedValue({ items: [] }),
+      findByJobId: jest.fn(),
       save: jest.fn(),
       remove: jest.fn(),
     } as any;

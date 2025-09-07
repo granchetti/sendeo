@@ -19,7 +19,7 @@ describe('DescribeRouteUseCase', () => {
     const repo: RouteRepository = {
       findById: jest.fn().mockResolvedValue(route),
       save: jest.fn(),
-      findAll: jest.fn(),
+      findAll: jest.fn().mockResolvedValue({ items: [] }),
       findByJobId: jest.fn(),
       remove: jest.fn(),
     } as any;

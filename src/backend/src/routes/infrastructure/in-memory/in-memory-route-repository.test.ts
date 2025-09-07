@@ -65,10 +65,27 @@ describe("InMemoryRouteRepository", () => {
     await repo.save(routeB);
 
     const all = await repo.findAll();
-    expect(all).toHaveLength(2);
-    expect(all.map((r) => r.routeId.Value)).toEqual(
+    expect(all.items).toHaveLength(2);
+    expect(all.items.map((r) => r.routeId.Value)).toEqual(
       expect.arrayContaining([routeA.routeId.Value, routeB.routeId.Value])
     );
+  });
+
+  it("supports pagination", async () => {
+    const r1 = Route.request({ routeId: UUID.generate() });
+    const r2 = Route.request({ routeId: UUID.generate() });
+    const r3 = Route.request({ routeId: UUID.generate() });
+    await repo.save(r1);
+    await repo.save(r2);
+    await repo.save(r3);
+
+    const page1 = await repo.findAll({ limit: 2 });
+    expect(page1.items).toHaveLength(2);
+    expect(page1.nextCursor).toBe(page1.items[1].routeId.Value);
+
+    const page2 = await repo.findAll({ cursor: page1.nextCursor });
+    expect(page2.items).toHaveLength(1);
+    expect(page2.items[0].routeId.Value).toBe(r3.routeId.Value);
   });
 
   it("findByJobId filters routes by jobId", async () => {
