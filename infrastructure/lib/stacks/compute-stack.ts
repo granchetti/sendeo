@@ -52,6 +52,24 @@ export class ComputeStack extends cdk.Stack {
       exportName: `SendeoApiUrl-${suffix}`,
     });
 
+    api.addGatewayResponse("UnauthorizedResponse", {
+      type: apigw.ResponseType.UNAUTHORIZED,
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers": "'*'",
+        "Access-Control-Allow-Methods": "'GET,POST,PUT,DELETE,OPTIONS'",
+      },
+    });
+
+    api.addGatewayResponse("Default4xxResponse", {
+      type: apigw.ResponseType.DEFAULT_4XX,
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers": "'*'",
+        "Access-Control-Allow-Methods": "'GET,POST,PUT,DELETE,OPTIONS'",
+      },
+    });
+
     const authorizer = new apigw.CognitoUserPoolsAuthorizer(
       this,
       "CognitoAuth",

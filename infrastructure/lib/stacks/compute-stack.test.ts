@@ -88,4 +88,22 @@ describe("ComputeStack", () => {
       },
     });
   });
+
+  test("configures gateway responses with CORS headers", () => {
+    const headers = {
+      "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+      "gatewayresponse.header.Access-Control-Allow-Headers": "'*'",
+      "gatewayresponse.header.Access-Control-Allow-Methods": "'GET,POST,PUT,DELETE,OPTIONS'",
+    };
+
+    template.hasResourceProperties("AWS::ApiGateway::GatewayResponse", {
+      ResponseType: "UNAUTHORIZED",
+      ResponseParameters: headers,
+    });
+
+    template.hasResourceProperties("AWS::ApiGateway::GatewayResponse", {
+      ResponseType: "DEFAULT_4XX",
+      ResponseParameters: headers,
+    });
+  });
 });
