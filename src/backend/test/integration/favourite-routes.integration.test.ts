@@ -41,6 +41,7 @@ describe("favourite routes integration", () => {
   const email = "test@example.com";
   const baseEvent: any = {
     requestContext: { authorizer: { claims: { email } } },
+    headers: { Accept: "application/json" },
   };
   const key = (routeId: string) => `USER#${email}|FAV#${routeId}`;
 

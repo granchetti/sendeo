@@ -11,7 +11,7 @@ describe('swagger handler', () => {
     } as any);
 
     expect(res.statusCode).toBe(200);
-    expect(res.headers?.['Content-Type']).toBe('text/html');
+    expect(res.headers?.['Content-Type']).toBe('text/html; charset=utf-8');
     expect(res.body).toContain('SwaggerUIBundle');
   });
 
@@ -21,10 +21,11 @@ describe('swagger handler', () => {
       httpMethod: 'GET',
       resource: '/swagger.json',
       requestContext: {} as any,
+      headers: { Accept: 'application/json' },
     } as any);
 
     expect(res.statusCode).toBe(200);
-    expect(res.headers?.['Content-Type']).toBe('application/json');
+    expect(res.headers?.['Content-Type']).toBe('application/json; charset=utf-8');
     expect(res.body).toBe(JSON.stringify(openApiSpec));
   });
 });
