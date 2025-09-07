@@ -12,6 +12,7 @@ import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-de
 import { StartRouteUseCase } from "../../application/use-cases/start-route";
 import { FinishRouteUseCase } from "../../application/use-cases/finish-route";
 import { corsHeaders } from "../../../http/cors";
+import { errorResponse } from "../../../http/error-response";
 import { getGoogleKey } from "../shared/utils";
 import { GoogleMapsProvider } from "../../infrastructure/google-maps/google-maps-provider";
 import {
@@ -104,11 +105,7 @@ export const handler = async (
   const claims = (event.requestContext as any).authorizer?.claims;
   const email = claims?.email;
   if (!email) {
-    return {
-      statusCode: 401,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: "Unauthorized" }),
-    };
+    return errorResponse(401, "Unauthorized");
   }
   if (!hasScope(claims, Scope.ROUTES)) {
     return {
@@ -136,11 +133,7 @@ export const handler = async (
       };
     } catch (err) {
       console.error("Error listing routes:", err);
-      return {
-        statusCode: 500,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "Could not list routes" }),
-      };
+      return errorResponse(500, "Could not list routes");
     }
   }
 
@@ -148,20 +141,12 @@ export const handler = async (
   if (httpMethod === "GET" && resource === "/routes/{routeId}") {
     const routeId = pathParameters?.routeId;
     if (!routeId) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "routeId parameter required" }),
-      };
+      return errorResponse(400, "routeId parameter required");
     }
 
     const route = await routeRepository.findById(UUID.fromString(routeId));
     if (!route) {
-      return {
-        statusCode: 404,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "Not Found" }),
-      };
+      return errorResponse(404, "Not Found");
     }
     if (!route.description && route.path) {
       try {
@@ -195,11 +180,7 @@ export const handler = async (
   if (httpMethod === "GET" && resource === "/jobs/{jobId}/routes") {
     const jobId = pathParameters?.jobId;
     if (!jobId) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "jobId parameter required" }),
-      };
+      return errorResponse(400, "jobId parameter required");
     }
     try {
       const list = await routeRepository.findByJobId(UUID.fromString(jobId));
@@ -218,11 +199,7 @@ export const handler = async (
       };
     } catch (err) {
       console.error("Error listing job routes:", err);
-      return {
-        statusCode: 500,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "Could not list routes" }),
-      };
+      return errorResponse(500, "Could not list routes");
     }
   }
 
@@ -232,21 +209,13 @@ export const handler = async (
       try {
         payload = JSON.parse(event.body);
       } catch {
-        return {
-          statusCode: 400,
-          headers: corsHeaders,
-          body: JSON.stringify({ error: "Invalid JSON body" }),
-        };
+        return errorResponse(400, "Invalid JSON body");
       }
     }
 
     const routeId = payload.routeId;
     if (!routeId) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "routeId required" }),
-      };
+      return errorResponse(400, "routeId required");
     }
 
     const ts = Date.now();
@@ -257,11 +226,7 @@ export const handler = async (
       timestamp: ts,
     });
     if (!started) {
-      return {
-        statusCode: 404,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "Not Found" }),
-      };
+      return errorResponse(404, "Not Found");
     }
     return {
       statusCode: 200,
@@ -273,11 +238,7 @@ export const handler = async (
   if (resource === "/routes/{routeId}/finish" && httpMethod === "POST") {
     const routeId = pathParameters?.routeId;
     if (!routeId) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "routeId parameter required" }),
-      };
+      return errorResponse(400, "routeId parameter required");
     }
 
     const finishTs = Date.now();
@@ -297,11 +258,7 @@ export const handler = async (
       actualDuration,
     });
     if (!route) {
-      return {
-        statusCode: 404,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "Not Found" }),
-      };
+      return errorResponse(404, "Not Found");
     }
 
     return {
@@ -318,9 +275,5 @@ export const handler = async (
     };
   }
 
-  return {
-    statusCode: 501,
-    headers: corsHeaders,
-    body: JSON.stringify({ error: "Not Implemented" }),
-  };
+  return errorResponse(501, "Not Implemented");
 };

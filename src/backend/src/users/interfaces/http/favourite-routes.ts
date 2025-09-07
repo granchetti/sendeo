@@ -8,6 +8,7 @@ import {
 import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../application/use-cases/add-favourite";
 import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
 import { corsHeaders } from "../../../http/cors";
+import { errorResponse } from "../../../http/error-response";
 import { Email } from "../../../shared/domain/value-objects/email";
 import { hasScope, Scope } from "../../../auth/scopes";
 
@@ -27,7 +28,7 @@ export const handler = async (
   const claims = (event.requestContext as any).authorizer?.claims;
   const emailStr = claims?.email;
   if (!emailStr) {
-    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
+    return errorResponse(401, "Unauthorized");
   }
   if (!hasScope(claims, Scope.FAVOURITES)) {
     return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Forbidden" }) };
@@ -47,11 +48,7 @@ export const handler = async (
       };
     } catch (err) {
       console.error("❌ Error reading favourites:", err);
-      return {
-        statusCode: 500,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "Could not fetch favourites" }),
-      };
+      return errorResponse(500, "Could not fetch favourites");
     }
   }
 
@@ -60,31 +57,19 @@ export const handler = async (
     try {
       payload = event.body ? JSON.parse(event.body) : {};
     } catch {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "Invalid JSON body" }),
-      };
+      return errorResponse(400, "Invalid JSON body");
     }
 
     const routeId = payload.routeId;
     if (!routeId) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "routeId required" }),
-      };
+      return errorResponse(400, "routeId required");
     }
 
     try {
       await addFavourite.execute(email, routeId);
     } catch (err) {
       if (err instanceof FavouriteAlreadyExistsError) {
-        return {
-          statusCode: 409,
-          headers: corsHeaders,
-          body: JSON.stringify({ error: "Route already in favourites" }),
-        };
+        return errorResponse(409, "Route already in favourites");
       }
       throw err;
     }
@@ -95,20 +80,12 @@ export const handler = async (
   if (httpMethod === "DELETE") {
     const routeId = event.pathParameters?.routeId;
     if (!routeId) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "routeId parameter required" }),
-      };
+      return errorResponse(400, "routeId parameter required");
     }
     await removeFavourite.execute(email, routeId);
     await publishFavouriteDeleted(email.Value, routeId);
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ deleted: true }) };
   }
 
-  return {
-    statusCode: 501,
-    headers: corsHeaders,
-    body: JSON.stringify({ error: "Not Implemented" }),
-  };
+  return errorResponse(501, "Not Implemented");
 };

@@ -80,5 +80,12 @@ describe("profile routes integration", () => {
     expect(item.firstName.S).toBe("Jane");
     expect(item.lastName.S).toBe("Doe");
   });
+
+  it("returns 401 when unauthorized", async () => {
+    const res = await handler({ httpMethod: "GET", requestContext: {} as any });
+
+    expect(res.statusCode).toBe(401);
+    expect(JSON.parse(res.body)).toEqual({ code: 401, message: "Unauthorized" });
+  });
 });
 
