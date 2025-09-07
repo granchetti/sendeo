@@ -2,9 +2,9 @@ const mockFindById = jest.fn();
 const mockFindAll = jest.fn();
 const mockFindByJobId = jest.fn();
 const mockSave = jest.fn();
-const mockPutRouteStart = jest.fn();
-const mockGetRouteStart = jest.fn();
-const mockDeleteRouteStart = jest.fn();
+const mockPutActiveRoute = jest.fn();
+const mockGetActiveRoute = jest.fn();
+const mockDeleteActiveRoute = jest.fn();
 let mockSend: jest.Mock;
 const mockPublishStarted = jest.fn();
 const mockPublishFinished = jest.fn();
@@ -26,9 +26,9 @@ jest.mock(
   "../../../users/infrastructure/dynamodb/dynamo-user-activity-repository",
   () => ({
     DynamoUserActivityRepository: jest.fn().mockImplementation(() => ({
-      putRouteStart: (...args: any[]) => mockPutRouteStart(...args),
-      getRouteStart: (...args: any[]) => mockGetRouteStart(...args),
-      deleteRouteStart: (...args: any[]) => mockDeleteRouteStart(...args),
+      putActiveRoute: (...args: any[]) => mockPutActiveRoute(...args),
+      getActiveRoute: (...args: any[]) => mockGetActiveRoute(...args),
+      deleteActiveRoute: (...args: any[]) => mockDeleteActiveRoute(...args),
     })),
   })
 );
@@ -67,9 +67,9 @@ beforeEach(() => {
   mockFindAll.mockReset();
   mockFindByJobId.mockReset();
   mockSave.mockReset();
-  mockPutRouteStart.mockReset();
-  mockGetRouteStart.mockReset();
-  mockDeleteRouteStart.mockReset();
+  mockPutActiveRoute.mockReset();
+  mockGetActiveRoute.mockReset();
+  mockDeleteActiveRoute.mockReset();
   mockSend.mockReset();
   mockPublishStarted.mockReset();
   mockPublishFinished.mockReset();
@@ -295,7 +295,7 @@ describe("telemetry started", () => {
     });
     expect(mockSend).toHaveBeenCalledTimes(1);
     expect(mockSave).toHaveBeenCalledWith(route);
-    expect(mockPutRouteStart).toHaveBeenCalledWith(
+    expect(mockPutActiveRoute).toHaveBeenCalledWith(
       "test@example.com",
       routeId,
       expect.any(Number)
@@ -346,7 +346,7 @@ describe("finish route", () => {
     route.description = "desc";
     route.start();
     mockFindById.mockResolvedValueOnce(route);
-    mockGetRouteStart.mockResolvedValueOnce(1000);
+    mockGetActiveRoute.mockResolvedValueOnce({ startedAt: 1000 });
     mockSend.mockResolvedValueOnce({});
 
     const res = await handler({
@@ -354,11 +354,11 @@ describe("finish route", () => {
       pathParameters: { routeId: route.routeId.Value },
     });
 
-    expect(mockGetRouteStart).toHaveBeenCalledWith(
+    expect(mockGetActiveRoute).toHaveBeenCalledWith(
       "test@example.com",
       route.routeId.Value
     );
-    expect(mockDeleteRouteStart).toHaveBeenCalledWith(
+    expect(mockDeleteActiveRoute).toHaveBeenCalledWith(
       "test@example.com",
       route.routeId.Value
     );
