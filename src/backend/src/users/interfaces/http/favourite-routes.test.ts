@@ -42,7 +42,7 @@ describe("favourite routes handler", () => {
       ...baseCtx,
       httpMethod: "GET",
     });
-    expect(mockGet).toHaveBeenCalledWith("test@example.com");
+    expect(mockGet.mock.calls[0][0].Value).toBe("test@example.com");
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual({ favourites: ["1", "2"] });
   });
@@ -54,8 +54,9 @@ describe("favourite routes handler", () => {
       httpMethod: "POST",
       body: JSON.stringify({ routeId: "1" }),
     });
-    expect(mockGet).toHaveBeenCalledWith("test@example.com");
-    expect(mockPut).toHaveBeenCalledWith("test@example.com", "1");
+    expect(mockGet.mock.calls[0][0].Value).toBe("test@example.com");
+    expect(mockPut.mock.calls[0][0].Value).toBe("test@example.com");
+    expect(mockPut.mock.calls[0][1]).toBe("1");
     expect(mockPublishSaved).toHaveBeenCalledWith("test@example.com", "1");
     expect(res.statusCode).toBe(200);
   });
@@ -67,7 +68,7 @@ describe("favourite routes handler", () => {
       httpMethod: "POST",
       body: JSON.stringify({ routeId: "1" }),
     });
-    expect(mockGet).toHaveBeenCalledWith("test@example.com");
+    expect(mockGet.mock.calls[0][0].Value).toBe("test@example.com");
     expect(mockPut).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(409);
   });
@@ -98,7 +99,8 @@ describe("favourite routes handler", () => {
       httpMethod: "DELETE",
       pathParameters: { routeId: "2" },
     });
-    expect(mockDelete).toHaveBeenCalledWith("test@example.com", "2");
+    expect(mockDelete.mock.calls[0][0].Value).toBe("test@example.com");
+    expect(mockDelete.mock.calls[0][1]).toBe("2");
     expect(mockPublishDeleted).toHaveBeenCalledWith("test@example.com", "2");
     expect(res.statusCode).toBe(200);
   });
