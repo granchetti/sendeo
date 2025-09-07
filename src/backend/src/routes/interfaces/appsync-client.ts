@@ -93,3 +93,13 @@ export async function publishRouteFinished(
     { email, routeId, summary }
   );
 }
+
+export async function publishErrorOccurred(
+  message: string,
+  payload: any
+) {
+  await send(
+    `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON) {\n  publishErrorOccurred(message: $message, payload: $payload)\n}`,
+    { message, payload }
+  );
+}

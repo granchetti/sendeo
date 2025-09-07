@@ -14,8 +14,10 @@ jest.mock("@aws-sdk/client-dynamodb", () => ({
 }));
 
 const mockPublish = jest.fn();
+const mockPublishError = jest.fn();
 jest.mock("../appsync-client", () => ({
   publishRoutesGenerated: (...args: any[]) => mockPublish(...args),
+  publishErrorOccurred: (...args: any[]) => mockPublishError(...args),
 }));
 
 const sqsSend = jest.fn();
@@ -25,7 +27,7 @@ jest.mock("@aws-sdk/client-sqs", () => ({
 }));
 
 const responseDataHolder: { data: string } = { data: "" };
-const httpsRequest = jest.fn((opts: string | any, cb: (res: any) => void) => {
+function defaultHttpsImplementation(opts: string | any, cb: (res: any) => void) {
   const res = new EventEmitter();
   res.on = res.addListener;
   (res as any).statusCode = 200;
@@ -50,7 +52,8 @@ const httpsRequest = jest.fn((opts: string | any, cb: (res: any) => void) => {
       res.emit("end");
     }),
   };
-});
+}
+const httpsRequest = jest.fn(defaultHttpsImplementation);
 
 jest.mock("node:https", () => ({ request: httpsRequest }));
 
@@ -58,8 +61,10 @@ describe("worker routes handler", () => {
   beforeEach(() => {
     jest.resetModules();
     mockSave.mockReset();
-    httpsRequest.mockClear();
+    httpsRequest.mockReset();
+    httpsRequest.mockImplementation(defaultHttpsImplementation);
     mockPublish.mockReset();
+    mockPublishError.mockReset();
     sqsSend.mockReset();
     process.env.ROUTES_TABLE = "t";
     process.env.GOOGLE_API_KEY = "k";
@@ -157,6 +162,44 @@ describe("worker routes handler", () => {
     expect(routeCalls).toHaveLength(10);
     expect(mockSave).not.toHaveBeenCalled();
     expect(mockPublish).not.toHaveBeenCalled();
+  });
+
+  it("publishes ErrorOccurred when API call fails", async () => {
+    httpsRequest.mockImplementation((opts: any, cb: any) => {
+      const res = new EventEmitter();
+      res.on = res.addListener;
+      (res as any).statusCode = 500;
+      cb(res);
+      return {
+        on: jest.fn(),
+        write: jest.fn(),
+        end: jest.fn(() => {
+          res.emit("data", "{}");
+          res.emit("end");
+        }),
+      } as any;
+    });
+
+    jest.useFakeTimers();
+    const handler = loadHandler();
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({
+            jobId: "err-job",
+            origin: "a",
+            destination: "b",
+            routesCount: 1,
+          }),
+        },
+      ],
+    } as any;
+    const promise = handler(event);
+    jest.runAllTimers();
+    await promise;
+    jest.useRealTimers();
+
+    expect(mockPublishError).toHaveBeenCalledTimes(1);
   });
 
   it("saves route when no encoded polyline is returned", async () => {

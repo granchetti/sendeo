@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { Path } from "../../domain/value-objects/path";
 import type { Route } from "../../domain/entities/route";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
-import { publishRoutesGenerated } from "../appsync-client";
+import { publishRoutesGenerated, publishErrorOccurred } from "../appsync-client";
 import { fetchJson, getGoogleKey } from "../shared/utils";
 import { RouteGenerator } from "../../domain/services/route-generator";
 
@@ -223,28 +223,29 @@ export const handler: SQSHandler = async (event) => {
 
   for (const { body } of event.Records) {
     console.info("[handler] record", body);
-    const {
-      jobId,
-      origin,
-      destination,
-      distanceKm,
-      roundTrip = false,
-      circle = false,
-      routesCount = 3,
-    } = JSON.parse(body);
+    try {
+      const {
+        jobId,
+        origin,
+        destination,
+        distanceKm,
+        roundTrip = false,
+        circle = false,
+        routesCount = 3,
+      } = JSON.parse(body);
 
-    const oCoords = await generator.geocode(origin, key);
-    const dCoords = destination
-      ? await generator.geocode(destination, key)
-      : undefined;
+      const oCoords = await generator.geocode(origin, key);
+      const dCoords = destination
+        ? await generator.geocode(destination, key)
+        : undefined;
 
-    const saved: Route[] = [];
-    const seen = new Set<string>();
-    let circularCount = 0;
-    const circularGoal = Math.ceil(routesCount * 0.66);
-    let attempts = 0,
-      maxAt = routesCount * 10;
-    console.info(`[handler] max attempts: ${maxAt}`);
+      const saved: Route[] = [];
+      const seen = new Set<string>();
+      let circularCount = 0;
+      const circularGoal = Math.ceil(routesCount * 0.66);
+      let attempts = 0,
+        maxAt = routesCount * 10;
+      console.info(`[handler] max attempts: ${maxAt}`);
 
     while (saved.length < routesCount && attempts++ < maxAt) {
       console.info(
@@ -436,6 +437,10 @@ export const handler: SQSHandler = async (event) => {
     } else {
       console.warn(`[handler] no routes after ${maxAt} attempts`);
     }
+  } catch (err: any) {
+    console.error("[handler] error processing record", err);
+    await publishErrorOccurred(err?.message || "Unknown error", body);
   }
+}
 };
 
