@@ -20,6 +20,7 @@ import {
 } from "../../../shared/domain/events/event-dispatcher";
 import { RouteStartedEvent } from "../../domain/events/route-started";
 import { RouteFinishedEvent } from "../../domain/events/route-finished";
+import { hasScope, Scope } from "../../../auth/scopes";
 
 const dynamo = new DynamoDBClient({
   endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
@@ -100,12 +101,20 @@ export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const { httpMethod, resource, pathParameters } = event;
-  const email = (event.requestContext as any).authorizer?.claims?.email;
+  const claims = (event.requestContext as any).authorizer?.claims;
+  const email = claims?.email;
   if (!email) {
     return {
       statusCode: 401,
       headers: corsHeaders,
       body: JSON.stringify({ error: "Unauthorized" }),
+    };
+  }
+  if (!hasScope(claims, Scope.ROUTES)) {
+    return {
+      statusCode: 403,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Forbidden" }),
     };
   }
   // GET /routes

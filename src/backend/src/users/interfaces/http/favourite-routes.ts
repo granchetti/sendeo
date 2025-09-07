@@ -9,6 +9,7 @@ import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from "../../applicat
 import { RemoveFavouriteUseCase } from "../../application/use-cases/remove-favourite";
 import { corsHeaders } from "../../../http/cors";
 import { Email } from "../../../shared/domain/value-objects/email";
+import { hasScope, Scope } from "../../../auth/scopes";
 
 const dynamo = new DynamoDBClient({
   endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
@@ -23,9 +24,13 @@ const removeFavourite = new RemoveFavouriteUseCase(repository);
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const emailStr = (event.requestContext as any).authorizer?.claims?.email;
+  const claims = (event.requestContext as any).authorizer?.claims;
+  const emailStr = claims?.email;
   if (!emailStr) {
     return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
+  }
+  if (!hasScope(claims, Scope.FAVOURITES)) {
+    return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Forbidden" }) };
   }
   const email = Email.fromString(emailStr);
 

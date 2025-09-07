@@ -22,9 +22,12 @@ jest.mock("../../../routes/interfaces/appsync-client", () => ({
 }));
 
 import { handler } from "./favourite-routes";
+import { Scope } from "../../../auth/scopes";
 
 const baseCtx = {
-  requestContext: { authorizer: { claims: { email: "test@example.com" } } },
+  requestContext: {
+    authorizer: { claims: { email: "test@example.com", scope: Scope.FAVOURITES } },
+  },
 } as any;
 
 beforeEach(() => {
@@ -33,6 +36,16 @@ beforeEach(() => {
   mockGet.mockReset();
   mockPublishSaved.mockReset();
   mockPublishDeleted.mockReset();
+});
+
+describe("authorization", () => {
+  it("returns 403 when scope missing", async () => {
+    const res = await handler({
+      requestContext: { authorizer: { claims: { email: "test@example.com" } } },
+      httpMethod: "GET",
+    } as any);
+    expect(res.statusCode).toBe(403);
+  });
 });
 
 describe("favourite routes handler", () => {
