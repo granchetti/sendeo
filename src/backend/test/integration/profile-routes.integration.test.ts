@@ -60,6 +60,22 @@ describe("profile routes integration", () => {
     expect(JSON.parse(res.body)).toEqual({ email, firstName: "John" });
   });
 
+  it("accepts mixed Accept headers", async () => {
+    store.set(key, {
+      PK: { S: `USER#${email}` },
+      SK: { S: "PROFILE" },
+      email: { S: email },
+    });
+
+    const res = await handler({
+      ...baseEvent,
+      headers: { Accept: "text/plain, application/json" },
+      httpMethod: "GET",
+    });
+
+    expect(res.statusCode).toBe(200);
+  });
+
   it("updates profile on PUT", async () => {
     // Seed initial profile
     store.set(key, {
@@ -90,6 +106,16 @@ describe("profile routes integration", () => {
       code: 401,
       message: "Unauthorized",
     });
+  });
+
+  it("returns 415 when Accept header missing application/json", async () => {
+    const res = await handler({
+      ...baseEvent,
+      headers: { Accept: "text/plain" },
+      httpMethod: "GET",
+    });
+
+    expect(res.statusCode).toBe(415);
   });
 });
 

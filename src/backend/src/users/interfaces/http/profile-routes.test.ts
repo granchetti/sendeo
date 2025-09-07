@@ -50,6 +50,27 @@ describe("profile routes handler", () => {
     expect(JSON.parse(res.body)).toEqual(profile.toPrimitives());
   });
 
+  it("supports mixed Accept headers", async () => {
+    const profile = UserProfile.fromPrimitives({ email: "test@example.com" });
+    mockGetProfile.mockResolvedValueOnce(profile);
+    const res = await handler({
+      ...baseCtx,
+      headers: { Accept: "text/plain, application/json" },
+      httpMethod: "GET",
+    } as any);
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual(profile.toPrimitives());
+  });
+
+  it("returns 415 when Accept header missing application/json", async () => {
+    const res = await handler({
+      ...baseCtx,
+      headers: { Accept: "text/plain" },
+      httpMethod: "GET",
+    } as any);
+    expect(res.statusCode).toBe(415);
+  });
+
   it("creates profile when missing", async () => {
     mockGetProfile.mockResolvedValueOnce(null);
     const res = await handler({ ...baseCtx, httpMethod: "GET" } as any);
