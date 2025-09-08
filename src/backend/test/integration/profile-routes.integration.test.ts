@@ -27,12 +27,11 @@ const sendMock = jest
   });
 
 import { handler } from "../../src/users/interfaces/http/profile-routes";
-import { Scope } from "../../src/auth/scopes";
 
 describe("profile routes integration", () => {
   const email = "test@example.com";
   const baseEvent: any = {
-    requestContext: { authorizer: { claims: { email, scope: Scope.PROFILE } } },
+    requestContext: { authorizer: { claims: { email } } },
     headers: { Accept: "application/json" },
   };
   const key = `USER#${email}|PROFILE`;

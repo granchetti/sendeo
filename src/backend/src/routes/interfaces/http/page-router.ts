@@ -22,7 +22,6 @@ import {
 } from "../../../shared/domain/events/event-dispatcher";
 import { RouteStartedEvent } from "../../domain/events/route-started";
 import { RouteFinishedEvent } from "../../domain/events/route-finished";
-import { hasScope, Scope } from "../../../auth/scopes";
 
 const dynamo = new DynamoDBClient({
   endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
@@ -115,13 +114,6 @@ export const handler = base(async (
   const email = claims?.email;
   if (!email) {
     return errorResponse(401, "Unauthorized");
-  }
-  if (!hasScope(claims, Scope.ROUTES)) {
-    return {
-      statusCode: 403,
-      headers: jsonHeaders,
-      body: JSON.stringify({ error: "Forbidden" }),
-    };
   }
   // GET /v1/routes
   if (httpMethod === "GET" && resource === "/v1/routes") {
