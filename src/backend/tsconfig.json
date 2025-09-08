@@ -21,7 +21,8 @@
     "typeRoots": ["./node_modules/@types"],
     "isolatedModules": true,
     "types": ["node", "jest"],
-    "outDir": "dist"
+    "outDir": "dist",
+    "skipLibCheck": true
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "dist"]

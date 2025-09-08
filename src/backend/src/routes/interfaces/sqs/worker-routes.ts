@@ -127,7 +127,7 @@ async function computeRoutes(
     })
     .filter(
       (
-        x
+        x: unknown
       ): x is {
         distanceMeters: number;
         durationSeconds: number;

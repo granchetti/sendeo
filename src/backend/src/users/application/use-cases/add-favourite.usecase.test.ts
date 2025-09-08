@@ -1,8 +1,9 @@
 import { AddFavouriteUseCase, FavouriteAlreadyExistsError } from './add-favourite';
 import { UserProfileRepository } from '../../domain/repositories/user-profile-repository';
+import { Email } from '../../../shared/domain/value-objects/email';
 
 describe('AddFavouriteUseCase', () => {
-  const email = 'user@example.com';
+  const email = Email.fromString('user@example.com');
   const routeId = '1';
   it('adds favourite when not existing', async () => {
     const repo: UserProfileRepository = {

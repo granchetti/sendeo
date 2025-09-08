@@ -325,12 +325,12 @@ describe("worker routes handler", () => {
   });
 
   it("merges back leg coordinates with minor differences", async () => {
-    const forwardCoords = [
+    const forwardCoords: [number, number][] = [
       [38.5, -120.2],
       [40.7, -120.95],
       [43.252, -126.453],
     ];
-    const backCoords = [
+    const backCoords: [number, number][] = [
       [43.252001, -126.453001],
       [40.7, -120.95],
       [38.5, -120.2],

@@ -18,7 +18,7 @@ describe("rate limit middleware", () => {
     await handler(baseEvent);
     const res = await handler(baseEvent);
     expect(res.statusCode).toBe(429);
-    expect(res.headers["Retry-After"]).toBeDefined();
+    expect(res.headers!["Retry-After"]).toBeDefined();
   });
 
   it("logs attempts", async () => {

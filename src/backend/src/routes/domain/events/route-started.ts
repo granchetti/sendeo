@@ -1,5 +1,5 @@
 import { DomainEvent } from "../../../shared/domain/events/domain-event";
-import { Route } from "../entities/route-entity";
+import { Route } from "../entities/route";
 
 export interface RouteStartedProps {
   readonly route: Route;

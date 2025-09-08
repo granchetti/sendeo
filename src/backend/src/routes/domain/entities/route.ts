@@ -10,11 +10,11 @@ import { RouteStatus } from "../value-objects/route-status";
 export interface RouteProps {
   readonly routeId: UUID;
   readonly jobId?: UUID;
-  readonly distanceKm?: DistanceKm;
-  readonly duration?: Duration;
-  readonly path?: Path;
-  readonly description?: string;
-  readonly status: RouteStatus;
+  distanceKm?: DistanceKm;
+  duration?: Duration;
+  path?: Path;
+  description?: string;
+  status: RouteStatus;
 }
 
 export class Route {

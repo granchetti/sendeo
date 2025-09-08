@@ -138,7 +138,7 @@ export class RouteGenerator {
       })
       .filter(
         (
-          x
+          x: unknown
         ): x is {
           distanceMeters: number;
           durationSeconds: number;
