@@ -1,5 +1,6 @@
 import { RemoveFavouriteUseCase } from './remove-favourite';
 import { UserProfileRepository } from '../../domain/repositories/user-profile-repository';
+import { Email } from '../../../shared/domain/value-objects/email';
 
 describe('RemoveFavouriteUseCase', () => {
   it('calls deleteFavourite with provided params', async () => {
@@ -7,7 +8,8 @@ describe('RemoveFavouriteUseCase', () => {
       deleteFavourite: jest.fn(),
     } as any;
     const useCase = new RemoveFavouriteUseCase(repo);
-    await useCase.execute('user@example.com', '1');
-    expect(repo.deleteFavourite).toHaveBeenCalledWith('user@example.com', '1');
+    const email = Email.fromString('user@example.com');
+    await useCase.execute(email, '1');
+    expect(repo.deleteFavourite).toHaveBeenCalledWith(email, '1');
   });
 });

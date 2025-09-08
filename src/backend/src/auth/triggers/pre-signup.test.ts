@@ -28,7 +28,7 @@ describe("pre-signup trigger", () => {
     process.env.STAGE = "dev";
     const event = createEvent("user@any.com");
 
-    const res = await handler(event);
+    const res = (await (handler as any)(event)) as PreSignUpTriggerEvent;
 
     expect(res.response.autoConfirmUser).toBe(true);
     expect(res.response.autoVerifyEmail).toBe(true);
@@ -39,7 +39,7 @@ describe("pre-signup trigger", () => {
     process.env.ALLOWED_EMAIL_DOMAIN = "example.com";
     const event = createEvent("user@example.com");
 
-    const res = await handler(event);
+    const res = (await (handler as any)(event)) as PreSignUpTriggerEvent;
 
     expect(res.response.autoConfirmUser).toBe(true);
     expect(res.response.autoVerifyEmail).toBe(true);
@@ -50,7 +50,7 @@ describe("pre-signup trigger", () => {
     process.env.ALLOWED_EMAIL_DOMAIN = "example.com";
     const event = createEvent("user@other.com");
 
-    const res = await handler(event);
+    const res = (await (handler as any)(event)) as PreSignUpTriggerEvent;
 
     expect(res.response.autoConfirmUser).toBeUndefined();
     expect(res.response.autoVerifyEmail).toBeUndefined();
@@ -61,7 +61,7 @@ describe("pre-signup trigger", () => {
     process.env.ALLOWED_EMAIL_DOMAIN = "example.com";
     const event = createEvent("user@example.com");
 
-    const res = await handler(event);
+    const res = (await (handler as any)(event)) as PreSignUpTriggerEvent;
 
     expect(res.response.autoConfirmUser).toBeUndefined();
     expect(res.response.autoVerifyEmail).toBeUndefined();

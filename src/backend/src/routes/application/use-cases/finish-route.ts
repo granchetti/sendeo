@@ -1,8 +1,8 @@
 import { RouteRepository } from "../../domain/repositories/route-repository";
 import { EventDispatcher } from "../../../shared/domain/events/event-dispatcher";
-import { UUID } from "../../../shared/domain/value-objects/uuid-value-object";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
 import { RouteFinishedEvent } from "../../domain/events/route-finished";
-import { Route } from "../../domain/entities/route-entity";
+import { Route } from "../../domain/entities/route";
 
 export interface FinishRouteInput {
   readonly routeId: UUID;
