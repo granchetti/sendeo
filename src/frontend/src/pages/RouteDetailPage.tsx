@@ -352,8 +352,6 @@ export default function RouteDetailPage() {
     }
   };
 
-  const isTracking = watchId !== null;
-
   const iconMap: Record<string, JSX.Element> = {
     Overview: <Icon as={FaInfoCircle} color="orange.500" mr={2} />,
     'Points of Interest': (
