@@ -53,11 +53,9 @@ import { DistanceKm } from "../../domain/value-objects/distance";
 import { Duration } from "../../domain/value-objects/duration";
 import { Path } from "../../domain/value-objects/path";
 import { LatLng } from "../../domain/value-objects/lat-lng";
-import { Scope } from "../../../auth/scopes";
-
 const baseCtx = {
   requestContext: {
-    authorizer: { claims: { email: "test@example.com", scope: Scope.ROUTES } },
+    authorizer: { claims: { email: "test@example.com" } },
   },
   headers: { Accept: "application/json" },
 } as any;
@@ -74,18 +72,6 @@ beforeEach(() => {
   mockPublishStarted.mockReset();
   mockPublishFinished.mockReset();
   process.env.METRICS_QUEUE = "http://localhost";
-});
-
-describe("authorization", () => {
-  it("returns 403 when scope missing", async () => {
-    const res = await handler({
-      ...baseCtx,
-      requestContext: { authorizer: { claims: { email: "test@example.com" } } },
-      resource: "/v1/routes",
-      httpMethod: "GET",
-    } as any);
-    expect(res.statusCode).toBe(403);
-  });
 });
 
 describe("page router get route", () => {

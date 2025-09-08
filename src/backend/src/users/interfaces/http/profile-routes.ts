@@ -6,7 +6,6 @@ import { UpdateUserProfileUseCase } from "../../application/use-cases/update-use
 import { Email } from "../../../shared/domain/value-objects/email";
 import { UserProfile } from "../../domain/entities/user-profile";
 import { jsonHeaders } from "../../../http/cors";
-import { hasScope, Scope } from "../../../auth/scopes";
 import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
 
@@ -35,9 +34,6 @@ export const handler = base(async (
   const email = claims?.email;
   if (!email) {
     return errorResponse(401, "Unauthorized");
-  }
-  if (!hasScope(claims, Scope.PROFILE)) {
-    return { statusCode: 403, headers: jsonHeaders, body: JSON.stringify({ error: "Forbidden" }) };
   }
   const { httpMethod } = event;
 
