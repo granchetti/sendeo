@@ -52,7 +52,7 @@ export default function RoutesPage() {
 
   const [originText, setOriginText] = useState('');
   const [destinationText, setDestinationText] = useState('');
-  const [mode, setMode] = useState<'points' | 'distance'>('points');
+  const [mode, setMode] = useState<'points' | 'distance'>('distance');
   const [distanceKm, setDistanceKm] = useState('5');
   const [roundTrip, setRoundTrip] = useState(false);
   const [circle, setCircle] = useState(false);

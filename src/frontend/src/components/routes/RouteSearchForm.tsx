@@ -92,14 +92,6 @@ const RouteSearchForm: React.FC<RouteSearchFormProps> = ({
         <Flex>
           <Button
             flex={1}
-            mr={2}
-            colorScheme={mode === 'points' ? 'orange' : 'gray'}
-            onClick={() => setMode('points')}
-          >
-            By Points
-          </Button>
-          <Button
-            flex={1}
             colorScheme={mode === 'distance' ? 'orange' : 'gray'}
             onClick={() => {
               setMode('distance');
@@ -107,6 +99,14 @@ const RouteSearchForm: React.FC<RouteSearchFormProps> = ({
             }}
           >
             By Distance
+          </Button>
+          <Button
+            flex={1}
+            mr={2}
+            colorScheme={mode === 'points' ? 'orange' : 'gray'}
+            onClick={() => setMode('points')}
+          >
+            By Points
           </Button>
         </Flex>
         <Divider />
@@ -119,7 +119,13 @@ const RouteSearchForm: React.FC<RouteSearchFormProps> = ({
                 onPlaceChanged={() => {
                   const place = originAutoRef.current?.getPlace();
                   if (place)
-                    applyPlaceToState(place, setOrigin, setOriginText, setCenter, mapRef);
+                    applyPlaceToState(
+                      place,
+                      setOrigin,
+                      setOriginText,
+                      setCenter,
+                      mapRef,
+                    );
                 }}
               >
                 <Input
@@ -145,40 +151,13 @@ const RouteSearchForm: React.FC<RouteSearchFormProps> = ({
                 Use my location
               </Button>
             </FormControl>
-            {mode === 'points' && (
-              <FormControl isRequired>
-                <FormLabel>Destination (address or lat,lng)</FormLabel>
-                <Autocomplete
-                  onLoad={(ac) => (destAutoRef.current = ac)}
-                  onPlaceChanged={() => {
-                    const place = destAutoRef.current?.getPlace();
-                    if (place)
-                      applyPlaceToState(
-                        place,
-                        setDestination,
-                        setDestinationText,
-                        setCenter,
-                        mapRef,
-                      );
-                  }}
-                >
-                  <Input
-                    placeholder="e.g. Plaça Catalunya, Barcelona"
-                    value={destinationText}
-                    onChange={(e) => setDestinationText(e.target.value)}
-                    onBlur={onDestinationBlur}
-                    bg="gray.50"
-                  />
-                </Autocomplete>
-              </FormControl>
-            )}
             {mode === 'distance' && (
               <>
                 <FormControl>
                   <FormLabel>Distance (km)</FormLabel>
                   <NumberInput
                     min={1}
-                    max={50}
+                    max={100}
                     value={distanceKm}
                     onChange={(v) => setDistanceKm(v)}
                   >
@@ -208,6 +187,33 @@ const RouteSearchForm: React.FC<RouteSearchFormProps> = ({
                   </Checkbox>
                 </HStack>
               </>
+            )}
+            {mode === 'points' && (
+              <FormControl isRequired>
+                <FormLabel>Destination (address or lat,lng)</FormLabel>
+                <Autocomplete
+                  onLoad={(ac) => (destAutoRef.current = ac)}
+                  onPlaceChanged={() => {
+                    const place = destAutoRef.current?.getPlace();
+                    if (place)
+                      applyPlaceToState(
+                        place,
+                        setDestination,
+                        setDestinationText,
+                        setCenter,
+                        mapRef,
+                      );
+                  }}
+                >
+                  <Input
+                    placeholder="e.g. Plaça Catalunya, Barcelona"
+                    value={destinationText}
+                    onChange={(e) => setDestinationText(e.target.value)}
+                    onBlur={onDestinationBlur}
+                    bg="gray.50"
+                  />
+                </Autocomplete>
+              </FormControl>
             )}
             <FormControl>
               <FormLabel>Routes Count</FormLabel>
