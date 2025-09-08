@@ -54,17 +54,21 @@ const LoginForm: React.FC<Props> = ({ onSuccess }) => {
       localStorage.setItem('idToken', id);
       localStorage.setItem('refreshToken', refresh);
       setSession(id, refresh);
-      await api.put(
-        '/v1/profile',
-        { email },
-        {
-          headers: {
-            Authorization: `Bearer ${id}`,
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
+      try {
+        await api.put(
+          '/v1/profile',
+          { email },
+          {
+            headers: {
+              Authorization: `Bearer ${id}`,
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
           },
-        },
-      );
+        );
+      } catch (err) {
+        console.error('Failed to update profile', err);
+      }
       onSuccess?.();
     } catch {
       toast({ title: 'Invalid email or password', status: 'error' });
