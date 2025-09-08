@@ -101,14 +101,6 @@ const finishRouteUseCase = new FinishRouteUseCase(routeRepository, dispatcher);
 export const handler = base(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const accept = event.headers?.Accept || event.headers?.accept;
-  if (accept !== "application/json") {
-    return {
-      statusCode: 415,
-      headers: jsonHeaders,
-      body: JSON.stringify({ error: "Unsupported Media Type" }),
-    };
-  }
   const { httpMethod, resource, pathParameters } = event;
   const claims = (event.requestContext as any).authorizer?.claims;
   const email = claims?.email;

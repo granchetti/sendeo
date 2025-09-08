@@ -106,15 +106,5 @@ describe("profile routes integration", () => {
       message: "Unauthorized",
     });
   });
-
-  it("returns 415 when Accept header missing application/json", async () => {
-    const res = await handler({
-      ...baseEvent,
-      headers: { Accept: "text/plain" },
-      httpMethod: "GET",
-    });
-
-    expect(res.statusCode).toBe(415);
-  });
 });
 

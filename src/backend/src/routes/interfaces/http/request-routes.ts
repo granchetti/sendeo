@@ -10,14 +10,6 @@ const sqs = new SQSClient({});
 export const handler = base(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const accept = event.headers?.Accept || event.headers?.accept;
-  if (accept !== "application/json") {
-    return {
-      statusCode: 415,
-      headers: jsonHeaders,
-      body: JSON.stringify({ error: "Unsupported Media Type" }),
-    };
-  }
   let data: any = {};
   if (event.body) {
     try {

@@ -31,14 +31,6 @@ export const handler = base(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   if (event.path.endsWith("/swagger.json")) {
-    const accept = event.headers?.Accept || event.headers?.accept;
-    if (accept !== "application/json") {
-      return {
-        statusCode: 415,
-        headers: jsonHeaders,
-        body: JSON.stringify({ error: "Unsupported Media Type" }),
-      };
-    }
     return {
       statusCode: 200,
       headers: jsonHeaders,

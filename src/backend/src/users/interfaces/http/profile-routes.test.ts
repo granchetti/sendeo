@@ -47,14 +47,6 @@ describe("profile routes handler", () => {
     expect(JSON.parse(res.body)).toEqual(profile.toPrimitives());
   });
 
-  it("returns 415 when Accept header missing application/json", async () => {
-    const res = await handler({
-      ...baseCtx,
-      headers: { Accept: "text/plain" },
-      httpMethod: "GET",
-    } as any);
-    expect(res.statusCode).toBe(415);
-  });
 
   it("creates profile when missing", async () => {
     mockGetProfile.mockResolvedValueOnce(null);
