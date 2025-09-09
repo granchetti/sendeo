@@ -33,6 +33,14 @@ export const handler = base(async (
     data.jobId = UUID.generate().Value;
   }
 
+  if (data.distanceKm != null) {
+    const d = parseFloat(String(data.distanceKm));
+    if (isNaN(d) || d < 1 || d > 100) {
+      return errorResponse(400, "distanceKm must be between 1 and 100");
+    }
+    data.distanceKm = d;
+  }
+
   if (data.routesCount != null) {
     const c = parseInt(String(data.routesCount), 10);
     if (c > 0) {

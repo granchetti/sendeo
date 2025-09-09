@@ -35,7 +35,7 @@ export const openApiSpec = {
                 properties: {
                   origin: { type: "string" },
                   destination: { type: "string" },
-                  distanceKm: { type: "number" },
+                  distanceKm: { type: "number", minimum: 1, maximum: 100 },
                   routesCount: { type: "integer" },
                   jobId: { type: "string" },
                 },

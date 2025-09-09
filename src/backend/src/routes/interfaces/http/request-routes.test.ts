@@ -77,6 +77,32 @@ describe("request routes handler", () => {
     });
   });
 
+  it("returns 400 when distanceKm is out of range", async () => {
+    const res = await handler({
+      headers: { Accept: "application/json" },
+      body: JSON.stringify({ origin: "A", distanceKm: 101 }),
+    } as any);
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body)).toMatchObject({
+      code: 400,
+      message: "distanceKm must be between 1 and 100",
+    });
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it("forwards distanceKm when within range", async () => {
+    mockSend.mockResolvedValueOnce({});
+    await handler({
+      headers: { Accept: "application/json" },
+      body: JSON.stringify({ origin: "A", distanceKm: 50 }),
+    } as any);
+
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    expect(payload.distanceKm).toBe(50);
+  });
+
   it("forwards routesCount when provided", async () => {
     mockSend.mockResolvedValueOnce({});
     await handler({
