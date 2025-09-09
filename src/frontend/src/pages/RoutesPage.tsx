@@ -56,7 +56,6 @@ export default function RoutesPage() {
   const [distanceKm, setDistanceKm] = useState('5');
   const [roundTrip, setRoundTrip] = useState(false);
   const [circle, setCircle] = useState(false);
-  const [maxDeltaKm, setMaxDeltaKm] = useState('1');
   const [routesCount, setRoutesCount] = useState('1');
   const [preference, setPreference] = useState('');
   const [jobId, setJobId] = useState<string | null>(null);
@@ -142,7 +141,6 @@ export default function RoutesPage() {
         if (cached.distanceKm) setDistanceKm(String(cached.distanceKm));
         if (cached.roundTrip != null) setRoundTrip(!!cached.roundTrip);
         if (cached.circle != null) setCircle(!!cached.circle);
-        if (cached.maxDeltaKm != null) setMaxDeltaKm(String(cached.maxDeltaKm));
         if (cached.routesCount != null)
           setRoutesCount(String(cached.routesCount));
       } else {
@@ -172,7 +170,6 @@ export default function RoutesPage() {
             distanceKm,
             roundTrip,
             circle,
-            maxDeltaKm,
             routesCount,
           }),
         );
@@ -228,7 +225,6 @@ export default function RoutesPage() {
       distanceKm: mode === 'distance' ? +distanceKm : undefined,
       roundTrip: mode === 'distance' ? roundTrip : undefined,
       circle: mode === 'distance' ? circle : undefined,
-      maxDeltaKm: +maxDeltaKm,
       routesCount: +routesCount,
       preference: preference || undefined,
     };
@@ -255,7 +251,6 @@ export default function RoutesPage() {
     setDistanceKm('5');
     setRoundTrip(false);
     setCircle(false);
-    setMaxDeltaKm('1');
     setRoutesCount('1');
     setPreference('');
     setJobId(null);
@@ -417,8 +412,6 @@ export default function RoutesPage() {
               setRoundTrip={setRoundTrip}
               circle={circle}
               setCircle={setCircle}
-              maxDeltaKm={maxDeltaKm}
-              setMaxDeltaKm={setMaxDeltaKm}
               routesCount={routesCount}
               setRoutesCount={setRoutesCount}
               onSubmit={handleSubmit}
