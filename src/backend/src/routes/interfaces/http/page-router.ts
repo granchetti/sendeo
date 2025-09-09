@@ -37,17 +37,21 @@ const userActivityRepository = new DynamoUserActivityRepository(
 );
 const dispatcher: EventDispatcher = new InMemoryEventDispatcher();
 dispatcher.subscribe("RouteStarted", async (event: RouteStartedEvent) => {
-  await sqs.send(
-    new SendMessageCommand({
-      QueueUrl: process.env.METRICS_QUEUE!,
-      MessageBody: JSON.stringify({
-        event: "started",
-        routeId: event.route.routeId.Value,
-        email: event.email,
-        timestamp: event.timestamp,
-      }),
-    })
-  );
+  try {
+    await sqs.send(
+      new SendMessageCommand({
+        QueueUrl: process.env.METRICS_QUEUE!,
+        MessageBody: JSON.stringify({
+          event: "started",
+          routeId: event.route.routeId.Value,
+          email: event.email,
+          timestamp: event.timestamp,
+        }),
+      })
+    );
+  } catch (err) {
+    console.error("Failed to enqueue telemetry metric", err);
+  }
   try {
     await publishRouteStarted(event.email, event.route.routeId.Value);
   } catch (err) {
@@ -55,20 +59,24 @@ dispatcher.subscribe("RouteStarted", async (event: RouteStartedEvent) => {
   }
 });
 dispatcher.subscribe("RouteFinished", async (event: RouteFinishedEvent) => {
-  await sqs.send(
-    new SendMessageCommand({
-      QueueUrl: process.env.METRICS_QUEUE!,
-      MessageBody: JSON.stringify({
-        event: "finished",
-        routeId: event.route.routeId.Value,
-        email: event.email,
-        timestamp: event.timestamp,
-        ...(event.actualDuration != null
-          ? { actualDuration: event.actualDuration }
-          : {}),
-      }),
-    })
-  );
+  try {
+    await sqs.send(
+      new SendMessageCommand({
+        QueueUrl: process.env.METRICS_QUEUE!,
+        MessageBody: JSON.stringify({
+          event: "finished",
+          routeId: event.route.routeId.Value,
+          email: event.email,
+          timestamp: event.timestamp,
+          ...(event.actualDuration != null
+            ? { actualDuration: event.actualDuration }
+            : {}),
+        }),
+      })
+    );
+  } catch (err) {
+    console.error("Failed to enqueue telemetry metric", err);
+  }
   try {
     await publishRouteFinished(
       event.email,
