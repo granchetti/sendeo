@@ -133,6 +133,22 @@ dist
 # pnpm store
 .DS_Store
 
+# IDE settings
+.vscode/
+.idea/
+
+# Environment variables (keep examples)
+**/.env*
+!**/.env.example
+
+# Playwright test artifacts
+**/playwright-report/
+**/test-results/
+**/blob-report/
+
+# Vite cache
+.vite/
+
 # CDK asset staging directory
 .cdk.staging
 cdk.out
