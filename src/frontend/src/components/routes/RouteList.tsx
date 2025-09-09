@@ -201,10 +201,10 @@ const RouteList: React.FC<RouteListProps> = ({
                   }}
                   isDisabled={!r.path}
                   isLoading={startingRouteId === r.routeId}
-                  loadingText="Opening…"
+                  loadingText=""
                   spinnerPlacement="end"
                 >
-                  Start
+                  Open
                 </Button>
               </HStack>
             </Box>
