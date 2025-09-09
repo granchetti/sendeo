@@ -36,7 +36,6 @@ export const openApiSpec = {
                   origin: { type: "string" },
                   destination: { type: "string" },
                   distanceKm: { type: "number" },
-                  maxDeltaKm: { type: "number" },
                   routesCount: { type: "integer" },
                   jobId: { type: "string" },
                 },
