@@ -33,14 +33,7 @@ export const handler = base(async (
     data.jobId = UUID.generate().Value;
   }
 
-  if (data.maxDeltaKm != null) {
-    const n = Number(data.maxDeltaKm);
-    if (!Number.isNaN(n)) {
-      data.maxDeltaKm = n;
-    } else {
-      delete data.maxDeltaKm;
-    }
-  }
+  delete data.maxDeltaKm;
 
   if (data.routesCount != null) {
     const c = parseInt(String(data.routesCount), 10);
