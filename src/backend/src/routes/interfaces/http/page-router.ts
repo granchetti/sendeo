@@ -14,6 +14,7 @@ import { FinishRouteUseCase } from "../../application/use-cases/finish-route";
 import { jsonHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
+import { rateLimit } from "../../../http/rate-limit";
 import { getGoogleKey } from "../shared/utils";
 import { GoogleMapsProvider } from "../../infrastructure/google-maps/google-maps-provider";
 import {
@@ -106,7 +107,7 @@ const describeRouteUseCase = new DescribeRouteUseCase(
 const startRouteUseCase = new StartRouteUseCase(routeRepository, dispatcher);
 const finishRouteUseCase = new FinishRouteUseCase(routeRepository, dispatcher);
 
-export const handler = base(async (
+export const handler = base(rateLimit(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const { httpMethod, resource, pathParameters } = event;
@@ -243,45 +244,47 @@ export const handler = base(async (
     };
   }
 
-  if (resource === "/v1/routes/{routeId}/finish" && httpMethod === "POST") {
-    const routeId = pathParameters?.routeId;
-    if (!routeId) {
-      return errorResponse(400, "routeId parameter required");
-    }
+    if (resource === "/v1/routes/{routeId}/finish" && httpMethod === "POST") {
+      const routeId = pathParameters?.routeId;
+      if (!routeId) {
+        return errorResponse(400, "routeId parameter required");
+      }
 
-    const finishTs = Date.now();
-    const active = await userActivityRepository.getActiveRoute(email, routeId);
-    if (active) {
+      const route = await routeRepository.findById(UUID.fromString(routeId));
+      if (!route) {
+        return errorResponse(404, "Not Found");
+      }
+
+      const active = await userActivityRepository.getActiveRoute(email, routeId);
+      if (!active) {
+        return errorResponse(409, "Route not active");
+      }
+
+      const finishTs = Date.now();
       await userActivityRepository.deleteActiveRoute(email, routeId);
-    }
-    const actualDurationMs = active ? finishTs - active.startedAt : undefined;
-    const actualDuration =
-      actualDurationMs != null
-        ? Math.round(actualDurationMs / 1000)
-        : undefined;
-    const route = await finishRouteUseCase.execute({
-      routeId: UUID.fromString(routeId),
-      email,
-      timestamp: finishTs,
-      actualDuration,
-    });
-    if (!route) {
-      return errorResponse(404, "Not Found");
-    }
+      const actualDurationMs = finishTs - active.startedAt;
+      const actualDuration = Math.round(actualDurationMs / 1000);
+      const routeFinished = await finishRouteUseCase.execute({
+        routeId: UUID.fromString(routeId),
+        email,
+        timestamp: finishTs,
+        actualDuration,
+      });
+      const finalRoute = routeFinished ?? route;
 
-    return {
-      statusCode: 200,
-      headers: jsonHeaders,
-      body: JSON.stringify({
-        routeId: route.routeId.Value,
-        distanceKm: route.distanceKm?.Value,
-        duration: route.duration?.Value,
-        path: route.path?.Encoded,
-        description: route.description,
-        ...(actualDuration != null ? { actualDuration } : {}),
-      }),
-    };
-  }
+      return {
+        statusCode: 200,
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          routeId: finalRoute.routeId.Value,
+          distanceKm: finalRoute.distanceKm?.Value,
+          duration: finalRoute.duration?.Value,
+          path: finalRoute.path?.Encoded,
+          description: finalRoute.description,
+          ...(actualDuration != null ? { actualDuration } : {}),
+        }),
+      };
+    }
 
   return errorResponse(501, "Not Implemented");
-});
+}));

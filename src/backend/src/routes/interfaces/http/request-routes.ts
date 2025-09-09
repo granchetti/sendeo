@@ -4,10 +4,11 @@ import { UUID } from "../../../shared/domain/value-objects/uuid";
 import { jsonHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
+import { rateLimit } from "../../../http/rate-limit";
 
 const sqs = new SQSClient({});
 
-export const handler = base(async (
+export const handler = base(rateLimit(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   let data: any = {};
@@ -66,4 +67,4 @@ export const handler = base(async (
     headers: jsonHeaders,
     body: JSON.stringify({ enqueued: true, jobId: data.jobId }),
   };
-});
+}));

@@ -335,27 +335,39 @@ describe("finish route", () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it("returns 404 when route not found", async () => {
-    mockFindById.mockResolvedValueOnce(null);
-    const res = await handler({
-      ...baseEvent,
-      pathParameters: { routeId: "a28f07d1-d0f3-4c1a-b2e4-8e31b6f0e84a" },
+    it("returns 404 when route not found", async () => {
+      mockFindById.mockResolvedValueOnce(null);
+      const res = await handler({
+        ...baseEvent,
+        pathParameters: { routeId: "a28f07d1-d0f3-4c1a-b2e4-8e31b6f0e84a" },
+      });
+      expect(res.statusCode).toBe(404);
     });
-    expect(res.statusCode).toBe(404);
-  });
 
-  it("sends finish metric and returns route", async () => {
-    const route = Route.request({ routeId: UUID.generate() });
-    route.generate(
-      new DistanceKm(2),
-      new Duration(100),
-      Path.fromCoordinates([LatLng.fromNumbers(0, 0), LatLng.fromNumbers(1, 1)])
-    );
-    route.description = "desc";
-    route.start();
-    mockFindById.mockResolvedValueOnce(route);
-    mockGetActiveRoute.mockResolvedValueOnce({ startedAt: 1000 });
-    mockSend.mockResolvedValueOnce({});
+    it("returns 409 when route is not active", async () => {
+      const route = Route.request({ routeId: UUID.generate() });
+      mockFindById.mockResolvedValue(route);
+      mockGetActiveRoute.mockResolvedValueOnce(null);
+      const res = await handler({
+        ...baseEvent,
+        pathParameters: { routeId: route.routeId.Value },
+      });
+      expect(res.statusCode).toBe(409);
+      expect(mockDeleteActiveRoute).not.toHaveBeenCalled();
+    });
+
+    it("sends finish metric and returns route", async () => {
+      const route = Route.request({ routeId: UUID.generate() });
+      route.generate(
+        new DistanceKm(2),
+        new Duration(100),
+        Path.fromCoordinates([LatLng.fromNumbers(0, 0), LatLng.fromNumbers(1, 1)])
+      );
+      route.description = "desc";
+      route.start();
+      mockFindById.mockResolvedValue(route);
+      mockGetActiveRoute.mockResolvedValueOnce({ startedAt: 1000 });
+      mockSend.mockResolvedValueOnce({});
 
     const res = await handler({
       ...baseEvent,
@@ -395,18 +407,18 @@ describe("finish route", () => {
     });
   });
 
-  it("returns route even if metric enqueue fails", async () => {
-    const route = Route.request({ routeId: UUID.generate() });
-    route.generate(
-      new DistanceKm(2),
-      new Duration(100),
-      Path.fromCoordinates([LatLng.fromNumbers(0, 0), LatLng.fromNumbers(1, 1)])
-    );
-    route.description = "desc";
-    route.start();
-    mockFindById.mockResolvedValueOnce(route);
-    mockGetActiveRoute.mockResolvedValueOnce({ startedAt: 1000 });
-    mockSend.mockRejectedValueOnce(new Error("boom"));
+    it("returns route even if metric enqueue fails", async () => {
+      const route = Route.request({ routeId: UUID.generate() });
+      route.generate(
+        new DistanceKm(2),
+        new Duration(100),
+        Path.fromCoordinates([LatLng.fromNumbers(0, 0), LatLng.fromNumbers(1, 1)])
+      );
+      route.description = "desc";
+      route.start();
+      mockFindById.mockResolvedValue(route);
+      mockGetActiveRoute.mockResolvedValueOnce({ startedAt: 1000 });
+      mockSend.mockRejectedValueOnce(new Error("boom"));
 
     const res = await handler({
       ...baseEvent,

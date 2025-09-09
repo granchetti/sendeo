@@ -8,6 +8,7 @@ import { UserProfile } from "../../domain/entities/user-profile";
 import { jsonHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
+import { rateLimit } from "../../../http/rate-limit";
 
 const dynamo = new DynamoDBClient({
   endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
@@ -19,7 +20,7 @@ const repository = new DynamoUserProfileRepository(
 const getUserProfile = new GetUserProfileUseCase(repository);
 const updateUserProfile = new UpdateUserProfileUseCase(repository);
 
-export const handler = base(async (
+export const handler = base(rateLimit(async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const claims = (event.requestContext as any).authorizer?.claims;
@@ -60,4 +61,4 @@ export const handler = base(async (
   }
 
   return errorResponse(501, "Not Implemented");
-});
+}));
