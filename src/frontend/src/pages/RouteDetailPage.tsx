@@ -149,6 +149,28 @@ export default function RouteDetailPage() {
   }, []);
 
   useEffect(() => {
+    if (!navigator.geolocation) {
+      toast({ title: 'Geolocation not supported', status: 'error' });
+      setPosition(DEFAULT_CENTER);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setPosition(coords);
+      },
+      (err) => {
+        toast({
+          title: 'Failed to retrieve location',
+          description: err.message,
+          status: 'error',
+        });
+        setPosition(DEFAULT_CENTER);
+      },
+    );
+  }, [toast]);
+
+  useEffect(() => {
     return () => {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
     };
@@ -279,6 +301,10 @@ export default function RouteDetailPage() {
 
   const handleStart = async () => {
     if (!routeId) return;
+    if (!navigator.geolocation) {
+      toast({ title: 'Geolocation not supported', status: 'error' });
+      return;
+    }
     try {
       await api.post('/v1/telemetry/started', { routeId });
     } catch (err) {
@@ -300,7 +326,6 @@ export default function RouteDetailPage() {
         setPositions((prev) => [...prev, coords]);
         if (!started) {
           started = true;
-          setWatchId(id);
           toast({ title: 'Route started', status: 'success' });
         }
       },
@@ -323,6 +348,7 @@ export default function RouteDetailPage() {
       },
       geoOptions,
     );
+    setWatchId(id);
   };
 
   const handleFinish = async () => {
