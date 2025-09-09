@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "lint": "eslint --cache --cache-location .eslintcache \"src/**/*.{ts,tsx,js,jsx}\"",
     "preview": "vite preview",
     "pretest:e2e": "playwright install",
     "test:e2e": "playwright test"
