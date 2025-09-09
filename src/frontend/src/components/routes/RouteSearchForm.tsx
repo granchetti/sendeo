@@ -36,8 +36,6 @@ interface RouteSearchFormProps {
   setRoundTrip: (v: boolean) => void;
   circle: boolean;
   setCircle: (v: boolean) => void;
-  maxDeltaKm: string;
-  setMaxDeltaKm: (v: string) => void;
   routesCount: string;
   setRoutesCount: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -69,8 +67,6 @@ const RouteSearchForm: React.FC<RouteSearchFormProps> = ({
   setRoundTrip,
   circle,
   setCircle,
-  maxDeltaKm,
-  setMaxDeltaKm,
   routesCount,
   setRoutesCount,
   onSubmit,
@@ -222,21 +218,6 @@ const RouteSearchForm: React.FC<RouteSearchFormProps> = ({
                 max={3}
                 value={routesCount}
                 onChange={(v) => setRoutesCount(v)}
-              >
-                <NumberInputField bg="gray.50" />
-                <NumberInputStepper>
-                  <NumberIncrementStepper />
-                  <NumberDecrementStepper />
-                </NumberInputStepper>
-              </NumberInput>
-            </FormControl>
-            <FormControl>
-              <FormLabel>Max Tolerance (km)</FormLabel>
-              <NumberInput
-                min={0}
-                max={5}
-                value={maxDeltaKm}
-                onChange={(v) => setMaxDeltaKm(v)}
               >
                 <NumberInputField bg="gray.50" />
                 <NumberInputStepper>
