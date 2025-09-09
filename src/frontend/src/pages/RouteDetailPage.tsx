@@ -115,6 +115,9 @@ export default function RouteDetailPage() {
     [],
   );
   const [summary, setSummary] = useState<RouteSummary | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [nowTs, setNowTs] = useState<number>(Date.now());
+  const [timerId, setTimerId] = useState<number | null>(null);
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
@@ -173,8 +176,9 @@ export default function RouteDetailPage() {
   useEffect(() => {
     return () => {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      if (timerId !== null) window.clearInterval(timerId);
     };
-  }, [watchId]);
+  }, [watchId, timerId]);
 
   const path = useMemo(() => {
     if (!isLoaded || !route?.path) return [];
@@ -200,6 +204,33 @@ export default function RouteDetailPage() {
       : typeof navState.duration === 'number'
       ? navState.duration
       : undefined;
+
+  const liveDistanceKm = useMemo(() => {
+    if (positions.length > 1) {
+      const line = turf.lineString(
+        positions.map((p) => [p.lng, p.lat]) as [number, number][],
+      );
+      return turf.length(line, { units: 'kilometers' });
+    }
+    return undefined;
+  }, [positions]);
+
+  const liveElapsedSec = useMemo(() => {
+    if (startedAt == null) return undefined;
+    return Math.max(0, Math.round((nowTs - startedAt) / 1000));
+  }, [nowTs, startedAt]);
+
+  useEffect(() => {
+    if (watchId !== null && startedAt != null && timerId == null) {
+      const id = window.setInterval(() => setNowTs(Date.now()), 1000);
+      setTimerId(id as unknown as number);
+      return () => window.clearInterval(id);
+    }
+    if (watchId === null && timerId != null) {
+      window.clearInterval(timerId);
+      setTimerId(null);
+    }
+  }, [watchId, startedAt, timerId]);
 
   const approxDistanceKm = useMemo(() => {
     if (typeof uiDistanceKm === 'number') return undefined;
@@ -313,6 +344,8 @@ export default function RouteDetailPage() {
       return;
     }
     setPositions([]);
+    setStartedAt(Date.now());
+    setNowTs(Date.now());
     const geoOptions: PositionOptions = {
       enableHighAccuracy: true,
       timeout: 10000,
@@ -358,6 +391,9 @@ export default function RouteDetailPage() {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
       setWatchId(null);
       setPosition(null);
+      if (timerId !== null) window.clearInterval(timerId);
+      setTimerId(null);
+      setStartedAt(null);
       let actualDistanceKm: number | undefined;
       if (positions.length > 1) {
         const line = turf.lineString(
@@ -568,6 +604,21 @@ export default function RouteDetailPage() {
             </HStack>
           )}
 
+          {watchId !== null && (
+            <HStack spacing={2} justify="center" whiteSpace={{ lg: 'nowrap' }}>
+              <Icon as={FaRulerCombined} color="green.500" />
+              <Text color="gray.700">
+                Progress:{' '}
+                <Text as="span" fontWeight="semibold">
+                  {(liveDistanceKm ?? 0).toFixed(2)} km
+                </Text>
+                {typeof liveElapsedSec === 'number' && (
+                  <Text as="span" color="gray.600">{`  •  ${(liveElapsedSec / 60).toFixed(1)} min`}</Text>
+                )}
+              </Text>
+            </HStack>
+          )}
+
           {routeId && (
             <HStack spacing={2} justify="center" whiteSpace={{ lg: 'nowrap' }}>
               <Icon as={FaHashtag} color="gray.500" />
@@ -622,10 +673,10 @@ export default function RouteDetailPage() {
                   <Text>Distance: {summary.distanceKm.toFixed(2)} km</Text>
                 )}
                 {summary.duration != null && (
-                  <Text>Estimated Time: {summary.duration} s</Text>
+                  <Text>Estimated Time: {(summary.duration / 60).toFixed(1)} min</Text>
                 )}
                 {summary.actualDuration != null && (
-                  <Text>Actual Time: {summary.actualDuration} s</Text>
+                  <Text>Actual Time: {(summary.actualDuration / 60).toFixed(1)} min</Text>
                 )}
                 {summary.actualDistanceKm != null && (
                   <Text>
