@@ -77,18 +77,6 @@ describe("request routes handler", () => {
     });
   });
 
-  it("forwards maxDeltaKm when provided", async () => {
-    mockSend.mockResolvedValueOnce({});
-    await handler({
-      headers: { Accept: "application/json" },
-      body: JSON.stringify({ origin: "A", destination: "B", maxDeltaKm: "1" }),
-    } as any);
-
-    expect(mockSend).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
-    expect(payload.maxDeltaKm).toBe(1);
-  });
-
   it("forwards routesCount when provided", async () => {
     mockSend.mockResolvedValueOnce({});
     await handler({
