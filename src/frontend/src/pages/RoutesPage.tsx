@@ -25,6 +25,8 @@ import {
   ensureCoords,
 } from '../utils/geocoding';
 import { api } from '../services/api';
+import { API, graphqlOperation } from '../services/appsync';
+import { onRoutesGenerated } from '../graphql/subscriptions';
 import { useNavigate } from 'react-router-dom';
 
 const MotionBox = motion(Box);
@@ -152,33 +154,48 @@ export default function RoutesPage() {
 
   useEffect(() => {
     if (!jobId) return;
-    const iv = setInterval(async () => {
-      const { data } = await api.get(`/v1/jobs/${jobId}/routes`);
-      if (data.length) {
-        setRoutes(data);
-        setLoading(false);
-        sessionStorage.setItem(
-          CACHE_KEY,
-          JSON.stringify({
-            createdAt: Date.now(),
-            jobId,
-            routes: data,
-            origin,
-            destination,
-            originText,
-            destinationText,
-            mode,
-            distanceKm,
-            roundTrip,
-            circle,
-            routesCount,
-          }),
-        );
-        clearInterval(iv);
-      }
-    }, 2000);
-    return () => clearInterval(iv);
-  }, [jobId]);
+    const subscription = API.graphql(
+      graphqlOperation(onRoutesGenerated, { jobId })
+    ).subscribe({
+      next: ({ value }) => {
+        const data = (value as any).data.onRoutesGenerated;
+        if (data?.length) {
+          setRoutes(data);
+          setLoading(false);
+          sessionStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify({
+              createdAt: Date.now(),
+              jobId,
+              routes: data,
+              origin,
+              destination,
+              originText,
+              destinationText,
+              mode,
+              distanceKm,
+              roundTrip,
+              circle,
+              routesCount,
+            }),
+          );
+        }
+      },
+      error: console.error,
+    });
+    return () => subscription.unsubscribe();
+  }, [
+    jobId,
+    origin,
+    destination,
+    originText,
+    destinationText,
+    mode,
+    distanceKm,
+    roundTrip,
+    circle,
+    routesCount,
+  ]);
 
   const toCoord = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
 
