@@ -197,7 +197,12 @@ export class ComputeStack extends cdk.Stack {
     googleSecret.grantRead(pageRouter.fn);
     pageRouter.fn.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:Scan"],
+        actions: [
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:PutItem",
+        ],
         resources: [
           props.routesTable.tableArn,
           `${props.routesTable.tableArn}/index/*`,
