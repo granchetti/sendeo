@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Heading,
@@ -34,24 +35,21 @@ const distanceUnitOptions = [
 ];
 
 const UserProfilePage = () => {
-  const [profile, setProfile] = useState<UserProfileProps | null>(null);
   const [form, setForm] = useState<UserProfileProps | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const toast = useToast();
+  const qc = useQueryClient();
+
+  const { data: profile, isLoading } = useQuery<UserProfileProps>({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/profile');
+      return data;
+    },
+  });
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const { data } = await api.get('/v1/profile');
-        setProfile(data);
-        setForm(data);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
+    if (profile) setForm(profile);
+  }, [profile]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -64,12 +62,10 @@ const UserProfilePage = () => {
     }));
   };
 
-  const handleSave = async () => {
-    if (!form) return;
-    setSaving(true);
-    try {
-      await api.put('/v1/profile', form);
-      setProfile(form);
+  const saveProfile = useMutation({
+    mutationFn: (p: UserProfileProps) => api.put('/v1/profile', p),
+    onSuccess: (_data, vars) => {
+      qc.setQueryData(['profile'], vars);
       toast({
         title: 'Profile updated.',
         status: 'success',
@@ -77,14 +73,17 @@ const UserProfilePage = () => {
         isClosable: true,
         position: 'top',
       });
-    } finally {
-      setSaving(false);
-    }
+    },
+  });
+
+  const handleSave = () => {
+    if (!form) return;
+    saveProfile.mutate(form);
   };
 
   const hasChanged = JSON.stringify(profile) !== JSON.stringify(form);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Text textAlign="center" py={32}>
         Loading...
@@ -202,8 +201,8 @@ const UserProfilePage = () => {
               letterSpacing="wide"
               shadow="md"
               onClick={handleSave}
-              isLoading={saving}
-              isDisabled={!hasChanged || saving}
+              isLoading={saveProfile.isPending}
+              isDisabled={!hasChanged || saveProfile.isPending}
               _hover={{
                 bg: 'brand.900',
                 transform: 'scale(1.04)',

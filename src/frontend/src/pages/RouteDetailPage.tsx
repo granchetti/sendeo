@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, type JSX, Children } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as turf from '@turf/turf';
 import {
   Box,
@@ -101,11 +102,7 @@ export default function RouteDetailPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [route, setRoute] = useState<Route | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isFav, setIsFav] = useState(false);
-  const [favBusy, setFavBusy] = useState(false);
-  const [favCount, setFavCount] = useState<number>(0);
+  const qc = useQueryClient();
   const [aliases, setAliases] = useState<Record<string, string>>({});
   const [watchId, setWatchId] = useState<number | null>(null);
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
@@ -124,28 +121,26 @@ export default function RouteDetailPage() {
     libraries: ['geometry'],
   });
 
-  useEffect(() => {
-    if (!routeId) return;
-    api
-      .get(`/v1/routes/${routeId}`)
-      .then(({ data }) => setRoute(data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [routeId]);
+  const { data: route, isLoading } = useQuery<Route | null>({
+    queryKey: ['route', routeId],
+    queryFn: async () => {
+      if (!routeId) return null;
+      const { data } = await api.get(`/v1/routes/${routeId}`);
+      return data;
+    },
+  });
 
-  useEffect(() => {
-    if (!routeId) return;
-    (async () => {
-      try {
-        const { data } = await api.get('/v1/favourites');
-        const ids: string[] = data.favourites || [];
-        setFavCount(ids.length);
-        setIsFav(ids.includes(routeId));
-      } catch {
-        /* ignore */
-      }
-    })();
-  }, [routeId]);
+  const { data: favIds = [] } = useQuery<string[]>({
+    queryKey: ['favouritesIds'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/favourites');
+      return data.favourites || [];
+    },
+    enabled: !!routeId,
+  });
+
+  const isFav = routeId ? favIds.includes(routeId) : false;
+  const favCount = favIds.length;
 
   useEffect(() => {
     setAliases(loadAliases());
@@ -243,14 +238,6 @@ export default function RouteDetailPage() {
     return undefined;
   }, [uiDistanceKm, path]);
 
-  if (loadError) return <Text color="red.500">Map cannot load</Text>;
-  if (!isLoaded || loading)
-    return (
-      <Flex justify="center" py={10}>
-        <Spinner size="xl" />
-      </Flex>
-    );
-
   const center = path[Math.floor(path.length / 2)] || DEFAULT_CENTER;
 
   const coordLabel =
@@ -287,8 +274,40 @@ export default function RouteDetailPage() {
     }
   };
 
-  const toggleFavourite = async () => {
-    if (!routeId || favBusy) return;
+  const favMutation = useMutation({
+    mutationFn: (isFav: boolean) =>
+      isFav
+        ? api.delete(`/v1/favourites/${routeId}`)
+        : api.post('/v1/favourites', { routeId }),
+    onSuccess: (_data, isFav) => {
+      if (routeId) {
+        qc.setQueryData<string[]>(['favouritesIds'], (old = []) =>
+          isFav ? old.filter((id) => id !== routeId) : [...old, routeId],
+        );
+        qc.invalidateQueries({ queryKey: ['favourites'] });
+      }
+      if (!isFav && routeId && !aliases[routeId]) {
+        const alias = tagText;
+        const next = { ...aliases, [routeId]: alias };
+        setAliases(next);
+        saveAliases(next);
+      }
+      toast({
+        title: isFav ? 'Removed from favourites' : 'Added to favourites',
+        status: isFav ? 'info' : 'success',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Could not update favourites',
+        status: 'error',
+      });
+    },
+  });
+
+  const toggleFavourite = () => {
+    if (!routeId || favMutation.isPending) return;
 
     if (!isFav && favCount >= MAX_FAVS) {
       toast({
@@ -299,36 +318,14 @@ export default function RouteDetailPage() {
       return;
     }
 
-    setFavBusy(true);
-    try {
-      if (isFav) {
-        await api.delete(`/v1/favourites/${routeId}`);
-        setIsFav(false);
-        setFavCount((c) => Math.max(0, c - 1));
-        toast({ title: 'Removed from favourites', status: 'info' });
-      } else {
-        await api.post('/v1/favourites', { routeId });
-        setIsFav(true);
-        setFavCount((c) => c + 1);
-
-        if (!aliases[routeId]) {
-          const alias = tagText;
-          const next = { ...aliases, [routeId]: alias };
-          setAliases(next);
-          saveAliases(next);
-        }
-        toast({ title: 'Added to favourites', status: 'success' });
-      }
-    } catch {
-      toast({
-        title: 'Error',
-        description: 'Could not update favourites',
-        status: 'error',
-      });
-    } finally {
-      setFavBusy(false);
-    }
+    favMutation.mutate(isFav);
   };
+  const startMutation = useMutation({
+    mutationFn: (id: string) => api.post('/v1/telemetry/started', { routeId: id }),
+    onError: () => {
+      toast({ title: 'Failed to start tracking', status: 'error' });
+    },
+  });
 
   const handleStart = async () => {
     if (!routeId) return;
@@ -337,10 +334,8 @@ export default function RouteDetailPage() {
       return;
     }
     try {
-      await api.post('/v1/telemetry/started', { routeId });
-    } catch (err) {
-      console.error(err);
-      toast({ title: 'Failed to start tracking', status: 'error' });
+      await startMutation.mutateAsync(routeId);
+    } catch {
       return;
     }
     setPositions([]);
@@ -384,16 +379,9 @@ export default function RouteDetailPage() {
     setWatchId(id);
   };
 
-  const handleFinish = async () => {
-    if (!routeId) return;
-    try {
-      const { data } = await api.post(`/v1/routes/${routeId}/finish`);
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-      setWatchId(null);
-      setPosition(null);
-      if (timerId !== null) window.clearInterval(timerId);
-      setTimerId(null);
-      setStartedAt(null);
+  const finishMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.post(`/v1/routes/${id}/finish`);
       let actualDistanceKm: number | undefined;
       if (positions.length > 1) {
         const line = turf.lineString(
@@ -401,18 +389,38 @@ export default function RouteDetailPage() {
         );
         actualDistanceKm = turf.length(line, { units: 'kilometers' });
       }
-      setPositions([]);
-      setSummary({
-        ...data,
-        ...(actualDistanceKm != null ? { actualDistanceKm } : {}),
-      });
+      return { ...data, ...(actualDistanceKm != null ? { actualDistanceKm } : {}) } as RouteSummary;
+    },
+    onSuccess: (data) => {
+      setSummary(data);
       onOpen();
       toast({ title: 'Route finished', status: 'success' });
-    } catch (err: unknown) {
-      console.error(err);
+    },
+    onError: () => {
       toast({ title: 'Error finishing', status: 'error' });
-    }
+    },
+  });
+
+  const handleFinish = () => {
+    if (!routeId) return;
+    finishMutation.mutate(routeId);
+
+    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+    setWatchId(null);
+    setPosition(null);
+    if (timerId !== null) window.clearInterval(timerId);
+    setTimerId(null);
+    setStartedAt(null);
+    setPositions([]);
   };
+
+  if (loadError) return <Text color="red.500">Map cannot load</Text>;
+  if (!isLoaded || isLoading)
+    return (
+      <Flex justify="center" py={10}>
+        <Spinner size="xl" />
+      </Flex>
+    );
 
   const iconMap: Record<string, JSX.Element> = {
     Overview: <Icon as={FaInfoCircle} color="orange.500" mr={2} />,
@@ -550,7 +558,7 @@ export default function RouteDetailPage() {
               colorScheme="yellow"
               variant={isFav ? 'solid' : 'outline'}
               size="sm"
-              isLoading={favBusy}
+              isLoading={favMutation.isPending}
               onClick={toggleFavourite}
             />
           </Tooltip>

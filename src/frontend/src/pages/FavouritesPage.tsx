@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Flex,
@@ -39,11 +40,10 @@ const COLORS = [
 const ALIASES_KEY = 'sendeo:routeAliases';
 
 const FavouritesPage = () => {
-  const [favourites, setFavourites] = useState<RouteDetails[]>([]);
-  const [loading, setLoading] = useState(true);
   const [aliases, setAliases] = useState<Record<string, string>>({});
   const toast = useToast();
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   useEffect(() => {
     try {
@@ -86,8 +86,9 @@ const FavouritesPage = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchFavs = async () => {
+  const { data: favourites = [], isLoading } = useQuery<RouteDetails[]>({
+    queryKey: ['favourites'],
+    queryFn: async () => {
       try {
         const { data } = await api.get('/v1/favourites');
         const ids: string[] = data.favourites || [];
@@ -101,26 +102,32 @@ const FavouritesPage = () => {
             }
           }),
         );
-        setFavourites(details);
+        return details;
       } catch (err) {
         console.error(err);
         toast({ title: 'Error loading favourites', status: 'error' });
-      } finally {
-        setLoading(false);
+        return [];
       }
-    };
-    fetchFavs();
-  }, [toast]);
+    },
+  });
 
-  const handleRemove = async (id: string) => {
-    try {
-      await api.delete(`/v1/favourites/${id}`);
-      setFavourites((prev) => prev.filter((f) => f.routeId !== id));
+  const removeFav = useMutation({
+    mutationFn: (id: string) => api.delete(`/v1/favourites/${id}`),
+    onSuccess: (_data, id) => {
+      qc.setQueryData<RouteDetails[]>(['favourites'], (old) =>
+        old?.filter((f) => f.routeId !== id) ?? [],
+      );
+      qc.invalidateQueries({ queryKey: ['favouritesIds'] });
       toast({ title: 'Route removed from favourites', status: 'info' });
-    } catch (err) {
+    },
+    onError: (err) => {
       console.error(err);
       toast({ title: 'Could not remove route', status: 'error' });
-    }
+    },
+  });
+
+  const handleRemove = async (id: string) => {
+    removeFav.mutate(id);
   };
 
   return (
@@ -148,7 +155,7 @@ const FavouritesPage = () => {
         </HStack>
         <Box borderBottom="1px" borderColor="gray.200" mb={10} />
 
-        {loading ? (
+        {isLoading ? (
           <Flex justify="center" py={10}>
             <Spinner size="xl" />
           </Flex>

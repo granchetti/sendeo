@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Flex,
@@ -72,8 +73,16 @@ export default function RoutesPage() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
-  const [favourites, setFavourites] = useState<string[]>([]);
   const [startingRouteId, setStartingRouteId] = useState<string | null>(null);
+  const qc = useQueryClient();
+
+  const { data: favourites = [] } = useQuery<string[]>({
+    queryKey: ['favouritesIds'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/favourites');
+      return data.favourites || [];
+    },
+  });
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
@@ -114,14 +123,6 @@ export default function RoutesPage() {
     getUserLocation();
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get('/v1/favourites');
-        setFavourites(data.favourites || []);
-      } catch {}
-    })();
-  }, []);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(CACHE_KEY);
@@ -178,15 +179,6 @@ export default function RoutesPage() {
     }, 2000);
     return () => clearInterval(iv);
   }, [jobId]);
-
-  if (loadError)
-    return <Text color="red.500">Map cannot be loaded right now.</Text>;
-  if (!isLoaded)
-    return (
-      <Flex justify="center">
-        <Spinner size="xl" />
-      </Flex>
-    );
 
   const toCoord = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
 
@@ -298,7 +290,36 @@ export default function RoutesPage() {
     if (geo) setDestination(geo);
   };
 
-  const toggleFavourite = async (routeId: string) => {
+  const favMutation = useMutation({
+    mutationFn: ({ routeId, isFav }: { routeId: string; isFav: boolean }) =>
+      isFav
+        ? api.delete(`/v1/favourites/${routeId}`)
+        : api.post('/v1/favourites', { routeId }),
+    onSuccess: (_data, { routeId, isFav }) => {
+      qc.setQueryData<string[]>(['favouritesIds'], (old = []) =>
+        isFav ? old.filter((id) => id !== routeId) : [...old, routeId],
+      );
+      qc.invalidateQueries({ queryKey: ['favourites'] });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update favourites',
+        status: 'error',
+      });
+    },
+  });
+
+  if (loadError)
+    return <Text color="red.500">Map cannot be loaded right now.</Text>;
+  if (!isLoaded)
+    return (
+      <Flex justify="center">
+        <Spinner size="xl" />
+      </Flex>
+    );
+
+  const toggleFavourite = (routeId: string) => {
     const isFav = favourites.includes(routeId);
 
     if (!isFav && favourites.length >= MAX_FAVS) {
@@ -310,21 +331,7 @@ export default function RoutesPage() {
       return;
     }
 
-    try {
-      if (isFav) {
-        await api.delete(`/v1/favourites/${routeId}`);
-        setFavourites((prev) => prev.filter((id) => id !== routeId));
-      } else {
-        await api.post('/v1/favourites', { routeId });
-        setFavourites((prev) => [...prev, routeId]);
-      }
-    } catch {
-      toast({
-        title: 'Error',
-        description: 'Failed to update favourites',
-        status: 'error',
-      });
-    }
+    favMutation.mutate({ routeId, isFav });
   };
 
   const handleStartClick = async (routeId: string, navState?: any) => {
