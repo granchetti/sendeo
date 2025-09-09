@@ -15,6 +15,7 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
+  FormHelperText,
 } from '@chakra-ui/react';
 import { Autocomplete } from '@react-google-maps/api';
 import { FaLocationArrow, FaRedo } from 'react-icons/fa';
@@ -163,6 +164,10 @@ const RouteSearchForm: React.FC<RouteSearchFormProps> = ({
                       <NumberDecrementStepper />
                     </NumberInputStepper>
                   </NumberInput>
+                  <FormHelperText color="gray.500" fontSize="sm">
+                    Actual route distance may vary by up to ±2 km or 15 % of the requested
+                    distance, whichever is greater.
+                  </FormHelperText>
                 </FormControl>
                 <HStack spacing={6}>
                   <Checkbox

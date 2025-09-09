@@ -299,6 +299,28 @@ describe("telemetry started", () => {
     );
     expect(res.statusCode).toBe(200);
   });
+
+  it("continues when metric enqueue fails", async () => {
+    mockSend.mockRejectedValueOnce(new Error("boom"));
+    const route = Route.request({ routeId: UUID.generate() });
+    route.generate(
+      new DistanceKm(1),
+      new Duration(10),
+      Path.fromCoordinates([LatLng.fromNumbers(0, 0), LatLng.fromNumbers(1, 1)])
+    );
+    mockFindById.mockResolvedValueOnce(route);
+    const routeId = route.routeId.Value;
+    const res = await handler({
+      ...baseEvent,
+      body: JSON.stringify({ routeId }),
+    });
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockPublishStarted).toHaveBeenCalledWith(
+      "test@example.com",
+      routeId
+    );
+    expect(res.statusCode).toBe(200);
+  });
 });
 
 describe("finish route", () => {
@@ -371,5 +393,32 @@ describe("finish route", () => {
       description: "desc",
       actualDuration: expect.any(Number),
     });
+  });
+
+  it("returns route even if metric enqueue fails", async () => {
+    const route = Route.request({ routeId: UUID.generate() });
+    route.generate(
+      new DistanceKm(2),
+      new Duration(100),
+      Path.fromCoordinates([LatLng.fromNumbers(0, 0), LatLng.fromNumbers(1, 1)])
+    );
+    route.description = "desc";
+    route.start();
+    mockFindById.mockResolvedValueOnce(route);
+    mockGetActiveRoute.mockResolvedValueOnce({ startedAt: 1000 });
+    mockSend.mockRejectedValueOnce(new Error("boom"));
+
+    const res = await handler({
+      ...baseEvent,
+      pathParameters: { routeId: route.routeId.Value },
+    });
+
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockPublishFinished).toHaveBeenCalledWith(
+      "test@example.com",
+      route.routeId.Value,
+      expect.any(String)
+    );
+    expect(res.statusCode).toBe(200);
   });
 });
