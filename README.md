@@ -45,6 +45,7 @@ This README covers the architecture, required tooling, environment, and the most
 - Build: `cd src/frontend && npm run build`
 - Preview build: `cd src/frontend && npm run preview`
 - Lint: `cd src/frontend && npm run lint`
+- Test: `cd src/frontend && npm test`
 - E2E tests:
   - Install browsers: `cd src/frontend && npm run pretest:e2e`
   - Run tests: `cd src/frontend && npm run test:e2e`
@@ -102,6 +103,7 @@ Useful CDK context and outputs
   - Backend: `cd src/backend && npm ci`
   - Infrastructure: `cd infrastructure && npm ci`
 - Run frontend locally: `cd src/frontend && npm run dev`
+- Run frontend tests: `cd src/frontend && npm test`
 - Run backend tests: `cd src/backend && npm run test:unit`
 - Run infrastructure tests: `cd infrastructure && npm run test:unit`
 - Deploy dev (all stacks): `cd infrastructure && npx cdk deploy --all -c env=dev --require-approval=never`
