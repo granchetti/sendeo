@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test:unit": "jest",
     "build": "tsc",
-    "test:e2e": "jest test/e2e"
+    "test:unit": "jest --selectProjects unit",
+    "test:integration": "jest --selectProjects integration",
+    "test:e2e": "jest --selectProjects e2e",
+    "test": "jest"
   },
   "author": "",
   "license": "ISC",
