@@ -5,7 +5,7 @@ const isCI = !!process.env.CI;
 const externalBase = process.env.E2E_BASE_URL;
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './tests/e2e',
   testMatch: ['**/*.spec.ts'],
   testIgnore: ['**/*.test.ts'],
   fullyParallel: true,
@@ -35,7 +35,7 @@ export default defineConfig({
   reporter: isCI
     ? [
         ['github'],
-        ['html', { outputFolder: 'e2e/playwright-report', open: 'never' }],
+        ['html', { outputFolder: 'tests/playwright-report', open: 'never' }],
       ]
     : [['list'], ['html', { open: 'never' }]],
 });
