@@ -110,7 +110,7 @@ jobs:
         working-directory: infrastructure
         run: npm run test:unit
 
-  test-frontend:
+  test-frontend-unit:
     name: Unit tests (frontend)
     runs-on: ubuntu-latest
     needs: lint-frontend
