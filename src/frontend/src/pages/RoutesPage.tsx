@@ -125,7 +125,6 @@ export default function RoutesPage() {
     getUserLocation();
   }, []);
 
-
   useEffect(() => {
     const raw = sessionStorage.getItem(CACHE_KEY);
     if (!raw) return;
@@ -154,11 +153,12 @@ export default function RoutesPage() {
 
   useEffect(() => {
     if (!jobId) return;
-    const subscription = API.graphql(
-      graphqlOperation(onRoutesGenerated, { jobId })
-    ).subscribe({
-      next: ({ value }) => {
-        const data = (value as any).data.onRoutesGenerated;
+    const observable = API.graphql(
+      graphqlOperation(onRoutesGenerated, { jobId }),
+    ) as any;
+    const subscription = observable.subscribe({
+      next: ({ value }: any) => {
+        const data = value?.data?.onRoutesGenerated;
         if (data?.length) {
           setRoutes(data);
           setLoading(false);

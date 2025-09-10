@@ -1,9 +1,10 @@
 name: Deploy Dev
 
-on:      
+on:
+  push:
+    branches:
+      - main
   workflow_dispatch: {}
-  schedule:
-    - cron: "0 * * * *"
 
 concurrency:
   group: cdk-dev
