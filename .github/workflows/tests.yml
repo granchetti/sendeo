@@ -81,7 +81,7 @@ jobs:
         working-directory: src/backend
         run: npm run test:e2e
 
-  test-infra:
+  test-infra-unit:
     name: Unit tests (infrastructure)
     runs-on: ubuntu-latest
     steps:
