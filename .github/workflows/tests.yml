@@ -30,8 +30,8 @@ jobs:
         working-directory: src/frontend
         run: npm run lint
 
-  test-backend:
-    name: Unit tests (backend)   # 👈 mantiene el mismo nombre requerido en la regla
+  test-backend-unit:
+    name: Unit tests (backend)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +46,40 @@ jobs:
       - name: Run unit tests (backend)
         working-directory: src/backend
         run: npm run test:unit
+
+  test-backend-integration:
+    name: Integration tests (backend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/backend/package-lock.json
+      - name: Install deps (backend)
+        working-directory: src/backend
+        run: npm ci
+      - name: Run integration tests (backend)
+        working-directory: src/backend
+        run: npm run test:integration
+
+  test-backend-e2e:
+    name: E2E tests (backend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/backend/package-lock.json
+      - name: Install deps (backend)
+        working-directory: src/backend
+        run: npm ci
+      - name: Run e2e tests (backend)
+        working-directory: src/backend
+        run: npm run test:e2e
 
   test-infra:
     name: Unit tests (infrastructure)
@@ -65,4 +99,21 @@ jobs:
         run: npm ci
       - name: Run unit tests (infra)
         working-directory: infrastructure
+        run: npm run test:unit
+
+  test-frontend-unit:
+    name: Unit tests (frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+      - name: Install deps (frontend)
+        working-directory: src/frontend
+        run: npm ci
+      - name: Run unit tests (frontend)
+        working-directory: src/frontend
         run: npm run test:unit
