@@ -6,6 +6,7 @@ import { DomainEvent } from "../../../shared/domain/events/domain-event";
 import { RouteRequestedEvent } from "../events/route-requested";
 import { RouteGeneratedEvent } from "../events/route-generated";
 import { RouteStatus } from "../value-objects/route-status";
+import { ValidationError } from "../../../shared/errors";
 
 export interface RouteProps {
   readonly routeId: UUID;
@@ -24,7 +25,7 @@ export class Route {
 
   private constructor(props: RouteProps) {
     if (!props.routeId) {
-      throw new Error("routeId is required");
+      throw new ValidationError("routeId is required");
     }
     this.props = { ...props };
   }
@@ -49,20 +50,24 @@ export class Route {
 
   start(): void {
     if (!this.props.distanceKm || !this.props.path) {
-      throw new Error("distanceKm and path must be set before starting");
+      throw new ValidationError(
+        "distanceKm and path must be set before starting"
+      );
     }
     if (this.props.status !== RouteStatus.Generated) {
-      throw new Error("route must be generated before starting");
+      throw new ValidationError("route must be generated before starting");
     }
     this.props.status = RouteStatus.Started;
   }
 
   finish(): void {
     if (!this.props.distanceKm || !this.props.path) {
-      throw new Error("distanceKm and path must be set before finishing");
+      throw new ValidationError(
+        "distanceKm and path must be set before finishing"
+      );
     }
     if (this.props.status !== RouteStatus.Started) {
-      throw new Error("route must be started before finishing");
+      throw new ValidationError("route must be started before finishing");
     }
     this.props.status = RouteStatus.Finished;
   }

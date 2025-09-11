@@ -14,12 +14,13 @@ input RouteInput {
   description: String
 }
 
+"""All mutations require a payload version."""
 type Mutation {
-  publishRoutesGenerated(jobId: ID!, routes: [RouteInput]!): [Route]
-  publishFavouriteSaved(email: String!, routeId: ID!): ID
-  publishFavouriteDeleted(email: String!, routeId: ID!): ID
-  publishRouteStarted(email: String!, routeId: ID!): ID
-  publishRouteFinished(email: String!, routeId: ID!, summary: String!): ID
+  publishRoutesGenerated(jobId: ID!, routes: [RouteInput]!, correlationId: ID, version: Int!): [Route] # version: payload schema version
+  publishFavouriteSaved(email: String!, routeId: ID!, version: Int!): ID # version: payload schema version
+  publishFavouriteDeleted(email: String!, routeId: ID!, version: Int!): ID # version: payload schema version
+  publishRouteStarted(email: String!, routeId: ID!, version: Int!): ID # version: payload schema version
+  publishRouteFinished(email: String!, routeId: ID!, summary: String!, version: Int!): ID # version: payload schema version
 }
 
 type Subscription {

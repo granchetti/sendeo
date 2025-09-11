@@ -3,6 +3,7 @@ import { EventDispatcher } from "../../../shared/domain/events/event-dispatcher"
 import { UUID } from "../../../shared/domain/value-objects/uuid";
 import { RouteFinishedEvent } from "../../domain/events/route-finished";
 import { Route } from "../../domain/entities/route";
+import { RouteNotFoundError } from "../../../shared/errors";
 
 export interface FinishRouteInput {
   readonly routeId: UUID;
@@ -17,9 +18,9 @@ export class FinishRouteUseCase {
     private dispatcher: EventDispatcher
   ) {}
 
-  async execute(input: FinishRouteInput): Promise<Route | null> {
+  async execute(input: FinishRouteInput): Promise<Route> {
     const route = await this.repository.findById(input.routeId);
-    if (!route) return null;
+    if (!route) throw new RouteNotFoundError();
     route.finish();
     await this.repository.save(route);
     await this.dispatcher.publishAll([

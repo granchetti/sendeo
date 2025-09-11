@@ -19,6 +19,7 @@ dispatcher.subscribe("CacheExpired", async (event: CacheExpiredEvent) => {
       new SendMessageCommand({
         QueueUrl: process.env.METRICS_QUEUE!,
         MessageBody: JSON.stringify({
+          version: 1,
           event: "CacheExpired",
           count: event.count,
           timestamp: timestamp.toISOString(),

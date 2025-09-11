@@ -58,13 +58,13 @@ export const createRequestRoutesHandler = (queue: RouteRequestQueue) =>
       if (data.preference != null) {
         data.preference = String(data.preference);
       }
-
+      
+      data.version = 1;
       await queue.send(JSON.stringify(data));
-
+      
       return {
         statusCode: 202,
         headers: jsonHeaders,
         body: JSON.stringify({ enqueued: true, jobId: data.jobId }),
       };
-    })
   );

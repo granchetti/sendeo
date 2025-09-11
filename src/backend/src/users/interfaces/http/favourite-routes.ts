@@ -70,27 +70,27 @@ export const createFavouriteRoutesHandler = (
           }
           throw err;
         }
-        await publishFavouriteSaved(email.Value, routeId);
-        return {
-          statusCode: 200,
-          headers: jsonHeaders,
-          body: JSON.stringify({ saved: true }),
-        };
-      }
+         await publishFavouriteSaved(email.Value, routeId);
+  return {
+    statusCode: 200,
+    headers: jsonHeaders,
+    body: JSON.stringify({ saved: true }),
+  };
+}
 
-      if (httpMethod === "DELETE") {
-        const routeId = event.pathParameters?.routeId;
-        if (!routeId) {
-          return errorResponse(400, "routeId parameter required");
-        }
-        await removeFavourite.execute(email, routeId);
-        await publishFavouriteDeleted(email.Value, routeId);
-        return {
-          statusCode: 200,
-          headers: jsonHeaders,
-          body: JSON.stringify({ deleted: true }),
-        };
-      }
+if (httpMethod === "DELETE") {
+  const routeId = event.pathParameters?.routeId;
+  if (!routeId) {
+    return errorResponse(400, "routeId parameter required");
+  }
+  await removeFavourite.execute(email, routeId);
+  await publishFavouriteDeleted(email.Value, routeId);
+  return {
+    statusCode: 200,
+    headers: jsonHeaders,
+    body: JSON.stringify({ deleted: true }),
+  };
+}
 
       return errorResponse(501, "Not Implemented");
     })
