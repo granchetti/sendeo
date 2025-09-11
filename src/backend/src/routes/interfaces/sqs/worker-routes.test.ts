@@ -94,6 +94,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440000",
             origin: "a",
             destination: "b",
@@ -130,7 +131,8 @@ describe("worker routes handler", () => {
     );
     expect(sqsSend).toHaveBeenCalledTimes(1);
     const msg = sqsSend.mock.calls[0][0];
-    expect(msg.input.MessageBody).toContain("routes_generated");
+    const payload = JSON.parse(msg.input.MessageBody);
+    expect(payload).toMatchObject({ event: "routes_generated", version: 1 });
   });
 
   it("does not save when response has no distance", async () => {
@@ -143,6 +145,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440001",
             origin: "a",
             destination: "b",
@@ -186,6 +189,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "err-job",
             origin: "a",
             destination: "b",
@@ -218,6 +222,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440002",
             origin: "a",
             destination: "b",
@@ -291,6 +296,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440003",
             origin: "a",
             distanceKm: 3,
@@ -388,6 +394,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440013",
             origin: "a",
             distanceKm: 3,
@@ -465,6 +472,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-44665544000c",
             origin: "a",
             distanceKm: 4,
@@ -519,6 +527,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440004",
             origin: "a",
             destination: "b",
@@ -551,6 +560,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440005",
             origin: "a",
             distanceKm: 1,
@@ -584,6 +594,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440006",
             origin: "a",
             destination: "b",
@@ -601,4 +612,22 @@ describe("worker routes handler", () => {
     expect(published).toHaveLength(2);
   });
 
+  it("ignores messages with unsupported version", async () => {
+    const handler = loadHandler();
+    await handler({
+      Records: [
+        {
+          body: JSON.stringify({
+            version: 99,
+            jobId: "bad",
+            origin: "a",
+            destination: "b",
+          }),
+        },
+      ],
+    });
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockPublish).not.toHaveBeenCalled();
+    expect(sqsSend).not.toHaveBeenCalled();
+  });
 });

@@ -27,8 +27,8 @@ describe('appsync-client', () => {
     const [, opts] = fetchMock.mock.calls[0];
     const body = JSON.parse(opts.body);
     expect(body).toEqual({
-      query: `mutation PublishFavouriteSaved($email: String!, $routeId: ID!) {\n  publishFavouriteSaved(email: $email, routeId: $routeId)\n}`,
-      variables: { email: 'user@example.com', routeId: 'route-1' },
+      query: `mutation PublishFavouriteSaved($email: String!, $routeId: ID!, $version: Int!) {\n  publishFavouriteSaved(email: $email, routeId: $routeId, version: $version)\n}`,
+      variables: { email: 'user@example.com', routeId: 'route-1', version: 1 },
     });
   });
 
@@ -37,8 +37,8 @@ describe('appsync-client', () => {
     const [, opts] = fetchMock.mock.calls[0];
     const body = JSON.parse(opts.body);
     expect(body).toEqual({
-      query: `mutation PublishFavouriteDeleted($email: String!, $routeId: ID!) {\n  publishFavouriteDeleted(email: $email, routeId: $routeId)\n}`,
-      variables: { email: 'user@example.com', routeId: 'route-1' },
+      query: `mutation PublishFavouriteDeleted($email: String!, $routeId: ID!, $version: Int!) {\n  publishFavouriteDeleted(email: $email, routeId: $routeId, version: $version)\n}`,
+      variables: { email: 'user@example.com', routeId: 'route-1', version: 1 },
     });
   });
 
@@ -55,7 +55,7 @@ describe('appsync-client', () => {
     const [, opts] = fetchMock.mock.calls[0];
     const body = JSON.parse(opts.body);
     expect(body).toEqual({
-      query: `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes)\n}`,
+      query: `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!, $version: Int!) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes, version: $version)\n}`,
       variables: {
         jobId: 'job-1',
         routes: [
@@ -67,6 +67,7 @@ describe('appsync-client', () => {
             description: route.description,
           },
         ],
+        version: 1,
       },
     });
   });
@@ -76,8 +77,8 @@ describe('appsync-client', () => {
     const [, opts] = fetchMock.mock.calls[0];
     const body = JSON.parse(opts.body);
     expect(body).toEqual({
-      query: `mutation PublishRouteStarted($email: String!, $routeId: ID!) {\n  publishRouteStarted(email: $email, routeId: $routeId)\n}`,
-      variables: { email: 'user@example.com', routeId: 'route-1' },
+      query: `mutation PublishRouteStarted($email: String!, $routeId: ID!, $version: Int!) {\n  publishRouteStarted(email: $email, routeId: $routeId, version: $version)\n}`,
+      variables: { email: 'user@example.com', routeId: 'route-1', version: 1 },
     });
   });
 
@@ -86,8 +87,8 @@ describe('appsync-client', () => {
     const [, opts] = fetchMock.mock.calls[0];
     const body = JSON.parse(opts.body);
     expect(body).toEqual({
-      query: `mutation PublishRouteFinished($email: String!, $routeId: ID!, $summary: String!) {\n  publishRouteFinished(email: $email, routeId: $routeId, summary: $summary)\n}`,
-      variables: { email: 'user@example.com', routeId: 'route-1', summary: 'summary' },
+      query: `mutation PublishRouteFinished($email: String!, $routeId: ID!, $summary: String!, $version: Int!) {\n  publishRouteFinished(email: $email, routeId: $routeId, summary: $summary, version: $version)\n}`,
+      variables: { email: 'user@example.com', routeId: 'route-1', summary: 'summary', version: 1 },
     });
   });
 
@@ -96,8 +97,8 @@ describe('appsync-client', () => {
     const [, opts] = fetchMock.mock.calls[0];
     const body = JSON.parse(opts.body);
     expect(body).toEqual({
-      query: `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON) {\n  publishErrorOccurred(message: $message, payload: $payload)\n}`,
-      variables: { message: 'boom', payload: { foo: 'bar' } },
+      query: `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON, $version: Int!) {\n  publishErrorOccurred(message: $message, payload: $payload, version: $version)\n}`,
+      variables: { message: 'boom', payload: { foo: 'bar' }, version: 1 },
     });
   });
 });

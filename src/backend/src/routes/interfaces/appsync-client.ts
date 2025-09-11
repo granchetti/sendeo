@@ -50,15 +50,15 @@ async function send(query: string, variables: Record<string, any>): Promise<any>
 
 export async function publishFavouriteSaved(email: string, routeId: string) {
   await send(
-    `mutation PublishFavouriteSaved($email: String!, $routeId: ID!) {\n  publishFavouriteSaved(email: $email, routeId: $routeId)\n}`,
-    { email, routeId }
+    `mutation PublishFavouriteSaved($email: String!, $routeId: ID!, $version: Int!) {\n  publishFavouriteSaved(email: $email, routeId: $routeId, version: $version)\n}`,
+    { email, routeId, version: 1 }
   );
 }
 
 export async function publishFavouriteDeleted(email: string, routeId: string) {
   await send(
-    `mutation PublishFavouriteDeleted($email: String!, $routeId: ID!) {\n  publishFavouriteDeleted(email: $email, routeId: $routeId)\n}`,
-    { email, routeId }
+    `mutation PublishFavouriteDeleted($email: String!, $routeId: ID!, $version: Int!) {\n  publishFavouriteDeleted(email: $email, routeId: $routeId, version: $version)\n}`,
+    { email, routeId, version: 1 }
   );
 }
 
@@ -71,15 +71,15 @@ export async function publishRoutesGenerated(jobId: string, routes: Route[]) {
     description: r.description,
   }));
   await send(
-    `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes)\n}`,
-    { jobId, routes: inputs }
+    `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!, $version: Int!) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes, version: $version)\n}`,
+    { jobId, routes: inputs, version: 1 }
   );
 }
 
 export async function publishRouteStarted(email: string, routeId: string) {
   await send(
-    `mutation PublishRouteStarted($email: String!, $routeId: ID!) {\n  publishRouteStarted(email: $email, routeId: $routeId)\n}`,
-    { email, routeId }
+    `mutation PublishRouteStarted($email: String!, $routeId: ID!, $version: Int!) {\n  publishRouteStarted(email: $email, routeId: $routeId, version: $version)\n}`,
+    { email, routeId, version: 1 }
   );
 }
 
@@ -89,8 +89,8 @@ export async function publishRouteFinished(
   summary: string
 ) {
   await send(
-    `mutation PublishRouteFinished($email: String!, $routeId: ID!, $summary: String!) {\n  publishRouteFinished(email: $email, routeId: $routeId, summary: $summary)\n}`,
-    { email, routeId, summary }
+    `mutation PublishRouteFinished($email: String!, $routeId: ID!, $summary: String!, $version: Int!) {\n  publishRouteFinished(email: $email, routeId: $routeId, summary: $summary, version: $version)\n}`,
+    { email, routeId, summary, version: 1 }
   );
 }
 
@@ -99,7 +99,7 @@ export async function publishErrorOccurred(
   payload: any
 ) {
   await send(
-    `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON) {\n  publishErrorOccurred(message: $message, payload: $payload)\n}`,
-    { message, payload }
+    `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON, $version: Int!) {\n  publishErrorOccurred(message: $message, payload: $payload, version: $version)\n}`,
+    { message, payload, version: 1 }
   );
 }

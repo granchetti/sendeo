@@ -292,6 +292,7 @@ describe("telemetry started", () => {
       event: "started",
       routeId,
       email: "test@example.com",
+      version: 1,
     });
     expect(mockPublishStarted).toHaveBeenCalledWith(
       "test@example.com",
@@ -387,6 +388,7 @@ describe("finish route", () => {
     const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
     expect(payload.routeId).toBe(route.routeId.Value);
     expect(payload.event).toBe("finished");
+    expect(payload.version).toBe(1);
     expect(payload).toHaveProperty("actualDuration");
     expect(mockPublishFinished).toHaveBeenCalledWith(
       "test@example.com",

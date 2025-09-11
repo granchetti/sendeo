@@ -29,6 +29,7 @@ describe("request routes handler", () => {
     const payload = JSON.parse(sent.MessageBody);
 
     expect(payload.jobId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(payload.version).toBe(1);
     const body = JSON.parse(res.body);
     expect(body.jobId).toBe(payload.jobId);
     expect(body.enqueued).toBe(true);
@@ -46,6 +47,7 @@ describe("request routes handler", () => {
     const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
 
     expect(payload.jobId).toBe(jobId);
+    expect(payload.version).toBe(1);
     const body = JSON.parse(res.body);
     expect(body.jobId).toBe(jobId);
     expect(body.enqueued).toBe(true);
@@ -101,6 +103,7 @@ describe("request routes handler", () => {
     expect(mockSend).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
     expect(payload.distanceKm).toBe(50);
+    expect(payload.version).toBe(1);
   });
 
   it("forwards routesCount when provided", async () => {
@@ -113,6 +116,7 @@ describe("request routes handler", () => {
     expect(mockSend).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
     expect(payload.routesCount).toBe(3);
+    expect(payload.version).toBe(1);
   });
 
   it("forwards preference when provided", async () => {
@@ -125,5 +129,6 @@ describe("request routes handler", () => {
     expect(mockSend).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
     expect(payload.preference).toBe("park");
+    expect(payload.version).toBe(1);
   });
 });

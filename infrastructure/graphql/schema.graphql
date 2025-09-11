@@ -15,23 +15,24 @@ input RouteInput {
 }
 
 type Mutation {
-  publishRoutesGenerated(jobId: ID!, routes: [RouteInput]!): [Route]
-  publishFavouriteSaved(email: String!, routeId: ID!): ID
-  publishFavouriteDeleted(email: String!, routeId: ID!): ID
-  publishRouteStarted(email: String!, routeId: ID!): ID
-  publishRouteFinished(email: String!, routeId: ID!, summary: String!): ID
+  publishRoutesGenerated(jobId: ID!, routes: [RouteInput]!, version: Int!): [Route]
+  publishFavouriteSaved(email: String!, routeId: ID!, version: Int!): ID
+  publishFavouriteDeleted(email: String!, routeId: ID!, version: Int!): ID
+  publishRouteStarted(email: String!, routeId: ID!, version: Int!): ID
+  publishRouteFinished(email: String!, routeId: ID!, summary: String!, version: Int!): ID
+  publishErrorOccurred(message: String!, payload: AWSJSON, version: Int!): ID
 }
 
 type Subscription {
-  onRoutesGenerated(jobId: ID!): [Route]
+  onRoutesGenerated(jobId: ID!, version: Int!): [Route]
     @aws_subscribe(mutations: ["publishRoutesGenerated"])
-  onFavouriteSaved(email: String!, routeId: ID!): ID
+  onFavouriteSaved(email: String!, routeId: ID!, version: Int!): ID
     @aws_subscribe(mutations: ["publishFavouriteSaved"])
-  onFavouriteDeleted(email: String!, routeId: ID!): ID
+  onFavouriteDeleted(email: String!, routeId: ID!, version: Int!): ID
     @aws_subscribe(mutations: ["publishFavouriteDeleted"])
-  onRouteStarted(email: String!, routeId: ID!): ID
+  onRouteStarted(email: String!, routeId: ID!, version: Int!): ID
     @aws_subscribe(mutations: ["publishRouteStarted"])
-  onRouteFinished(email: String!, routeId: ID!, summary: String!): ID
+  onRouteFinished(email: String!, routeId: ID!, summary: String!, version: Int!): ID
     @aws_subscribe(mutations: ["publishRouteFinished"])
 }
 

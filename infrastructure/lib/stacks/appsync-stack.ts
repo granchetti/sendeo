@@ -45,6 +45,7 @@ export class AppSyncStack extends cdk.Stack {
       "publishFavouriteDeleted",
       "publishRouteStarted",
       "publishRouteFinished",
+      "publishErrorOccurred",
     ];
 
     mutations.forEach((field) =>

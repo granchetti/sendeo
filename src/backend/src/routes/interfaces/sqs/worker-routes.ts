@@ -77,6 +77,11 @@ export const handler: SQSHandler = async (event) => {
   for (const { body } of event.Records) {
     console.info("[handler] record", body);
     try {
+      const msg = JSON.parse(body);
+      if (msg.version !== 1) {
+        console.warn("[handler] unsupported version", msg.version);
+        continue;
+      }
       const {
         jobId,
         origin,
@@ -85,7 +90,7 @@ export const handler: SQSHandler = async (event) => {
         roundTrip = false,
         circle = false,
         routesCount = 3,
-      } = JSON.parse(body);
+      } = msg;
 
         const oCoords = await generator.geocode(origin);
         const dCoords = destination
@@ -279,6 +284,7 @@ export const handler: SQSHandler = async (event) => {
           new SendMessageCommand({
             QueueUrl: process.env.METRICS_QUEUE!,
             MessageBody: JSON.stringify({
+              version: 1,
               event: "routes_generated",
               jobId,
               count: saved.length,

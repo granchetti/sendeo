@@ -67,6 +67,7 @@ describe("AppSyncStack", () => {
       "publishFavouriteDeleted",
       "publishRouteStarted",
       "publishRouteFinished",
+      "publishErrorOccurred",
     ];
 
     mutations.forEach((field) => {

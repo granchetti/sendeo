@@ -21,6 +21,7 @@ describe("metrics processor", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             event: "routes_generated",
             count: 3,
             timestamp: 1000,
@@ -46,6 +47,7 @@ describe("metrics processor", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             event: "finished",
             actualDuration: 120,
             timestamp: 2000,
@@ -68,5 +70,15 @@ describe("metrics processor", () => {
         }),
       ])
     );
+  });
+
+  it("ignores unsupported versions", async () => {
+    const { handler } = require("./metrics-processor");
+    await handler({
+      Records: [
+        { body: JSON.stringify({ version: 99, event: "started" }) },
+      ],
+    });
+    expect(sendMock).not.toHaveBeenCalled();
   });
 });

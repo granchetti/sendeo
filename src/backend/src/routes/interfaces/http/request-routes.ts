@@ -34,6 +34,9 @@ export const handler = base(rateLimit(async (
     data.jobId = UUID.generate().Value;
   }
 
+  // include payload version for downstream consumers
+  data.version = 1;
+
   if (data.distanceKm != null) {
     const d = parseFloat(String(data.distanceKm));
     if (isNaN(d) || d < 1 || d > 100) {

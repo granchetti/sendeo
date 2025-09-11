@@ -43,6 +43,7 @@ dispatcher.subscribe("RouteStarted", async (event: RouteStartedEvent) => {
       new SendMessageCommand({
         QueueUrl: process.env.METRICS_QUEUE!,
         MessageBody: JSON.stringify({
+          version: 1,
           event: "started",
           routeId: event.route.routeId.Value,
           email: event.email,
@@ -65,6 +66,7 @@ dispatcher.subscribe("RouteFinished", async (event: RouteFinishedEvent) => {
       new SendMessageCommand({
         QueueUrl: process.env.METRICS_QUEUE!,
         MessageBody: JSON.stringify({
+          version: 1,
           event: "finished",
           routeId: event.route.routeId.Value,
           email: event.email,
