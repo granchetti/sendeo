@@ -71,7 +71,7 @@ export const handler = base(rateLimit(async (
       }
       throw err;
     }
-    await publishFavouriteSaved(email.Value, routeId);
+    await publishFavouriteSaved(email.Value, routeId, 1);
     return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ saved: true }) };
   }
 
@@ -81,7 +81,7 @@ export const handler = base(rateLimit(async (
       return errorResponse(400, "routeId parameter required");
     }
     await removeFavourite.execute(email, routeId);
-    await publishFavouriteDeleted(email.Value, routeId);
+    await publishFavouriteDeleted(email.Value, routeId, 1);
     return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ deleted: true }) };
   }
 

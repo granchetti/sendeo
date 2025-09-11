@@ -61,6 +61,8 @@ export const handler = base(rateLimit(async (
     data.preference = String(data.preference);
   }
 
+  data.version = 1;
+
   await sqs.send(
     new SendMessageCommand({
       QueueUrl: process.env.QUEUE_URL,

@@ -77,8 +77,10 @@ export const handler: SQSHandler = async (event) => {
   for (const { body } of event.Records) {
     console.info("[handler] record", body);
     let correlationId: string | undefined;
+    let version = 1;
     try {
       const {
+        version: ver,
         jobId,
         origin,
         destination,
@@ -88,6 +90,12 @@ export const handler: SQSHandler = async (event) => {
         routesCount = 3,
         correlationId: corr,
       } = JSON.parse(body);
+
+      version = ver;
+      if (version !== 1) {
+        console.warn("[handler] unsupported version", version);
+        continue;
+      }
 
       correlationId = corr;
 
@@ -278,12 +286,13 @@ export const handler: SQSHandler = async (event) => {
 
     if (saved.length) {
       console.info(`[handler] publishing ${saved.length} routes`);
-      await publishRoutesGenerated(jobId, saved, correlationId);
+      await publishRoutesGenerated(jobId, saved, correlationId, version);
       if (process.env.METRICS_QUEUE) {
         await sqs.send(
           new SendMessageCommand({
             QueueUrl: process.env.METRICS_QUEUE!,
             MessageBody: JSON.stringify({
+              version,
               event: "routes_generated",
               jobId,
               correlationId,
@@ -298,7 +307,7 @@ export const handler: SQSHandler = async (event) => {
     }
   } catch (err: any) {
     console.error("[handler] error processing record", err);
-    await publishErrorOccurred(err?.message || "Unknown error", body, correlationId);
+    await publishErrorOccurred(err?.message || "Unknown error", body, correlationId, version);
   }
 }
 };

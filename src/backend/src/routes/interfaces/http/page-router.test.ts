@@ -289,13 +289,15 @@ describe("telemetry started", () => {
     const sent = mockSend.mock.calls[0][0];
     const payload = JSON.parse(sent.MessageBody);
     expect(payload).toMatchObject({
+      version: 1,
       event: "started",
       routeId,
       email: "test@example.com",
     });
     expect(mockPublishStarted).toHaveBeenCalledWith(
       "test@example.com",
-      routeId
+      routeId,
+      1
     );
     expect(res.statusCode).toBe(200);
   });
@@ -317,7 +319,8 @@ describe("telemetry started", () => {
     expect(mockSend).toHaveBeenCalledTimes(1);
     expect(mockPublishStarted).toHaveBeenCalledWith(
       "test@example.com",
-      routeId
+      routeId,
+      1
     );
     expect(res.statusCode).toBe(200);
   });
@@ -387,11 +390,13 @@ describe("finish route", () => {
     const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
     expect(payload.routeId).toBe(route.routeId.Value);
     expect(payload.event).toBe("finished");
+    expect(payload.version).toBe(1);
     expect(payload).toHaveProperty("actualDuration");
     expect(mockPublishFinished).toHaveBeenCalledWith(
       "test@example.com",
       route.routeId.Value,
-      expect.any(String)
+      expect.any(String),
+      1
     );
     const summary = JSON.parse(mockPublishFinished.mock.calls[0][2]);
     expect(summary.description).toBe("desc");
@@ -429,7 +434,8 @@ describe("finish route", () => {
     expect(mockPublishFinished).toHaveBeenCalledWith(
       "test@example.com",
       route.routeId.Value,
-      expect.any(String)
+      expect.any(String),
+      1
     );
     expect(res.statusCode).toBe(200);
   });

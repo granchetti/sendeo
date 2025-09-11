@@ -30,6 +30,7 @@ describe("request routes handler", () => {
 
     expect(payload.jobId).toMatch(/^[0-9a-f-]{36}$/);
     expect(payload.correlationId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(payload.version).toBe(1);
     const body = JSON.parse(res.body);
     expect(body.jobId).toBe(payload.jobId);
     expect(body.enqueued).toBe(true);
