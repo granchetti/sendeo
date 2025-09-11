@@ -29,6 +29,7 @@ describe("request routes handler", () => {
     const payload = JSON.parse(sent.MessageBody);
 
     expect(payload.jobId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(payload.correlationId).toMatch(/^[0-9a-f-]{36}$/);
     const body = JSON.parse(res.body);
     expect(body.jobId).toBe(payload.jobId);
     expect(body.enqueued).toBe(true);
@@ -36,19 +37,53 @@ describe("request routes handler", () => {
 
   it("keeps provided jobId", async () => {
     const jobId = UUID.generate().Value;
+    const correlationId = UUID.generate().Value;
     mockSend.mockResolvedValueOnce({});
     const res = await handler({
       headers: { Accept: "application/json" },
-      body: JSON.stringify({ jobId, origin: "A", destination: "B" }),
+      body: JSON.stringify({
+        jobId,
+        correlationId,
+        origin: "A",
+        destination: "B",
+      }),
     } as any);
 
     expect(mockSend).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
 
     expect(payload.jobId).toBe(jobId);
+    expect(payload.correlationId).toBe(correlationId);
     const body = JSON.parse(res.body);
     expect(body.jobId).toBe(jobId);
     expect(body.enqueued).toBe(true);
+  });
+
+  it("generates correlationId when missing", async () => {
+    mockSend.mockResolvedValueOnce({});
+    await handler({
+      headers: { Accept: "application/json" },
+      body: JSON.stringify({ origin: "A", destination: "B" }),
+    } as any);
+
+    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    expect(payload.correlationId).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it("keeps provided correlationId", async () => {
+    const correlationId = UUID.generate().Value;
+    mockSend.mockResolvedValueOnce({});
+    await handler({
+      headers: { Accept: "application/json" },
+      body: JSON.stringify({
+        origin: "A",
+        destination: "B",
+        correlationId,
+      }),
+    } as any);
+
+    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    expect(payload.correlationId).toBe(correlationId);
   });
 
   it("returns 400 when body parsing fails", async () => {

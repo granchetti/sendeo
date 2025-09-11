@@ -98,6 +98,7 @@ describe("worker routes handler", () => {
             origin: "a",
             destination: "b",
             routesCount: 1,
+            correlationId: "corr-1",
           }),
         },
       ],
@@ -126,7 +127,8 @@ describe("worker routes handler", () => {
     ]);
     expect(mockPublish).toHaveBeenCalledWith(
       "550e8400-e29b-41d4-a716-446655440000",
-      [saved]
+      [saved],
+      "corr-1"
     );
     expect(sqsSend).toHaveBeenCalledTimes(1);
     const msg = sqsSend.mock.calls[0][0];
@@ -147,6 +149,7 @@ describe("worker routes handler", () => {
             origin: "a",
             destination: "b",
             routesCount: 1,
+            correlationId: "corr-2",
           }),
         },
       ],
@@ -190,6 +193,7 @@ describe("worker routes handler", () => {
             origin: "a",
             destination: "b",
             routesCount: 1,
+            correlationId: "corr-err",
           }),
         },
       ],
@@ -200,6 +204,7 @@ describe("worker routes handler", () => {
     jest.useRealTimers();
 
     expect(mockPublishError).toHaveBeenCalledTimes(1);
+    expect(mockPublishError.mock.calls[0][2]).toBe("corr-err");
   });
 
   it("saves route when no encoded polyline is returned", async () => {
@@ -222,6 +227,7 @@ describe("worker routes handler", () => {
             origin: "a",
             destination: "b",
             routesCount: 1,
+            correlationId: "corr-3",
           }),
         },
       ],

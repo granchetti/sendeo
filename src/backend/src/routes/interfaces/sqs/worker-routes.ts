@@ -76,6 +76,7 @@ export const handler: SQSHandler = async (event) => {
 
   for (const { body } of event.Records) {
     console.info("[handler] record", body);
+    let correlationId: string | undefined;
     try {
       const {
         jobId,
@@ -85,7 +86,10 @@ export const handler: SQSHandler = async (event) => {
         roundTrip = false,
         circle = false,
         routesCount = 3,
+        correlationId: corr,
       } = JSON.parse(body);
+
+      correlationId = corr;
 
         const oCoords = await generator.geocode(origin);
         const dCoords = destination
@@ -262,7 +266,8 @@ export const handler: SQSHandler = async (event) => {
             jobId,
             km,
             leg.durationSeconds,
-            leg.encoded
+            leg.encoded,
+            correlationId
           );
           if (hash2) seen.add(hash2);
           saved.push(r);
@@ -273,7 +278,7 @@ export const handler: SQSHandler = async (event) => {
 
     if (saved.length) {
       console.info(`[handler] publishing ${saved.length} routes`);
-      await publishRoutesGenerated(jobId, saved);
+      await publishRoutesGenerated(jobId, saved, correlationId);
       if (process.env.METRICS_QUEUE) {
         await sqs.send(
           new SendMessageCommand({
@@ -281,6 +286,7 @@ export const handler: SQSHandler = async (event) => {
             MessageBody: JSON.stringify({
               event: "routes_generated",
               jobId,
+              correlationId,
               count: saved.length,
               timestamp: Date.now(),
             }),
@@ -292,7 +298,7 @@ export const handler: SQSHandler = async (event) => {
     }
   } catch (err: any) {
     console.error("[handler] error processing record", err);
-    await publishErrorOccurred(err?.message || "Unknown error", body);
+    await publishErrorOccurred(err?.message || "Unknown error", body, correlationId);
   }
 }
 };

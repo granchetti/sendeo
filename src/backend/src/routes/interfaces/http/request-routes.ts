@@ -34,6 +34,12 @@ export const handler = base(rateLimit(async (
     data.jobId = UUID.generate().Value;
   }
 
+  if (!data.correlationId) {
+    data.correlationId = UUID.generate().Value;
+  } else {
+    data.correlationId = String(data.correlationId);
+  }
+
   if (data.distanceKm != null) {
     const d = parseFloat(String(data.distanceKm));
     if (isNaN(d) || d < 1 || d > 100) {

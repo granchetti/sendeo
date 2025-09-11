@@ -38,6 +38,7 @@ export const openApiSpec = {
                   distanceKm: { type: "number", minimum: 1, maximum: 100 },
                   routesCount: { type: "integer" },
                   jobId: { type: "string" },
+                  correlationId: { type: "string" },
                 },
                 required: ["origin"],
               },
