@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
@@ -16,9 +16,18 @@ import {
   Select,
   Button,
   useToast,
+  useDisclosure,
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogBody,
+  AlertDialogFooter,
 } from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom';
 import { FaUserEdit } from 'react-icons/fa';
 import { api } from '../services/api';
+import { AuthContext } from '../contexts/AuthContext';
 
 export interface UserProfileProps {
   email: string;
@@ -38,6 +47,10 @@ const UserProfilePage = () => {
   const [form, setForm] = useState<UserProfileProps | null>(null);
   const toast = useToast();
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { signOut } = useContext(AuthContext);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   const { data: profile, isLoading } = useQuery<UserProfileProps>({
     queryKey: ['profile'],
@@ -76,9 +89,23 @@ const UserProfilePage = () => {
     },
   });
 
+  const deleteAccount = useMutation({
+    mutationFn: () => api.delete('/v1/profile'),
+    onSuccess: () => {
+      qc.removeQueries({ queryKey: ['profile'] });
+      signOut();
+      navigate('/login');
+    },
+  });
+
   const handleSave = () => {
     if (!form) return;
     saveProfile.mutate(form);
+  };
+
+  const handleDelete = () => {
+    deleteAccount.mutate();
+    onClose();
   };
 
   const hasChanged = JSON.stringify(profile) !== JSON.stringify(form);
@@ -213,8 +240,54 @@ const UserProfilePage = () => {
             </Button>
           </TabPanel>
           <TabPanel>
+            <Stack spacing={4} mt={4}>
+              <Heading size="md" color="red.600">
+                Delete Account
+              </Heading>
+              <Text color="gray.600">
+                This action is permanent and will remove all your data.
+              </Text>
+              <Button
+                colorScheme="red"
+                alignSelf="start"
+                onClick={onOpen}
+                isLoading={deleteAccount.isPending}
+              >
+                Delete Account
+              </Button>
+            </Stack>
 
-            <Text mb={6} mt={4} color="gray.400">...future settings here...</Text>
+            <AlertDialog
+              isOpen={isOpen}
+              leastDestructiveRef={cancelRef}
+              onClose={onClose}
+            >
+              <AlertDialogOverlay>
+                <AlertDialogContent>
+                  <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                    Delete Account
+                  </AlertDialogHeader>
+
+                  <AlertDialogBody>
+                    Are you sure? You can't undo this action afterwards.
+                  </AlertDialogBody>
+
+                  <AlertDialogFooter>
+                    <Button ref={cancelRef} onClick={onClose}>
+                      Cancel
+                    </Button>
+                    <Button
+                      colorScheme="red"
+                      onClick={handleDelete}
+                      ml={3}
+                      isLoading={deleteAccount.isPending}
+                    >
+                      Delete
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialogOverlay>
+            </AlertDialog>
           </TabPanel>
         </TabPanels>
       </Tabs>
