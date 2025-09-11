@@ -55,7 +55,7 @@ describe('appsync-client', () => {
     const [, opts] = fetchMock.mock.calls[0];
     const body = JSON.parse(opts.body);
     expect(body).toEqual({
-      query: `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes)\n}`,
+      query: `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!, $correlationId: ID) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes, correlationId: $correlationId)\n}`,
       variables: {
         jobId: 'job-1',
         routes: [
@@ -96,7 +96,7 @@ describe('appsync-client', () => {
     const [, opts] = fetchMock.mock.calls[0];
     const body = JSON.parse(opts.body);
     expect(body).toEqual({
-      query: `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON) {\n  publishErrorOccurred(message: $message, payload: $payload)\n}`,
+      query: `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON, $correlationId: ID) {\n  publishErrorOccurred(message: $message, payload: $payload, correlationId: $correlationId)\n}`,
       variables: { message: 'boom', payload: { foo: 'bar' } },
     });
   });

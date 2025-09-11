@@ -61,7 +61,7 @@ Notes
 
 Key endpoints (Cognito JWT required)
 - `GET /v1/routes`: List routes (pagination via `cursor`, `limit`).
-- `POST /v1/routes`: Request route generation; enqueues job to SQS. Body: `origin` and either `destination` or `distanceKm`.
+- `POST /v1/routes`: Request route generation; enqueues job to SQS. Body: `origin` and either `destination` or `distanceKm` (optional `correlationId`).
 - `GET /v1/routes/{routeId}`: Route details (autodescribes via Google Maps + Bedrock if missing).
 - `GET /v1/jobs/{jobId}/routes`: List generated routes for a job.
 - `POST /v1/telemetry/started`: Start telemetry for a route (`{ routeId }`).

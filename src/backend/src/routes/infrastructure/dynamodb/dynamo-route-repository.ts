@@ -24,6 +24,8 @@ export class DynamoRouteRepository implements RouteRepository {
       createdAt: { N: now.toString() },
     };
     if (route.jobId) item.jobId = { S: route.jobId.Value };
+    if (route.correlationId)
+      item.correlationId = { S: route.correlationId.Value };
     if (route.distanceKm)
       item.distanceKm = { N: route.distanceKm.Value.toString() };
     if (route.duration) item.duration = { N: route.duration.Value.toString() };
@@ -56,6 +58,9 @@ export class DynamoRouteRepository implements RouteRepository {
     return Route.rehydrate({
       routeId: UUID.fromString(res.Item.routeId.S!),
       jobId: res.Item.jobId ? UUID.fromString(res.Item.jobId.S!) : undefined,
+      correlationId: res.Item.correlationId
+        ? UUID.fromString(res.Item.correlationId.S!)
+        : undefined,
       distanceKm: res.Item.distanceKm
         ? new DistanceKm(parseFloat(res.Item.distanceKm.N!))
         : undefined,
@@ -80,6 +85,9 @@ export class DynamoRouteRepository implements RouteRepository {
       Route.rehydrate({
         routeId: UUID.fromString(item.routeId.S!),
         jobId: item.jobId ? UUID.fromString(item.jobId.S!) : undefined,
+        correlationId: item.correlationId
+          ? UUID.fromString(item.correlationId.S!)
+          : undefined,
         distanceKm: item.distanceKm
           ? new DistanceKm(+item.distanceKm.N!)
           : undefined,
@@ -109,6 +117,9 @@ export class DynamoRouteRepository implements RouteRepository {
         Route.rehydrate({
           routeId: UUID.fromString(item.routeId.S!),
           jobId: item.jobId ? UUID.fromString(item.jobId.S!) : undefined,
+          correlationId: item.correlationId
+            ? UUID.fromString(item.correlationId.S!)
+            : undefined,
           distanceKm: item.distanceKm
             ? new DistanceKm(+item.distanceKm.N!)
             : undefined,

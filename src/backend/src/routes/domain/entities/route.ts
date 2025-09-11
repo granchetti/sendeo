@@ -10,6 +10,7 @@ import { RouteStatus } from "../value-objects/route-status";
 export interface RouteProps {
   readonly routeId: UUID;
   readonly jobId?: UUID;
+  readonly correlationId?: UUID;
   distanceKm?: DistanceKm;
   duration?: Duration;
   path?: Path;
@@ -78,6 +79,10 @@ export class Route {
 
   get jobId(): UUID | undefined {
     return this.props.jobId;
+  }
+
+  get correlationId(): UUID | undefined {
+    return this.props.correlationId;
   }
 
   get routeId(): UUID {

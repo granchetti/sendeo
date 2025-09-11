@@ -189,11 +189,15 @@ export class RouteGenerator {
     jobId: string,
     km: number,
     dur: number,
-    poly?: string
+    poly?: string,
+    correlationId?: string
   ) {
     const r = Route.request({
       routeId: UUID.generate(),
       jobId: UUID.fromString(jobId),
+      correlationId: correlationId
+        ? UUID.fromString(correlationId)
+        : undefined,
     });
     r.generate(
       new DistanceKm(km),

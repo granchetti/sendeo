@@ -48,7 +48,11 @@ describe("DynamoRouteRepository", () => {
   it("save correctly calls PutItemCommand", async () => {
     const coords = [LatLng.fromNumbers(1, 2), LatLng.fromNumbers(3, 4)];
     const path = Path.fromCoordinates(coords);
-    const route = Route.request({ routeId: UUID.generate(), jobId: UUID.generate() });
+    const route = Route.request({
+      routeId: UUID.generate(),
+      jobId: UUID.generate(),
+      correlationId: UUID.generate(),
+    });
     route.generate(new DistanceKm(5), new Duration(10), path);
     route.description = "desc";
 
@@ -61,6 +65,7 @@ describe("DynamoRouteRepository", () => {
     const expectedItem = {
       routeId: { S: route.routeId.Value },
       jobId: { S: route.jobId?.Value || "" },
+      correlationId: { S: route.correlationId?.Value || "" },
       distanceKm: { N: "5" },
       duration: { N: "10" },
       path: { S: path.Encoded },
@@ -86,6 +91,7 @@ describe("DynamoRouteRepository", () => {
   it("findById reconstructs a Route from response", async () => {
     const routeId = UUID.generate().Value;
     const jobId = UUID.generate().Value;
+    const correlationId = UUID.generate().Value;
     const coords = [LatLng.fromNumbers(1, 2), LatLng.fromNumbers(3, 4)];
     const encoded = Path.fromCoordinates(coords).Encoded;
     const returned = {
@@ -96,6 +102,7 @@ describe("DynamoRouteRepository", () => {
       path: { S: encoded },
       description: { S: "desc" },
       status: { S: RouteStatus.Generated },
+      correlationId: { S: correlationId },
     };
     mockSend.mockResolvedValueOnce({ Item: returned });
 
@@ -110,6 +117,7 @@ describe("DynamoRouteRepository", () => {
     expect(route?.distanceKm?.Value).toBe(5);
     expect(route?.duration?.Value).toBe(10);
     expect(route?.description).toBe("desc");
+    expect(route?.correlationId?.Value).toBe(correlationId);
     expect(
       route?.path?.Coordinates.map((c) => ({ lat: c.Lat, lng: c.Lng }))
     ).toEqual([
@@ -121,6 +129,7 @@ describe("DynamoRouteRepository", () => {
   it("findByJobId queries using GSI2", async () => {
     const routeId = UUID.generate();
     const jobId = UUID.generate();
+    const correlationId = UUID.generate();
     const returned = {
       Items: [
         {
@@ -128,6 +137,7 @@ describe("DynamoRouteRepository", () => {
           jobId: { S: jobId.Value },
           description: { S: "d" },
           status: { S: RouteStatus.Requested },
+          correlationId: { S: correlationId.Value },
         },
       ],
     };
@@ -144,5 +154,6 @@ describe("DynamoRouteRepository", () => {
     expect(res).toHaveLength(1);
     expect(res[0].jobId?.Value).toBe(jobId.Value);
     expect(res[0].description).toBe("d");
+    expect(res[0].correlationId?.Value).toBe(correlationId.Value);
   });
 });

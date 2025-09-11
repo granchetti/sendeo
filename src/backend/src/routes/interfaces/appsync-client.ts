@@ -62,7 +62,11 @@ export async function publishFavouriteDeleted(email: string, routeId: string) {
   );
 }
 
-export async function publishRoutesGenerated(jobId: string, routes: Route[]) {
+export async function publishRoutesGenerated(
+  jobId: string,
+  routes: Route[],
+  correlationId?: string
+) {
   const inputs = routes.map((r) => ({
     routeId: r.routeId.Value,
     distanceKm: r.distanceKm?.Value,
@@ -71,8 +75,8 @@ export async function publishRoutesGenerated(jobId: string, routes: Route[]) {
     description: r.description,
   }));
   await send(
-    `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes)\n}`,
-    { jobId, routes: inputs }
+    `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!, $correlationId: ID) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes, correlationId: $correlationId)\n}`,
+    { jobId, routes: inputs, correlationId }
   );
 }
 
@@ -96,10 +100,11 @@ export async function publishRouteFinished(
 
 export async function publishErrorOccurred(
   message: string,
-  payload: any
+  payload: any,
+  correlationId?: string
 ) {
   await send(
-    `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON) {\n  publishErrorOccurred(message: $message, payload: $payload)\n}`,
-    { message, payload }
+    `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON, $correlationId: ID) {\n  publishErrorOccurred(message: $message, payload: $payload, correlationId: $correlationId)\n}`,
+    { message, payload, correlationId }
   );
 }
