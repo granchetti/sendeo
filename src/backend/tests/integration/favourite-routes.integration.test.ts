@@ -35,8 +35,10 @@ const sendMock = jest
     return {} as any;
   });
 
+import { primeJwksForTesting } from "../../src/shared/auth/verify-jwt";
 import { createFavouriteRoutesHandler } from "../../src/users/interfaces/http/favourite-routes";
 import { DynamoUserProfileRepository } from "../../src/users/infrastructure/dynamodb/dynamo-user-profile-repository";
+import { createSign, generateKeyPairSync } from "crypto";
 
 const repository = new DynamoUserProfileRepository(new DynamoDBClient({}) as any, process.env.USER_STATE_TABLE!);
 const handler = createFavouriteRoutesHandler(repository);
@@ -44,9 +46,9 @@ const handler = createFavouriteRoutesHandler(repository);
 describe("favourite routes integration", () => {
   const email = "test@example.com";
   const baseEvent: any = {
-    requestContext: { authorizer: { claims: { email } } },
     headers: { Accept: "application/json" },
   };
+  let authHeader: string;
   const key = (routeId: string) => `USER#${email}|FAV#${routeId}`;
 
   beforeEach(() => {
@@ -57,11 +59,39 @@ describe("favourite routes integration", () => {
     sendMock.mockRestore();
   });
 
+  beforeAll(() => {
+    process.env.COGNITO_USER_POOL_ID = "us-east-1_testpool";
+    process.env.COGNITO_CLIENT_ID = "testclient";
+    const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const jwk: any = publicKey.export({ format: "jwk" });
+    jwk.kid = "it-fav-key";
+    jwk.use = "sig";
+    jwk.alg = "RS256";
+    primeJwksForTesting({ keys: [jwk] } as any);
+    const sign = (payload: any) => {
+      const header = { alg: "RS256", kid: jwk.kid };
+      const now = Math.floor(Date.now() / 1000);
+      const body = {
+        iss: `https://cognito-idp.us-east-1.amazonaws.com/${process.env.COGNITO_USER_POOL_ID}`,
+        aud: process.env.COGNITO_CLIENT_ID,
+        token_use: "id",
+        exp: now + 3600,
+        ...payload,
+      };
+      const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString("base64url");
+      const data = `${enc(header)}.${enc(body)}`;
+      const s = createSign("RSA-SHA256");
+      s.update(data);
+      return `${data}.${s.sign(privateKey).toString("base64url")}`;
+    };
+    authHeader = `Bearer ${sign({ email })}`;
+  });
+
   it("returns favourites on GET", async () => {
     store.set(key("1"), { PK: { S: `USER#${email}` }, SK: { S: "FAV#1" } });
     store.set(key("2"), { PK: { S: `USER#${email}` }, SK: { S: "FAV#2" } });
 
-    const res = await handler({ ...baseEvent, httpMethod: "GET" });
+    const res = await handler({ ...baseEvent, httpMethod: "GET", headers: { ...baseEvent.headers, Authorization: authHeader } });
 
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual({ favourites: ["1", "2"] });
@@ -71,6 +101,7 @@ describe("favourite routes integration", () => {
     const res = await handler({
       ...baseEvent,
       httpMethod: "POST",
+      headers: { ...baseEvent.headers, Authorization: authHeader },
       body: JSON.stringify({ routeId: "1" }),
     });
 
@@ -84,6 +115,7 @@ describe("favourite routes integration", () => {
     const res = await handler({
       ...baseEvent,
       httpMethod: "POST",
+      headers: { ...baseEvent.headers, Authorization: authHeader },
       body: JSON.stringify({ routeId: "1" }),
     });
 
@@ -101,6 +133,7 @@ describe("favourite routes integration", () => {
     const res = await handler({
       ...baseEvent,
       httpMethod: "DELETE",
+      headers: { ...baseEvent.headers, Authorization: authHeader },
       pathParameters: { routeId: "2" },
     });
 
