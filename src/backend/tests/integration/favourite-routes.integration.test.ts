@@ -35,7 +35,11 @@ const sendMock = jest
     return {} as any;
   });
 
-import { handler } from "../../src/users/interfaces/http/favourite-routes";
+import { createFavouriteRoutesHandler } from "../../src/users/interfaces/http/favourite-routes";
+import { DynamoUserProfileRepository } from "../../src/users/infrastructure/dynamodb/dynamo-user-profile-repository";
+
+const repository = new DynamoUserProfileRepository(new DynamoDBClient({}) as any, process.env.USER_STATE_TABLE!);
+const handler = createFavouriteRoutesHandler(repository);
 
 describe("favourite routes integration", () => {
   const email = "test@example.com";

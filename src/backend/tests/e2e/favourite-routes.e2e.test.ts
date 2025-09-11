@@ -92,6 +92,8 @@ import {
   publishFavouriteSaved,
   publishFavouriteDeleted,
 } from "../../src/routes/interfaces/appsync-client";
+import { createFavouriteRoutesHandler } from "../../src/users/interfaces/http/favourite-routes";
+import { DynamoUserProfileRepository } from "../../src/users/infrastructure/dynamodb/dynamo-user-profile-repository";
 
 describe("favourite routes API e2e", () => {
   const tableName = "UserState";
@@ -124,9 +126,8 @@ describe("favourite routes API e2e", () => {
         BillingMode: "PAY_PER_REQUEST",
       })
     );
-    // Import the handler after env is set so repository picks up table name
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    handler = require("../../src/users/interfaces/http/favourite-routes").handler;
+      const repo = new DynamoUserProfileRepository(client as any, tableName);
+      handler = createFavouriteRoutesHandler(repo);
   });
 
   afterAll(async () => {
