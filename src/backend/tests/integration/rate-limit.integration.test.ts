@@ -1,4 +1,5 @@
 import { rateLimit, resetRateLimit } from "../../src/http/rate-limit";
+import { createHash } from "node:crypto";
 
 const baseEvent: any = {
   requestContext: { identity: { sourceIp: "1.1.1.1" } },
@@ -7,6 +8,11 @@ const baseEvent: any = {
 describe("rate limit middleware", () => {
   beforeEach(() => {
     resetRateLimit();
+    process.env.RATE_LIMIT_SALT = "test-salt";
+  });
+
+  afterEach(() => {
+    delete process.env.RATE_LIMIT_SALT;
   });
 
   it("returns 429 with Retry-After when limit exceeded", async () => {
@@ -28,7 +34,10 @@ describe("rate limit middleware", () => {
       windowMs: 60_000,
     });
     await handler(baseEvent);
-    expect(logSpy).toHaveBeenCalledWith("rate-limit:1.1.1.1:1");
+    const expectedKey = createHash("sha256")
+      .update("1.1.1.1" + process.env.RATE_LIMIT_SALT!)
+      .digest("hex");
+    expect(logSpy).toHaveBeenCalledWith(`rate-limit:${expectedKey}:1`);
     logSpy.mockRestore();
   });
 

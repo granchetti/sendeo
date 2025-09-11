@@ -1,4 +1,9 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import { createHash } from "node:crypto";
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from "@aws-sdk/client-secrets-manager";
 
 export interface RateLimitOptions {
   limit?: number;
@@ -10,6 +15,28 @@ type Handler = (event: APIGatewayProxyEvent) => Promise<APIGatewayProxyResult>;
 
 const attempts = new Map<string, { count: number; expiresAt: number }>();
 
+// Lazily fetch and cache the salt used for hashing rate limit identifiers.
+const sm = new SecretsManagerClient({});
+let cachedSalt: string | null = null;
+async function getSalt(): Promise<string> {
+  if (cachedSalt) return cachedSalt;
+  if (process.env.RATE_LIMIT_SALT) {
+    cachedSalt = process.env.RATE_LIMIT_SALT;
+    return cachedSalt;
+  }
+  try {
+    const resp = await sm.send(
+      new GetSecretValueCommand({ SecretId: "rate-limit-salt" })
+    );
+    cachedSalt = JSON.parse(resp.SecretString!).RATE_LIMIT_SALT;
+    return cachedSalt;
+  } catch (err) {
+    console.warn("[rateLimit] unable to retrieve salt", err);
+    cachedSalt = "";
+    return cachedSalt;
+  }
+}
+
 export const rateLimit = (
   handler: Handler,
   { limit = 100, windowMs = 60_000, keyGenerator }: RateLimitOptions = {}
@@ -17,11 +44,16 @@ export const rateLimit = (
   return async (
     event: APIGatewayProxyEvent
   ): Promise<APIGatewayProxyResult> => {
-    const key = keyGenerator
+    const rawKey = keyGenerator
       ? keyGenerator(event)
       : (event.requestContext as any)?.authorizer?.claims?.sub ||
         (event.requestContext as any)?.identity?.sourceIp ||
         "unknown";
+
+    // Hash the identifier with a salt so logs don't contain raw user data.
+    const key = createHash("sha256")
+      .update(rawKey + (await getSalt()))
+      .digest("hex");
 
     const now = Date.now();
     const record = attempts.get(key);
@@ -48,4 +80,5 @@ export const rateLimit = (
 
 export const resetRateLimit = () => {
   attempts.clear();
+  cachedSalt = null;
 };
