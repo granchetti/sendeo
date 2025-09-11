@@ -1,11 +1,12 @@
 import { v4 as uuidv4, validate as uuidValidate, version as uuidVersion } from 'uuid';
+import { ValidationError } from "../../errors";
 
 export class UUID {
   private readonly value: string;
 
   private constructor(value: string) {
     if (!uuidValidate(value) || uuidVersion(value) !== 4) {
-      throw new Error('UUID debe ser un UUID v4 válido');
+      throw new ValidationError('UUID debe ser un UUID v4 válido');
     }
     this.value = value;
   }

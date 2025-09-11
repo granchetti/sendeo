@@ -12,6 +12,7 @@ import { DistanceKm } from "../../domain/value-objects/distance";
 import { Duration } from "../../domain/value-objects/duration";
 import { LatLng } from "../../domain/value-objects/lat-lng";
 import { Path } from "../../domain/value-objects/path";
+import { RouteNotFoundError } from "../../../shared/errors";
 
 describe("StartRouteUseCase", () => {
   it("starts route, saves and publishes event", async () => {
@@ -41,21 +42,22 @@ describe("StartRouteUseCase", () => {
 
     expect(findById).toHaveBeenCalledWith(route.routeId);
     expect(save).toHaveBeenCalledWith(route);
-    expect(result?.status).toBe(RouteStatus.Started);
+    expect(result.status).toBe(RouteStatus.Started);
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler.mock.calls[0][0]).toBeInstanceOf(RouteStartedEvent);
   });
 
-  it("returns null when route not found", async () => {
+  it("throws when route not found", async () => {
     const findById = jest.fn().mockResolvedValue(null);
     const repo: RouteRepository = { findById } as any;
     const dispatcher: EventDispatcher = new InMemoryEventDispatcher();
     const useCase = new StartRouteUseCase(repo, dispatcher);
-    const res = await useCase.execute({
-      routeId: UUID.generate(),
-      email: "b@test",
-      timestamp: Date.now(),
-    });
-    expect(res).toBeNull();
+    await expect(
+      useCase.execute({
+        routeId: UUID.generate(),
+        email: "b@test",
+        timestamp: Date.now(),
+      })
+    ).rejects.toBeInstanceOf(RouteNotFoundError);
   });
 });

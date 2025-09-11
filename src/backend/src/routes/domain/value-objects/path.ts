@@ -1,11 +1,12 @@
 // domain/value-objects/path.ts
 import polyline from '@mapbox/polyline';
 import { LatLng } from './lat-lng';
+import { ValidationError } from "../../../shared/errors";
 
 export class Path {
   constructor(private readonly encoded: string) {
     if (!encoded) {
-      throw new Error("Encoded polyline string is required");
+      throw new ValidationError("Encoded polyline string is required");
     }
   }
 
@@ -20,7 +21,7 @@ export class Path {
 
   static fromCoordinates(coords: LatLng[]): Path {
     if (coords.length < 2) {
-      throw new Error("The path must have at least two coordinates");
+      throw new ValidationError("The path must have at least two coordinates");
     }
     const arr = coords.map(c => [c.Lat, c.Lng] as [number, number]);
     return new Path(polyline.encode(arr));

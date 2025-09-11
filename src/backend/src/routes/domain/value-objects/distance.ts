@@ -1,8 +1,10 @@
+import { InvalidDistanceError } from "../../../shared/errors";
+
 export class DistanceKm {
   private readonly value: number;
 
   constructor(value: number) {
-    if (value < 0) throw new Error("Distance cannot be negative");
+    if (value < 0) throw new InvalidDistanceError();
     this.value = value;
   }
 
