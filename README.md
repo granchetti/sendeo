@@ -24,6 +24,7 @@ This README covers the architecture, required tooling, environment, and the most
 - For deployment:
   - An AWS Secrets Manager secret named `google-api-key` containing the Google Maps API key.
   - An AWS Secrets Manager secret named `my-github-token` with a JSON field `GITHUB_TOKEN` for Amplify to read.
+  - An AWS Secrets Manager secret named `rate-limit-salt` with a JSON field `RATE_LIMIT_SALT` to salt hashed rate-limit identifiers.
 
 ## Environment
 - Frontend `.env` (example in `src/frontend/.env`):
@@ -58,6 +59,11 @@ Notes
 - Unit tests: `cd src/backend && npm run test:unit`
 - E2E tests: `cd src/backend && npm run test:e2e`
 - Build: `cd src/backend && npm run build`
+
+Rate limiting anonymises each requester identifier by hashing the Cognito `sub`
+or source IP with SHA-256 and a secret salt. The salt is loaded from the
+`RATE_LIMIT_SALT` environment variable or fetched from the
+`rate-limit-salt` entry in AWS Secrets Manager.
 
 Key endpoints (Cognito JWT required)
 - `GET /v1/routes`: List routes (pagination via `cursor`, `limit`).
