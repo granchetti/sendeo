@@ -1,140 +1,23 @@
 import { SQSHandler } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
-import { request as httpsRequest, RequestOptions } from "node:https";
 import { createHash } from "node:crypto";
 import { Path } from "../../domain/value-objects/path";
 import type { Route } from "../../domain/entities/route";
 import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { publishRoutesGenerated, publishErrorOccurred } from "../appsync-client";
-import { fetchJson, getGoogleKey } from "../shared/utils";
+import { getGoogleKey } from "../shared/utils";
 import { RouteGenerator } from "../../domain/services/route-generator";
+import { GoogleRoutesProvider } from "../../infrastructure/google-maps/google-routes-provider";
 
 const dynamo = new DynamoDBClient({
   endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
 });
 const sqs = new SQSClient({});
 const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
-const generator = new RouteGenerator(repository);
 const SNAP_THRESHOLD_KM = 0.5;
 
 
-async function postJson<T>(
-  host: string,
-  path: string,
-  apiKey: string,
-  body: any,
-  attempt = 0
-): Promise<T | null> {
-  const payload = JSON.stringify(body);
-  const opts: RequestOptions = {
-    method: "POST",
-    host,
-    path,
-    headers: {
-      "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(payload),
-      "X-Goog-Api-Key": apiKey,
-      "X-Goog-FieldMask":
-        "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline",
-    },
-  };
-  console.info(`[postJson] POST https://${host}${path}`, body);
-  try {
-    const data = await new Promise<string>((resolve, reject) => {
-      const req = httpsRequest(opts, (res) => {
-        let data = "";
-        res.on("data", (c) => (data += c));
-        res.on("end", () => {
-          console.info(`[postJson] HTTP ${res.statusCode}`, data);
-          if (res.statusCode !== 200) {
-            const err: any = new Error(
-              `Routes API returned HTTP ${res.statusCode}`
-            );
-            err.statusCode = res.statusCode;
-            err.body = data;
-            return reject(err);
-          }
-          resolve(data);
-        });
-      });
-      req.on("error", (err) => reject(err));
-      req.write(payload);
-      req.end();
-    });
-    return data ? JSON.parse(data) : null;
-  } catch (err: any) {
-    const status = err?.statusCode;
-    if ((status === 429 || (status >= 500 && status < 600)) && attempt < 2) {
-      const delay = 500 * Math.pow(2, attempt);
-      console.warn(
-        `[postJson] retry ${attempt + 1} in ${delay}ms due to ${status}`
-      );
-      await new Promise((r) => setTimeout(r, delay));
-      return postJson<T>(host, path, apiKey, body, attempt + 1);
-    }
-    console.error("[postJson] HTTP error", err);
-    throw err;
-  }
-}
-
-async function computeRoutes(
-  origin: { lat: number; lng: number },
-  destination: { lat: number; lng: number },
-  apiKey: string
-) {
-  console.info("[computeRoutes]", origin, "→", destination);
-  const body = {
-    origin: {
-      location: { latLng: { latitude: origin.lat, longitude: origin.lng } },
-    },
-    destination: {
-      location: {
-        latLng: { latitude: destination.lat, longitude: destination.lng },
-      },
-    },
-    travelMode: "WALK",
-    computeAlternativeRoutes: true,
-  };
-  const resp: any = await postJson(
-    "routes.googleapis.com",
-    "/directions/v2:computeRoutes",
-    apiKey,
-    body
-  );
-
-  return (resp?.routes ?? [])
-    .map((r: any) => {
-      const dist =
-        typeof r.distanceMeters === "number" ? r.distanceMeters : undefined;
-
-      const durRaw = r?.duration;
-      const seconds =
-        typeof durRaw === "object"
-          ? Number(durRaw?.seconds ?? durRaw?.value ?? durRaw)
-          : typeof durRaw === "string"
-          ? parseInt(durRaw.replace(/\D/g, ""), 10)
-          : undefined;
-
-      if (dist == null || seconds == null || Number.isNaN(seconds)) {
-        return null;
-      }
-      return {
-        distanceMeters: dist,
-        durationSeconds: seconds,
-        encoded: r?.polyline?.encodedPolyline,
-      };
-    })
-    .filter(
-      (
-        x: unknown
-      ): x is {
-        distanceMeters: number;
-        durationSeconds: number;
-        encoded?: string;
-      } => !!x
-    );
-}
 
 /** Offset a point by km & bearing */
 function offsetCoordinate(lat: number, lng: number, dKm: number, bDeg = 90) {
@@ -170,38 +53,6 @@ function distanceKm(
   return 2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
-async function snapToRoad(
-  pt: { lat: number; lng: number },
-  apiKey: string,
-  maxKm = 1
-) {
-  const url = `https://roads.googleapis.com/v1/nearestRoads?points=${pt.lat},${pt.lng}&key=${apiKey}`;
-  console.info("[snapToRoad]", pt);
-  try {
-    const data: any = await fetchJson(url);
-    const loc = data?.snappedPoints?.[0]?.location;
-    console.info("[snapToRoad] snapped:", loc);
-    if (!loc) return pt;
-    const snapped = {
-      lat: loc.latitude ?? loc.lat,
-      lng: loc.longitude ?? loc.lng,
-    };
-    const d = distanceKm(pt, snapped);
-    if (
-      d > maxKm ||
-      Math.abs(snapped.lat - pt.lat) > 1 ||
-      Math.abs(snapped.lng - pt.lng) > 1
-    ) {
-      console.warn("[snapToRoad] snapped too far, ignored");
-      return pt;
-    }
-    return snapped;
-  } catch (err) {
-    console.warn("[snapToRoad] failed:", err);
-    return pt;
-  }
-}
-
 function withinTarget(km: number, targetKm: number, pct = 0.15, absMax = 2) {
   const delta = Math.abs(km - targetKm);
   const tol = Math.max(absMax, targetKm * pct);
@@ -220,6 +71,8 @@ function withinTarget(km: number, targetKm: number, pct = 0.15, absMax = 2) {
 export const handler: SQSHandler = async (event) => {
   console.info("[handler] event", JSON.stringify(event, null, 2));
   const key = await getGoogleKey();
+  const provider = new GoogleRoutesProvider(key);
+  const generator = new RouteGenerator(repository, provider);
 
   for (const { body } of event.Records) {
     console.info("[handler] record", body);
@@ -234,10 +87,10 @@ export const handler: SQSHandler = async (event) => {
         routesCount = 3,
       } = JSON.parse(body);
 
-      const oCoords = await generator.geocode(origin, key);
-      const dCoords = destination
-        ? await generator.geocode(destination, key)
-        : undefined;
+        const oCoords = await generator.geocode(origin);
+        const dCoords = destination
+          ? await generator.geocode(destination)
+          : undefined;
 
       const saved: Route[] = [];
       const seen = new Set<string>();
@@ -252,8 +105,8 @@ export const handler: SQSHandler = async (event) => {
         `[handler] attempt ${attempts}, have ${saved.length}/${routesCount}`
       );
 
-      if (dCoords) {
-        const alts = await computeRoutes(oCoords, dCoords, key);
+        if (dCoords) {
+          const alts = await provider.computeRoutes(oCoords, dCoords);
         const shuffled = alts.sort(() => Math.random() - 0.5);
         for (const alt of shuffled) {
           if (saved.length >= routesCount) break;
@@ -293,27 +146,25 @@ export const handler: SQSHandler = async (event) => {
               for (let t = 0; t < tries; t++) {
                 const bearing =
                   Math.random() * 360 + (Math.random() * 2 - 1) * step * 0.25;
-                leg = await generator.computeCircularRoute(
-                  oCoords,
-                  distanceKm!,
-                  segs,
-                  key,
-                  bearing,
-                  rMul
-                );
+                  leg = await generator.computeCircularRoute(
+                    oCoords,
+                    distanceKm!,
+                    segs,
+                    bearing,
+                    rMul
+                  );
                 if (leg) {
                   let km = leg.distanceMeters / 1000;
                   let adjust = 0;
                   while (!withinTarget(km, distanceKm!) && adjust < 2) {
                     const rm = Math.min(1.3, Math.max(0.4, distanceKm! / km));
-                    leg = await generator.computeCircularRoute(
-                      oCoords,
-                      distanceKm!,
-                      segs,
-                      key,
-                      bearing,
-                      rm
-                    );
+                      leg = await generator.computeCircularRoute(
+                        oCoords,
+                        distanceKm!,
+                        segs,
+                        bearing,
+                        rm
+                      );
                     if (!leg) break;
                     km = leg.distanceMeters / 1000;
                     adjust++;
@@ -341,12 +192,12 @@ export const handler: SQSHandler = async (event) => {
               half,
               bearing
             );
-            const snapped =
-              half > SNAP_THRESHOLD_KM
-                ? await snapToRoad(rawDest, key)
-                : rawDest;
-            const [out] = await computeRoutes(oCoords, snapped, key);
-            const [back] = await computeRoutes(snapped, oCoords, key);
+              const snapped =
+                half > SNAP_THRESHOLD_KM
+                  ? await provider.snapToRoad(rawDest)
+                  : rawDest;
+              const [out] = await provider.computeRoutes(oCoords, snapped);
+              const [back] = await provider.computeRoutes(snapped, oCoords);
             if (out?.encoded && back?.encoded) {
               const c1 = new Path(out.encoded).Coordinates;
               const c2 = new Path(back.encoded).Coordinates.slice(1);
@@ -370,14 +221,16 @@ export const handler: SQSHandler = async (event) => {
             bearing
           );
           const snapped =
-            half > SNAP_THRESHOLD_KM ? await snapToRoad(rawDest, key) : rawDest;
-          const [out] = await computeRoutes(oCoords, snapped, key);
+            half > SNAP_THRESHOLD_KM
+              ? await provider.snapToRoad(rawDest)
+              : rawDest;
+          const [out] = await provider.computeRoutes(oCoords, snapped);
           if (!out) continue;
 
           if (!roundTrip) {
             leg = out;
           } else {
-            const [back] = await computeRoutes(snapped, oCoords, key);
+            const [back] = await provider.computeRoutes(snapped, oCoords);
             if (!back) continue;
             const c1 = new Path(out.encoded).Coordinates;
             const c2 = new Path(back.encoded).Coordinates.slice(1);

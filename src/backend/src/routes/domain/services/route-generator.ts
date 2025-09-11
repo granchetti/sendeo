@@ -4,147 +4,32 @@ import { DistanceKm } from "../value-objects/distance";
 import { Duration } from "../value-objects/duration";
 import { Path } from "../value-objects/path";
 import { UUID } from "../../../shared/domain/value-objects/uuid";
-import { fetchJson } from "../../interfaces/shared/utils";
-import { request as httpsRequest, RequestOptions } from "node:https";
+import { RouteProvider, RouteLeg } from "./route-provider";
 
 const SNAP_THRESHOLD_KM = 0.5;
 
 export class RouteGenerator {
-  constructor(private repository: RouteRepository) {}
+  constructor(
+    private repository: RouteRepository,
+    private provider: RouteProvider
+  ) {}
 
-  async geocode(address: string, apiKey: string) {
-    console.info("[geocode] start:", address);
-    const coordRx = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
-    if (coordRx.test(address)) {
-      const [lat, lng] = address.split(/\s*,\s*/).map(Number);
-      console.info("[geocode] parsed coords:", lat, lng);
-      return { lat, lng };
-    }
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-      address
-    )}&key=${apiKey}`;
-    const res: any = await fetchJson(url);
-    const loc = res?.results?.[0]?.geometry?.location;
-    if (!loc) throw new Error(`Geocoding failed for "${address}"`);
-    console.info("[geocode] geocoded to:", loc.lat, loc.lng);
-    return { lat: loc.lat, lng: loc.lng };
+  async geocode(address: string) {
+    return this.provider.geocode(address);
   }
 
-  private async postJson<T>(
-    host: string,
-    path: string,
-    apiKey: string,
-    body: any,
-    attempt = 0
-  ): Promise<T | null> {
-    const payload = JSON.stringify(body);
-    const opts: RequestOptions = {
-      method: "POST",
-      host,
-      path,
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-        "X-Goog-Api-Key": apiKey,
-        "X-Goog-FieldMask":
-          "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline",
-      },
-    };
-    console.info(`[postJson] POST https://${host}${path}`, body);
-    try {
-      const data = await new Promise<string>((resolve, reject) => {
-        const req = httpsRequest(opts, (res) => {
-          let data = "";
-          res.on("data", (c) => (data += c));
-          res.on("end", () => {
-            console.info(`[postJson] HTTP ${res.statusCode}`, data);
-            if (res.statusCode !== 200) {
-              const err: any = new Error(
-                `Routes API returned HTTP ${res.statusCode}`
-              );
-              err.statusCode = res.statusCode;
-              err.body = data;
-              return reject(err);
-            }
-            resolve(data);
-          });
-        });
-        req.on("error", (err) => reject(err));
-        req.write(payload);
-        req.end();
-      });
-      return data ? JSON.parse(data) : null;
-    } catch (err: any) {
-      const status = err?.statusCode;
-      if ((status === 429 || (status >= 500 && status < 600)) && attempt < 2) {
-        const delay = 500 * Math.pow(2, attempt);
-        console.warn(
-          `[postJson] retry ${attempt + 1} in ${delay}ms due to ${status}`
-        );
-        await new Promise((r) => setTimeout(r, delay));
-        return this.postJson<T>(host, path, apiKey, body, attempt + 1);
-      }
-      console.error("[postJson] HTTP error", err);
-      throw err;
-    }
-  }
-
-  private async computeRoutes(
+  async computeRoutes(
     origin: { lat: number; lng: number },
-    destination: { lat: number; lng: number },
-    apiKey: string
-  ) {
-    console.info("[computeRoutes]", origin, "→", destination);
-    const body = {
-      origin: {
-        location: { latLng: { latitude: origin.lat, longitude: origin.lng } },
-      },
-      destination: {
-        location: {
-          latLng: { latitude: destination.lat, longitude: destination.lng },
-        },
-      },
-      travelMode: "WALK",
-      computeAlternativeRoutes: true,
-    };
-    const resp: any = await this.postJson(
-      "routes.googleapis.com",
-      "/directions/v2:computeRoutes",
-      apiKey,
-      body
-    );
+    destination: { lat: number; lng: number }
+  ): Promise<RouteLeg[]> {
+    return this.provider.computeRoutes(origin, destination);
+  }
 
-    return (resp?.routes ?? [])
-      .map((r: any) => {
-        const dist =
-          typeof r.distanceMeters === "number" ? r.distanceMeters : undefined;
-
-        const durRaw = r?.duration;
-        const seconds =
-          typeof durRaw === "object"
-            ? Number(durRaw?.seconds ?? durRaw?.value ?? durRaw)
-            : typeof durRaw === "string"
-            ? parseInt(durRaw.replace(/\D/g, ""), 10)
-            : undefined;
-
-        if (dist == null || seconds == null || Number.isNaN(seconds)) {
-          return null;
-        }
-        return {
-          distanceMeters: dist,
-          durationSeconds: seconds,
-          encoded: r?.polyline?.encodedPolyline,
-        };
-      })
-      .filter(
-        (
-          x: unknown
-        ): x is {
-          distanceMeters: number;
-          durationSeconds: number;
-          encoded?: string;
-        } => !!x
-      );
+  async snapToRoad(
+    pt: { lat: number; lng: number },
+    maxKm = 1
+  ): Promise<{ lat: number; lng: number }> {
+    return this.provider.snapToRoad(pt, maxKm);
   }
 
   private offsetCoordinate(
@@ -185,43 +70,10 @@ export class RouteGenerator {
     return 2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
   }
 
-  private async snapToRoad(
-    pt: { lat: number; lng: number },
-    apiKey: string,
-    maxKm = 1
-  ) {
-    const url = `https://roads.googleapis.com/v1/nearestRoads?points=${pt.lat},${pt.lng}&key=${apiKey}`;
-    console.info("[snapToRoad]", pt);
-    try {
-      const data: any = await fetchJson(url);
-      const loc = data?.snappedPoints?.[0]?.location;
-      console.info("[snapToRoad] snapped:", loc);
-      if (!loc) return pt;
-      const snapped = {
-        lat: loc.latitude ?? loc.lat,
-        lng: loc.longitude ?? loc.lng,
-      };
-      const d = this.distanceKm(pt, snapped);
-      if (
-        d > maxKm ||
-        Math.abs(snapped.lat - pt.lat) > 1 ||
-        Math.abs(snapped.lng - pt.lng) > 1
-      ) {
-        console.warn("[snapToRoad] snapped too far, ignored");
-        return pt;
-      }
-      return snapped;
-    } catch (err) {
-      console.warn("[snapToRoad] failed:", err);
-      return pt;
-    }
-  }
-
   async computeCircularRoute(
     origin: { lat: number; lng: number },
     dKm: number,
     segments: number,
-    apiKey: string,
     startBearing = 0,
     radiusMultiplier = 1
   ) {
@@ -236,7 +88,7 @@ export class RouteGenerator {
       angles.push(angle);
       const raw = this.offsetCoordinate(origin.lat, origin.lng, baseRadius, angle);
       const snapped =
-        baseRadius > SNAP_THRESHOLD_KM ? await this.snapToRoad(raw, apiKey) : raw;
+        baseRadius > SNAP_THRESHOLD_KM ? await this.snapToRoad(raw) : raw;
       const pt =
         snapped.lat === origin.lat && snapped.lng === origin.lng ? raw : snapped;
       waypoints.push(pt);
@@ -257,7 +109,7 @@ export class RouteGenerator {
       );
       const halfSnap =
         baseRadius > SNAP_THRESHOLD_KM
-          ? await this.snapToRoad(halfRaw, apiKey)
+          ? await this.snapToRoad(halfRaw)
           : halfRaw;
       const half =
         halfSnap.lat === origin.lat && halfSnap.lng === origin.lng
@@ -268,7 +120,7 @@ export class RouteGenerator {
         used = primary;
       for (let attempt = 0; attempt < candidates.length; attempt++) {
         const dest = candidates[attempt];
-        const legs = await this.computeRoutes(prev, dest, apiKey);
+        const legs = await this.computeRoutes(prev, dest);
         const cand = legs[0];
         if (cand?.encoded) {
           leg = cand;
@@ -282,7 +134,7 @@ export class RouteGenerator {
       }
       if (!leg) {
         console.warn(`[computeCircularRoute] segment ${i} failed`);
-        const legs = await this.computeRoutes(prev, origin, apiKey);
+        const legs = await this.computeRoutes(prev, origin);
         const closeLeg = legs[0];
         if (closeLeg?.encoded) {
           console.warn(
@@ -310,7 +162,7 @@ export class RouteGenerator {
 
     // ensure loop closure
     if (prev.lat !== origin.lat || prev.lng !== origin.lng) {
-      const legs = await this.computeRoutes(prev, origin, apiKey);
+      const legs = await this.computeRoutes(prev, origin);
       const leg = legs[0];
       if (leg?.encoded) {
         console.warn("[computeCircularRoute] closing loop to origin");

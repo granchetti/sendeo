@@ -16,7 +16,7 @@ import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
 import { rateLimit } from "../../../http/rate-limit";
 import { getGoogleKey } from "../shared/utils";
-import { GoogleMapsProvider } from "../../infrastructure/google-maps/google-maps-provider";
+import { GoogleRoutesProvider } from "../../infrastructure/google-maps/google-routes-provider";
 import {
   EventDispatcher,
   InMemoryEventDispatcher,
@@ -160,7 +160,7 @@ export const handler = base(rateLimit(async (
     if (!route.description && route.path) {
       try {
         const key = await getGoogleKey();
-        const mapProvider = new GoogleMapsProvider(key);
+        const mapProvider = new GoogleRoutesProvider(key);
         const updated = await describeRouteUseCase.execute(
           route.routeId,
           mapProvider
