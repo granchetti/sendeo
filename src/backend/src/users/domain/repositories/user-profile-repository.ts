@@ -7,4 +7,5 @@ export interface UserProfileRepository {
   getFavourites(user: Email): Promise<string[]>;
   getProfile(email: Email): Promise<UserProfile | null>;
   putProfile(profile: UserProfile): Promise<void>;
+  deleteProfile(email: Email): Promise<void>;
 }

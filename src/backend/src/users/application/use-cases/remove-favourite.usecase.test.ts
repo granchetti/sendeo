@@ -6,6 +6,11 @@ describe('RemoveFavouriteUseCase', () => {
   it('calls deleteFavourite with provided params', async () => {
     const repo: UserProfileRepository = {
       deleteFavourite: jest.fn(),
+      putFavourite: jest.fn(),
+      getFavourites: jest.fn(),
+      getProfile: jest.fn(),
+      putProfile: jest.fn(),
+      deleteProfile: jest.fn(),
     } as any;
     const useCase = new RemoveFavouriteUseCase(repo);
     const email = Email.fromString('user@example.com');

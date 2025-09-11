@@ -140,7 +140,7 @@ export class ComputeStack extends cdk.Stack {
       })
     );
 
-    // 4) ProfileRoutes → GET/PUT /v1/profile
+    // 4) ProfileRoutes → GET/PUT/DELETE /v1/profile
     const profileRoutes = new HttpLambda(this, "ProfileRoutes", {
       entry: path.join(
         __dirname,
@@ -156,11 +156,17 @@ export class ComputeStack extends cdk.Stack {
         ...(props.appSyncRegion ? { APPSYNC_REGION: props.appSyncRegion } : {}),
       },
       api,
-      routes: [{ path: "v1/profile", methods: ["GET", "PUT"], authorizer }],
+      routes: [{ path: "v1/profile", methods: ["GET", "PUT", "DELETE"], authorizer }],
     });
     profileRoutes.fn.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["dynamodb:GetItem", "dynamodb:PutItem"],
+        actions: [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:BatchWriteItem",
+          "dynamodb:Query",
+        ],
         resources: [props.userStateTable.tableArn],
       })
     );

@@ -1,10 +1,12 @@
 const mockGetProfile = jest.fn();
 const mockPutProfile = jest.fn();
+const mockDeleteProfile = jest.fn();
 
 jest.mock("../../infrastructure/dynamodb/dynamo-user-profile-repository", () => ({
   DynamoUserProfileRepository: jest.fn().mockImplementation(() => ({
     getProfile: mockGetProfile,
     putProfile: mockPutProfile,
+    deleteProfile: mockDeleteProfile,
   })),
 }));
 
@@ -23,6 +25,7 @@ const baseCtx = {
 beforeEach(() => {
   mockGetProfile.mockReset();
   mockPutProfile.mockReset();
+  mockDeleteProfile.mockReset();
 });
 
 describe("profile routes handler", () => {
@@ -70,5 +73,12 @@ describe("profile routes handler", () => {
   it("returns 400 when PUT body invalid", async () => {
     const res = await handler({ ...baseCtx, httpMethod: "PUT", body: "{" } as any);
     expect(res.statusCode).toBe(400);
+  });
+
+  it("deletes profile on DELETE", async () => {
+    const res = await handler({ ...baseCtx, httpMethod: "DELETE" } as any);
+    expect(mockDeleteProfile).toHaveBeenCalledWith(expect.any(Email));
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({ deleted: true });
   });
 });

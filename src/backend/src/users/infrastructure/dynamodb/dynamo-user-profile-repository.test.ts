@@ -4,6 +4,7 @@ import {
   DeleteItemCommand,
   QueryCommand,
   GetItemCommand,
+  BatchWriteItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import { DynamoUserProfileRepository } from './dynamo-user-profile-repository';
 import { UserProfile } from '../../domain/entities/user-profile';
@@ -127,5 +128,27 @@ describe('DynamoUserProfileRepository', () => {
     mockSend.mockResolvedValueOnce({});
     const result = await repo.getProfile(email);
     expect(result).toBeNull();
+  });
+
+  it('deleteProfile removes all items for user', async () => {
+    mockSend
+      .mockResolvedValueOnce({
+        Items: [
+          { PK: { S: `USER#${email.Value}` }, SK: { S: 'PROFILE' } },
+          { PK: { S: `USER#${email.Value}` }, SK: { S: 'FAV#123' } },
+        ],
+      })
+      .mockResolvedValueOnce({});
+    await repo.deleteProfile(email);
+    expect(mockSend.mock.calls[0][0]).toBeInstanceOf(QueryCommand);
+    expect(mockSend.mock.calls[1][0]).toBeInstanceOf(BatchWriteItemCommand);
+    expect((mockSend.mock.calls[1][0] as any).input).toEqual({
+      RequestItems: {
+        [tableName]: [
+          { DeleteRequest: { Key: { PK: { S: `USER#${email.Value}` }, SK: { S: 'PROFILE' } } } },
+          { DeleteRequest: { Key: { PK: { S: `USER#${email.Value}` }, SK: { S: 'FAV#123' } } } },
+        ],
+      },
+    });
   });
 });
