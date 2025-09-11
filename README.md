@@ -82,7 +82,7 @@ Key endpoints (Cognito JWT required)
 
 Stacks
 - Storage: DynamoDB tables for routes and user state (`Routes-<stage>`, `UserState-<stage>`).
-- Queues: SQS (`RouteJobsQueue-<stage>`, DLQ, and `MetricsQueue-<stage>`).
+- Queues: SQS (`RouteJobsQueue-<stage>`, `RouteJobsDLQ-<stage>`, `MetricsQueue-<stage>`, `MetricsDLQ-<stage>`) with CloudWatch alarms when messages appear in the DLQs.
 - Auth: Cognito User Pool and App Client (pre‑signup trigger in non‑prod).
 - AppSync: GraphQL API for real‑time events and mutations.
 - Compute: REST API (API Gateway + Lambda handlers), SQS consumers, metrics processor, and Swagger.

@@ -14,8 +14,8 @@ describe('QueueStack', () => {
     template = Template.fromStack(stack);
   });
 
-  test('defines three SQS queues including DLQ', () => {
-    template.resourceCountIs('AWS::SQS::Queue', 3);
+  test('defines four SQS queues including DLQs', () => {
+    template.resourceCountIs('AWS::SQS::Queue', 4);
   });
 
   test('RouteJobsQueue configured with DLQ and visibility timeout', () => {
@@ -31,10 +31,38 @@ describe('QueueStack', () => {
     });
   });
 
-  test('MetricsQueue has visibility timeout of 30 seconds', () => {
+  test('MetricsQueue configured with DLQ and visibility timeout', () => {
     template.hasResourceProperties('AWS::SQS::Queue', {
       QueueName: 'MetricsQueue-test',
       VisibilityTimeout: 30,
+      RedrivePolicy: {
+        maxReceiveCount: 5,
+        deadLetterTargetArn: {
+          'Fn::GetAtt': [Match.stringLikeRegexp('MetricsDLQ'), 'Arn'],
+        },
+      },
+    });
+  });
+
+  test('creates CloudWatch alarms for DLQs', () => {
+    template.resourceCountIs('AWS::CloudWatch::Alarm', 2);
+    template.hasResourceProperties('AWS::CloudWatch::Alarm', {
+      AlarmName: 'RouteJobsDLQAlarm-test',
+      MetricName: 'ApproximateNumberOfMessagesVisible',
+      ComparisonOperator: 'GreaterThanThreshold',
+      Threshold: 0,
+      Dimensions: [
+        { Name: 'QueueName', Value: Match.anyValue() },
+      ],
+    });
+    template.hasResourceProperties('AWS::CloudWatch::Alarm', {
+      AlarmName: 'MetricsDLQAlarm-test',
+      MetricName: 'ApproximateNumberOfMessagesVisible',
+      ComparisonOperator: 'GreaterThanThreshold',
+      Threshold: 0,
+      Dimensions: [
+        { Name: 'QueueName', Value: Match.anyValue() },
+      ],
     });
   });
 });
