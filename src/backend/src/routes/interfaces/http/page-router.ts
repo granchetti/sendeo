@@ -12,7 +12,7 @@ import { GetRouteDetailsUseCase } from "../../application/use-cases/get-route-de
 import { StartRouteUseCase } from "../../application/use-cases/start-route";
 import { FinishRouteUseCase } from "../../application/use-cases/finish-route";
 import { jsonHeaders } from "../../../http/cors";
-import { errorResponse } from "../../../http/error-response";
+import { errorResponse, errorResponseFromError } from "../../../http/error-response";
 import { base } from "../../../http/base";
 import { rateLimit } from "../../../http/rate-limit";
 import { getGoogleKey } from "../shared/utils";
@@ -228,14 +228,15 @@ export const handler = base(rateLimit(async (
     }
 
     const ts = Date.now();
-    await userActivityRepository.putActiveRoute(email, routeId, ts);
-    const started = await startRouteUseCase.execute({
-      routeId: UUID.fromString(routeId),
-      email,
-      timestamp: ts,
-    });
-    if (!started) {
-      return errorResponse(404, "Not Found");
+    try {
+      await userActivityRepository.putActiveRoute(email, routeId, ts);
+      await startRouteUseCase.execute({
+        routeId: UUID.fromString(routeId),
+        email,
+        timestamp: ts,
+      });
+    } catch (err) {
+      return errorResponseFromError(err);
     }
     return {
       statusCode: 200,
@@ -264,13 +265,12 @@ export const handler = base(rateLimit(async (
       await userActivityRepository.deleteActiveRoute(email, routeId);
       const actualDurationMs = finishTs - active.startedAt;
       const actualDuration = Math.round(actualDurationMs / 1000);
-      const routeFinished = await finishRouteUseCase.execute({
+      const finalRoute = await finishRouteUseCase.execute({
         routeId: UUID.fromString(routeId),
         email,
         timestamp: finishTs,
         actualDuration,
       });
-      const finalRoute = routeFinished ?? route;
 
       return {
         statusCode: 200,
