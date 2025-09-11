@@ -7,6 +7,10 @@ describe('GetUserProfileUseCase', () => {
     const repo: UserProfileRepository = {
       getProfile: jest.fn().mockResolvedValue(null),
       putProfile: jest.fn(),
+      getFavourites: jest.fn(),
+      putFavourite: jest.fn(),
+      deleteFavourite: jest.fn(),
+      deleteProfile: jest.fn(),
     } as any;
     const useCase = new GetUserProfileUseCase(repo);
     const email = Email.fromString('u@e.com');

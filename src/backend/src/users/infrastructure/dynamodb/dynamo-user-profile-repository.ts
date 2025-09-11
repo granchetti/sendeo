@@ -4,6 +4,7 @@ import {
   DeleteItemCommand,
   QueryCommand,
   GetItemCommand,
+  BatchWriteItemCommand,
 } from "@aws-sdk/client-dynamodb";
 import { UserProfileRepository } from "../../domain/repositories/user-profile-repository";
 import { UserProfile } from "../../domain/entities/user-profile";
@@ -83,5 +84,29 @@ export class DynamoUserProfileRepository implements UserProfileRepository {
     await this.client.send(
       new PutItemCommand({ TableName: this.tableName, Item: item })
     );
+  }
+
+  async deleteProfile(email: Email): Promise<void> {
+    const res = await this.client.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: "PK = :pk",
+        ExpressionAttributeValues: { ":pk": { S: `USER#${email.Value}` } },
+        ProjectionExpression: "PK, SK",
+      })
+    );
+    const items = res.Items || [];
+    for (let i = 0; i < items.length; i += 25) {
+      const batch = items.slice(i, i + 25).map((item) => ({
+        DeleteRequest: {
+          Key: { PK: item.PK, SK: item.SK },
+        },
+      }));
+      await this.client.send(
+        new BatchWriteItemCommand({
+          RequestItems: { [this.tableName]: batch },
+        })
+      );
+    }
   }
 }

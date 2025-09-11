@@ -3,6 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoUserProfileRepository } from "../../infrastructure/dynamodb/dynamo-user-profile-repository";
 import { GetUserProfileUseCase } from "../../application/use-cases/get-user-profile";
 import { UpdateUserProfileUseCase } from "../../application/use-cases/update-user-profile";
+import { DeleteUserProfileUseCase } from "../../application/use-cases/delete-user-profile";
 import { Email } from "../../../shared/domain/value-objects/email";
 import { UserProfile } from "../../domain/entities/user-profile";
 import { jsonHeaders } from "../../../http/cors";
@@ -19,6 +20,7 @@ const repository = new DynamoUserProfileRepository(
 );
 const getUserProfile = new GetUserProfileUseCase(repository);
 const updateUserProfile = new UpdateUserProfileUseCase(repository);
+const deleteUserProfile = new DeleteUserProfileUseCase(repository);
 
 export const handler = base(rateLimit(async (
   event: APIGatewayProxyEvent
@@ -58,6 +60,11 @@ export const handler = base(rateLimit(async (
     });
     await updateUserProfile.execute(profile);
     return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ updated: true }) };
+  }
+
+  if (httpMethod === "DELETE") {
+    await deleteUserProfile.execute(Email.fromString(email));
+    return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ deleted: true }) };
   }
 
   return errorResponse(501, "Not Implemented");
