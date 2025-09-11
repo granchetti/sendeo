@@ -82,6 +82,8 @@ import {
   PutItemCommand,
   ScanCommand,
 } from "@aws-sdk/client-dynamodb";
+import { DynamoUserProfileRepository } from "../../src/users/infrastructure/dynamodb/dynamo-user-profile-repository";
+import { createFavouriteRoutesHandler } from "../../src/users/interfaces/http/favourite-routes";
 let handler: any;
 
 jest.mock("../../src/routes/interfaces/appsync-client", () => ({
@@ -124,9 +126,8 @@ describe("favourite routes API e2e", () => {
         BillingMode: "PAY_PER_REQUEST",
       })
     );
-    // Import the handler after env is set so repository picks up table name
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    handler = require("../../src/users/interfaces/http/favourite-routes").handler;
+    const repo = new DynamoUserProfileRepository(client as any, tableName);
+    handler = createFavouriteRoutesHandler(repo);
   });
 
   afterAll(async () => {

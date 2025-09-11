@@ -1,19 +1,16 @@
-let mockSend: jest.Mock;
+const mockSend = jest.fn();
 
-jest.mock("@aws-sdk/client-sqs", () => {
-  mockSend = jest.fn();
-  return {
-    SQSClient: jest.fn().mockImplementation(() => ({ send: mockSend })),
-    SendMessageCommand: jest.fn().mockImplementation((input) => input),
-  };
-});
+import { createRequestRoutesHandler } from "./request-routes";
+import { RouteRequestQueue } from "../../domain/queues/route-request-queue";
 
-import { handler } from "./request-routes";
+let queue: RouteRequestQueue;
+let handler: any;
 import { UUID } from "../../../shared/domain/value-objects/uuid";
 
 beforeEach(() => {
   mockSend.mockReset();
-  process.env.QUEUE_URL = "http://localhost";
+  queue = { send: mockSend };
+  handler = createRequestRoutesHandler(queue);
 });
 
 describe("request routes handler", () => {
@@ -26,7 +23,7 @@ describe("request routes handler", () => {
 
     expect(mockSend).toHaveBeenCalledTimes(1);
     const sent = mockSend.mock.calls[0][0];
-    const payload = JSON.parse(sent.MessageBody);
+    const payload = JSON.parse(sent);
 
     expect(payload.jobId).toMatch(/^[0-9a-f-]{36}$/);
     expect(payload.correlationId).toMatch(/^[0-9a-f-]{36}$/);
@@ -50,7 +47,7 @@ describe("request routes handler", () => {
     } as any);
 
     expect(mockSend).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    const payload = JSON.parse(mockSend.mock.calls[0][0]);
 
     expect(payload.jobId).toBe(jobId);
     expect(payload.correlationId).toBe(correlationId);
@@ -66,7 +63,7 @@ describe("request routes handler", () => {
       body: JSON.stringify({ origin: "A", destination: "B" }),
     } as any);
 
-    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    const payload = JSON.parse(mockSend.mock.calls[0][0]);
     expect(payload.correlationId).toMatch(/^[0-9a-f-]{36}$/);
   });
 
@@ -82,7 +79,7 @@ describe("request routes handler", () => {
       }),
     } as any);
 
-    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    const payload = JSON.parse(mockSend.mock.calls[0][0]);
     expect(payload.correlationId).toBe(correlationId);
   });
 
@@ -134,7 +131,7 @@ describe("request routes handler", () => {
     } as any);
 
     expect(mockSend).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    const payload = JSON.parse(mockSend.mock.calls[0][0]);
     expect(payload.distanceKm).toBe(50);
   });
 
@@ -146,7 +143,7 @@ describe("request routes handler", () => {
     } as any);
 
     expect(mockSend).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    const payload = JSON.parse(mockSend.mock.calls[0][0]);
     expect(payload.routesCount).toBe(3);
   });
 
@@ -158,7 +155,7 @@ describe("request routes handler", () => {
     } as any);
 
     expect(mockSend).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(mockSend.mock.calls[0][0].MessageBody);
+    const payload = JSON.parse(mockSend.mock.calls[0][0]);
     expect(payload.preference).toBe("park");
   });
 });

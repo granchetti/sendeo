@@ -1,4 +1,6 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoUserProfileRepository } from "../../src/users/infrastructure/dynamodb/dynamo-user-profile-repository";
+import { createFavouriteRoutesHandler } from "../../src/users/interfaces/http/favourite-routes";
 
 process.env.AWS_REGION = "us-east-1";
 process.env.USER_STATE_TABLE = "UserState";
@@ -35,7 +37,8 @@ const sendMock = jest
     return {} as any;
   });
 
-import { handler } from "../../src/users/interfaces/http/favourite-routes";
+const repository = new DynamoUserProfileRepository(new DynamoDBClient({}) as any, "UserState");
+const handler = createFavouriteRoutesHandler(repository);
 
 describe("favourite routes integration", () => {
   const email = "test@example.com";

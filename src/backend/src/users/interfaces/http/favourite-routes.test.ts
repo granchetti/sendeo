@@ -4,27 +4,16 @@ const mockGet = jest.fn();
 const mockPublishSaved = jest.fn();
 const mockPublishDeleted = jest.fn();
 
-jest.mock(
-  "../../infrastructure/dynamodb/dynamo-user-profile-repository",
-  () => ({
-    DynamoUserProfileRepository: jest.fn().mockImplementation(() => ({
-      putFavourite: mockPut,
-      deleteFavourite: mockDelete,
-      getFavourites: mockGet,
-    })),
-  })
-);
-
-jest.mock("@aws-sdk/client-dynamodb", () => ({
-  DynamoDBClient: jest.fn().mockImplementation(() => ({})),
-}));
-
 jest.mock("../../../routes/interfaces/appsync-client", () => ({
   publishFavouriteSaved: (...args: any[]) => mockPublishSaved(...args),
   publishFavouriteDeleted: (...args: any[]) => mockPublishDeleted(...args),
 }));
 
-import { handler } from "./favourite-routes";
+import { createFavouriteRoutesHandler } from "./favourite-routes";
+import { UserProfileRepository } from "../../domain/repositories/user-profile-repository";
+
+let repository: UserProfileRepository;
+let handler: any;
 const baseCtx = {
   requestContext: {
     authorizer: {
@@ -40,6 +29,15 @@ beforeEach(() => {
   mockGet.mockReset();
   mockPublishSaved.mockReset();
   mockPublishDeleted.mockReset();
+  repository = {
+    putFavourite: mockPut,
+    deleteFavourite: mockDelete,
+    getFavourites: mockGet,
+    getProfile: jest.fn(),
+    putProfile: jest.fn(),
+    deleteProfile: jest.fn(),
+  };
+  handler = createFavouriteRoutesHandler(repository);
 });
 
 describe("favourite routes handler", () => {

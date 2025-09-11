@@ -2,28 +2,13 @@ import { EventEmitter } from "events";
 import polyline from "@mapbox/polyline";
 
 const mockSave = jest.fn();
-
-jest.mock("../../infrastructure/dynamodb/dynamo-route-repository", () => ({
-  DynamoRouteRepository: jest
-    .fn()
-    .mockImplementation(() => ({ save: mockSave })),
-}));
-
-jest.mock("@aws-sdk/client-dynamodb", () => ({
-  DynamoDBClient: jest.fn().mockImplementation(() => ({})),
-}));
-
 const mockPublish = jest.fn();
 const mockPublishError = jest.fn();
+const sqsSend = jest.fn();
+
 jest.mock("../appsync-client", () => ({
   publishRoutesGenerated: (...args: any[]) => mockPublish(...args),
   publishErrorOccurred: (...args: any[]) => mockPublishError(...args),
-}));
-
-const sqsSend = jest.fn();
-jest.mock("@aws-sdk/client-sqs", () => ({
-  SQSClient: jest.fn().mockImplementation(() => ({ send: sqsSend })),
-  SendMessageCommand: jest.fn().mockImplementation((input) => ({ input })),
 }));
 
 const responseDataHolder: { data: string } = { data: "" };
@@ -57,23 +42,37 @@ const httpsRequest = jest.fn(defaultHttpsImplementation);
 
 jest.mock("node:https", () => ({ request: httpsRequest }));
 
+import { GoogleRoutesProvider } from "../../infrastructure/google-maps/google-routes-provider";
+import { createWorkerRoutesHandler } from "./worker-routes";
+import { RouteRepository } from "../../domain/repositories/route-repository";
+import { QueuePublisher } from "../../domain/queues/queue-publisher";
+
+let repository: RouteRepository;
+let publisher: QueuePublisher;
+let handler: any;
+
 describe("worker routes handler", () => {
   beforeEach(() => {
-    jest.resetModules();
     mockSave.mockReset();
     httpsRequest.mockReset();
     httpsRequest.mockImplementation(defaultHttpsImplementation);
     mockPublish.mockReset();
     mockPublishError.mockReset();
     sqsSend.mockReset();
-    process.env.ROUTES_TABLE = "t";
-    process.env.GOOGLE_API_KEY = "k";
-    process.env.METRICS_QUEUE = "http://localhost";
+    repository = {
+      save: mockSave,
+      findById: jest.fn(),
+      findAll: jest.fn(),
+      findByJobId: jest.fn(),
+      remove: jest.fn(),
+    };
+    publisher = { send: sqsSend };
+    handler = createWorkerRoutesHandler(
+      repository,
+      new GoogleRoutesProvider("k"),
+      publisher
+    );
   });
-
-  function loadHandler() {
-    return require("./worker-routes").handler as any;
-  }
 
 
   it("saves decoded route when directions are returned", async () => {
@@ -89,7 +88,6 @@ describe("worker routes handler", () => {
       ],
     });
 
-    const handler = loadHandler();
     const event = {
       Records: [
         {
@@ -132,7 +130,7 @@ describe("worker routes handler", () => {
     );
     expect(sqsSend).toHaveBeenCalledTimes(1);
     const msg = sqsSend.mock.calls[0][0];
-    expect(msg.input.MessageBody).toContain("routes_generated");
+    expect(msg).toContain("routes_generated");
   });
 
   it("does not save when response has no distance", async () => {
@@ -140,7 +138,6 @@ describe("worker routes handler", () => {
       routes: [{}],
     });
 
-    const handler = loadHandler();
     const event = {
       Records: [
         {
@@ -184,7 +181,6 @@ describe("worker routes handler", () => {
     });
 
     jest.useFakeTimers();
-    const handler = loadHandler();
     const event = {
       Records: [
         {
@@ -218,7 +214,6 @@ describe("worker routes handler", () => {
       ],
     });
 
-    const handler = loadHandler();
     const event = {
       Records: [
         {
@@ -292,7 +287,6 @@ describe("worker routes handler", () => {
       .mockImplementationOnce(makeReq(forward))
       .mockImplementationOnce(makeReq(back));
 
-    const handler = loadHandler();
     const event = {
       Records: [
         {
@@ -389,7 +383,6 @@ describe("worker routes handler", () => {
       .mockImplementationOnce(makeReq(forward))
       .mockImplementationOnce(makeReq(back));
 
-    const handler = loadHandler();
     const event = {
       Records: [
         {
@@ -466,7 +459,6 @@ describe("worker routes handler", () => {
       return handler;
     });
 
-    const handler = loadHandler();
     const event = {
       Records: [
         {
@@ -520,7 +512,6 @@ describe("worker routes handler", () => {
       ],
     });
 
-    const handler = loadHandler();
     const event = {
       Records: [
         {
@@ -552,7 +543,6 @@ describe("worker routes handler", () => {
       ],
     });
 
-    const handler = loadHandler();
     const event = {
       Records: [
         {
@@ -585,7 +575,6 @@ describe("worker routes handler", () => {
       ],
     });
 
-    const handler = loadHandler();
     const event = {
       Records: [
         {

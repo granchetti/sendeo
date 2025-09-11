@@ -82,6 +82,8 @@ import {
   PutItemCommand,
   ScanCommand,
 } from "@aws-sdk/client-dynamodb";
+import { DynamoUserProfileRepository } from "../../src/users/infrastructure/dynamodb/dynamo-user-profile-repository";
+import { createProfileRoutesHandler } from "../../src/users/interfaces/http/profile-routes";
 
 let handler: any;
 
@@ -116,9 +118,8 @@ describe("profile API e2e", () => {
         BillingMode: "PAY_PER_REQUEST",
       })
     );
-    // Import the handler after env is set so repository picks up table name
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    handler = require("../../src/users/interfaces/http/profile-routes").handler;
+    const repo = new DynamoUserProfileRepository(client as any, tableName);
+    handler = createProfileRoutesHandler(repo);
   });
 
   afterAll(async () => {
