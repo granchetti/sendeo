@@ -3,6 +3,8 @@ export const openApiSpec = {
   info: {
     title: "Sendeo API",
     version: "1.0.0",
+    description:
+      "All queue and AppSync payloads include a `version` field (currently 1).",
   },
   servers: [{ url: "/prod" }],
   components: {

@@ -172,7 +172,7 @@ describe("favourite routes API e2e", () => {
       })
     );
     expect(stored.Item).toBeDefined();
-    expect(publishFavouriteSaved).toHaveBeenCalledWith(email, "xyz");
+    expect(publishFavouriteSaved).toHaveBeenCalledWith(email, "xyz", 1);
   });
 
   it("deletes favourite on DELETE and publishes", async () => {
@@ -196,6 +196,6 @@ describe("favourite routes API e2e", () => {
       })
     );
     expect(stored.Item).toBeUndefined();
-    expect(publishFavouriteDeleted).toHaveBeenCalledWith(email, "del");
+    expect(publishFavouriteDeleted).toHaveBeenCalledWith(email, "del", 1);
   });
 });

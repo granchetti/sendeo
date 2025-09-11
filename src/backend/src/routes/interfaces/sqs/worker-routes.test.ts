@@ -94,6 +94,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440000",
             origin: "a",
             destination: "b",
@@ -128,11 +129,14 @@ describe("worker routes handler", () => {
     expect(mockPublish).toHaveBeenCalledWith(
       "550e8400-e29b-41d4-a716-446655440000",
       [saved],
-      "corr-1"
+      "corr-1",
+      1
     );
     expect(sqsSend).toHaveBeenCalledTimes(1);
     const msg = sqsSend.mock.calls[0][0];
-    expect(msg.input.MessageBody).toContain("routes_generated");
+    const metric = JSON.parse(msg.input.MessageBody);
+    expect(metric.version).toBe(1);
+    expect(metric.event).toBe("routes_generated");
   });
 
   it("does not save when response has no distance", async () => {
@@ -145,6 +149,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440001",
             origin: "a",
             destination: "b",
@@ -189,6 +194,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "err-job",
             origin: "a",
             destination: "b",
@@ -205,6 +211,7 @@ describe("worker routes handler", () => {
 
     expect(mockPublishError).toHaveBeenCalledTimes(1);
     expect(mockPublishError.mock.calls[0][2]).toBe("corr-err");
+    expect(mockPublishError.mock.calls[0][3]).toBe(1);
   });
 
   it("saves route when no encoded polyline is returned", async () => {
@@ -223,6 +230,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440002",
             origin: "a",
             destination: "b",
@@ -297,6 +305,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440003",
             origin: "a",
             distanceKm: 3,
@@ -394,6 +403,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440013",
             origin: "a",
             distanceKm: 3,
@@ -416,6 +426,28 @@ describe("worker routes handler", () => {
       { lat: 40.7, lng: -120.95 },
       { lat: 38.5, lng: -120.2 },
     ]);
+  });
+
+  it("ignores unsupported version", async () => {
+    const handler = loadHandler();
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({
+            version: 2,
+            jobId: "550e8400-e29b-41d4-a716-446655440099",
+            origin: "a",
+            destination: "b",
+            routesCount: 1,
+          }),
+        },
+      ],
+    } as any;
+
+    await handler(event);
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockPublish).not.toHaveBeenCalled();
+    expect(sqsSend).not.toHaveBeenCalled();
   });
 
   it("generates circular route when circle option provided", async () => {
@@ -471,6 +503,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-44665544000c",
             origin: "a",
             distanceKm: 4,
@@ -525,6 +558,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440004",
             origin: "a",
             destination: "b",
@@ -557,6 +591,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440005",
             origin: "a",
             distanceKm: 1,
@@ -590,6 +625,7 @@ describe("worker routes handler", () => {
       Records: [
         {
           body: JSON.stringify({
+            version: 1,
             jobId: "550e8400-e29b-41d4-a716-446655440006",
             origin: "a",
             destination: "b",

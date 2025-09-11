@@ -10,6 +10,10 @@ export const handler: SQSHandler = async (event) => {
   for (const record of event.Records || []) {
     try {
       const msg = JSON.parse(record.body);
+      if (msg.version !== 1) {
+        console.warn("[metrics-processor] unsupported version", msg.version);
+        continue;
+      }
       const ts = msg.timestamp ? new Date(msg.timestamp) : new Date();
       switch (msg.event) {
         case "routes_generated":

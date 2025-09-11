@@ -43,6 +43,7 @@ dispatcher.subscribe("RouteStarted", async (event: RouteStartedEvent) => {
       new SendMessageCommand({
         QueueUrl: process.env.METRICS_QUEUE!,
         MessageBody: JSON.stringify({
+          version: 1,
           event: "started",
           routeId: event.route.routeId.Value,
           email: event.email,
@@ -54,7 +55,7 @@ dispatcher.subscribe("RouteStarted", async (event: RouteStartedEvent) => {
     console.error("Failed to enqueue telemetry metric", err);
   }
   try {
-    await publishRouteStarted(event.email, event.route.routeId.Value);
+    await publishRouteStarted(event.email, event.route.routeId.Value, 1);
   } catch (err) {
     console.error("❌ Error publishing route started:", err);
   }
@@ -65,6 +66,7 @@ dispatcher.subscribe("RouteFinished", async (event: RouteFinishedEvent) => {
       new SendMessageCommand({
         QueueUrl: process.env.METRICS_QUEUE!,
         MessageBody: JSON.stringify({
+          version: 1,
           event: "finished",
           routeId: event.route.routeId.Value,
           email: event.email,
@@ -91,7 +93,8 @@ dispatcher.subscribe("RouteFinished", async (event: RouteFinishedEvent) => {
         ...(event.actualDuration != null
           ? { actualDuration: event.actualDuration }
           : {}),
-      })
+      }),
+      1
     );
   } catch (err) {
     console.error("❌ Error publishing route finished:", err);

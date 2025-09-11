@@ -64,7 +64,7 @@ describe("favourite routes handler", () => {
     expect(mockGet.mock.calls[0][0].Value).toBe("test@example.com");
     expect(mockPut.mock.calls[0][0].Value).toBe("test@example.com");
     expect(mockPut.mock.calls[0][1]).toBe("1");
-    expect(mockPublishSaved).toHaveBeenCalledWith("test@example.com", "1");
+    expect(mockPublishSaved).toHaveBeenCalledWith("test@example.com", "1", 1);
     expect(res.statusCode).toBe(200);
   });
 
@@ -108,7 +108,7 @@ describe("favourite routes handler", () => {
     });
     expect(mockDelete.mock.calls[0][0].Value).toBe("test@example.com");
     expect(mockDelete.mock.calls[0][1]).toBe("2");
-    expect(mockPublishDeleted).toHaveBeenCalledWith("test@example.com", "2");
+    expect(mockPublishDeleted).toHaveBeenCalledWith("test@example.com", "2", 1);
     expect(res.statusCode).toBe(200);
   });
 

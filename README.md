@@ -73,6 +73,34 @@ Key endpoints (Cognito JWT required)
 - `PUT /v1/profile`: Update user profile.
 - Swagger UI: `GET /swagger` and `GET /swagger.json` (base path `/prod`).
 
+### Payload Versioning
+
+All SQS and AppSync payloads include a required `version` field to allow schema evolution. The current supported version is `1`.
+
+Example route request payload enqueued to SQS:
+
+```json
+{
+  "version": 1,
+  "jobId": "...",
+  "origin": "A",
+  "destination": "B",
+  "correlationId": "..."
+}
+```
+
+Example metrics event:
+
+```json
+{
+  "version": 1,
+  "event": "routes_generated",
+  "jobId": "...",
+  "count": 3,
+  "timestamp": 1700000000000
+}
+```
+
 ## Infrastructure (AWS CDK)
 - Build: `cd infrastructure && npm run build`
 - Synthesize (dev): `cd infrastructure && npx cdk synth -c env=dev`

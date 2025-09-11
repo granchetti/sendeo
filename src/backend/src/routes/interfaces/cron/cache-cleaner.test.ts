@@ -61,7 +61,7 @@ describe("cache cleaner", () => {
     expect(sqsSendMock).toHaveBeenCalledTimes(1);
     const msg = sqsSendMock.mock.calls[0][0].input.MessageBody;
     expect(JSON.parse(msg)).toEqual(
-      expect.objectContaining({ event: "CacheExpired", count: 2 })
+      expect.objectContaining({ version: 1, event: "CacheExpired", count: 2 })
     );
   });
 });

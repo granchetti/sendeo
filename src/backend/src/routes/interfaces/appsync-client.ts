@@ -48,24 +48,33 @@ async function send(query: string, variables: Record<string, any>): Promise<any>
   return res.json();
 }
 
-export async function publishFavouriteSaved(email: string, routeId: string) {
+export async function publishFavouriteSaved(
+  email: string,
+  routeId: string,
+  version = 1
+) {
   await send(
-    `mutation PublishFavouriteSaved($email: String!, $routeId: ID!) {\n  publishFavouriteSaved(email: $email, routeId: $routeId)\n}`,
-    { email, routeId }
+    `mutation PublishFavouriteSaved($email: String!, $routeId: ID!, $version: Int!) {\n  publishFavouriteSaved(email: $email, routeId: $routeId, version: $version)\n}`,
+    { email, routeId, version }
   );
 }
 
-export async function publishFavouriteDeleted(email: string, routeId: string) {
+export async function publishFavouriteDeleted(
+  email: string,
+  routeId: string,
+  version = 1
+) {
   await send(
-    `mutation PublishFavouriteDeleted($email: String!, $routeId: ID!) {\n  publishFavouriteDeleted(email: $email, routeId: $routeId)\n}`,
-    { email, routeId }
+    `mutation PublishFavouriteDeleted($email: String!, $routeId: ID!, $version: Int!) {\n  publishFavouriteDeleted(email: $email, routeId: $routeId, version: $version)\n}`,
+    { email, routeId, version }
   );
 }
 
 export async function publishRoutesGenerated(
   jobId: string,
   routes: Route[],
-  correlationId?: string
+  correlationId?: string,
+  version = 1
 ) {
   const inputs = routes.map((r) => ({
     routeId: r.routeId.Value,
@@ -75,36 +84,42 @@ export async function publishRoutesGenerated(
     description: r.description,
   }));
   await send(
-    `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!, $correlationId: ID) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes, correlationId: $correlationId)\n}`,
-    { jobId, routes: inputs, correlationId }
+    `mutation PublishRoutesGenerated($jobId: ID!, $routes: [RouteInput]!, $correlationId: ID, $version: Int!) {\n  publishRoutesGenerated(jobId: $jobId, routes: $routes, correlationId: $correlationId, version: $version)\n}`,
+    { jobId, routes: inputs, correlationId, version }
   );
 }
 
-export async function publishRouteStarted(email: string, routeId: string) {
+export async function publishRouteStarted(
+  email: string,
+  routeId: string,
+  version = 1
+) {
   await send(
-    `mutation PublishRouteStarted($email: String!, $routeId: ID!) {\n  publishRouteStarted(email: $email, routeId: $routeId)\n}`,
-    { email, routeId }
+    `mutation PublishRouteStarted($email: String!, $routeId: ID!, $version: Int!) {\n  publishRouteStarted(email: $email, routeId: $routeId, version: $version)\n}`,
+    { email, routeId, version }
   );
 }
 
 export async function publishRouteFinished(
   email: string,
   routeId: string,
-  summary: string
+  summary: string,
+  version = 1
 ) {
   await send(
-    `mutation PublishRouteFinished($email: String!, $routeId: ID!, $summary: String!) {\n  publishRouteFinished(email: $email, routeId: $routeId, summary: $summary)\n}`,
-    { email, routeId, summary }
+    `mutation PublishRouteFinished($email: String!, $routeId: ID!, $summary: String!, $version: Int!) {\n  publishRouteFinished(email: $email, routeId: $routeId, summary: $summary, version: $version)\n}`,
+    { email, routeId, summary, version }
   );
 }
 
 export async function publishErrorOccurred(
   message: string,
   payload: any,
-  correlationId?: string
+  correlationId?: string,
+  version = 1
 ) {
   await send(
-    `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON, $correlationId: ID) {\n  publishErrorOccurred(message: $message, payload: $payload, correlationId: $correlationId)\n}`,
-    { message, payload, correlationId }
+    `mutation PublishErrorOccurred($message: String!, $payload: AWSJSON, $correlationId: ID, $version: Int!) {\n  publishErrorOccurred(message: $message, payload: $payload, correlationId: $correlationId, version: $version)\n}`,
+    { message, payload, correlationId, version }
   );
 }
