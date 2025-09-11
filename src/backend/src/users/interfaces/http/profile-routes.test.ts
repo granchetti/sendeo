@@ -2,19 +2,19 @@ const mockGetProfile = jest.fn();
 const mockPutProfile = jest.fn();
 const mockDeleteProfile = jest.fn();
 
-jest.mock("../../infrastructure/dynamodb/dynamo-user-profile-repository", () => ({
-  DynamoUserProfileRepository: jest.fn().mockImplementation(() => ({
-    getProfile: mockGetProfile,
-    putProfile: mockPutProfile,
-    deleteProfile: mockDeleteProfile,
-  })),
-}));
+import { createProfileRoutesHandler } from "./profile-routes";
+import type { UserProfileRepository } from "../../domain/repositories/user-profile-repository";
 
-jest.mock("@aws-sdk/client-dynamodb", () => ({
-  DynamoDBClient: jest.fn().mockImplementation(() => ({})),
-}));
+const repository: UserProfileRepository = {
+  getProfile: mockGetProfile,
+  putProfile: mockPutProfile,
+  deleteProfile: mockDeleteProfile,
+  putFavourite: jest.fn(),
+  deleteFavourite: jest.fn(),
+  getFavourites: jest.fn(),
+};
 
-import { handler } from "./profile-routes";
+const handler = createProfileRoutesHandler(repository);
 import { UserProfile } from "../../domain/entities/user-profile";
 import { Email } from "../../../shared/domain/value-objects/email";
 const baseCtx = {

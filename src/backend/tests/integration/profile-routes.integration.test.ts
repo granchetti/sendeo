@@ -26,7 +26,11 @@ const sendMock = jest
     return {} as any;
   });
 
-import { handler } from "../../src/users/interfaces/http/profile-routes";
+import { createProfileRoutesHandler } from "../../src/users/interfaces/http/profile-routes";
+import { DynamoUserProfileRepository } from "../../src/users/infrastructure/dynamodb/dynamo-user-profile-repository";
+
+const repository = new DynamoUserProfileRepository(new DynamoDBClient({}) as any, process.env.USER_STATE_TABLE!);
+const handler = createProfileRoutesHandler(repository);
 
 describe("profile routes integration", () => {
   const email = "test@example.com";

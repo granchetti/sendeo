@@ -1,20 +1,14 @@
 import { SQSHandler } from "aws-lambda";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { createHash } from "node:crypto";
 import { Path } from "../../domain/value-objects/path";
 import type { Route } from "../../domain/entities/route";
-import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
 import { publishRoutesGenerated, publishErrorOccurred } from "../appsync-client";
-import { getGoogleKey } from "../shared/utils";
 import { RouteGenerator } from "../../domain/services/route-generator";
-import { GoogleRoutesProvider } from "../../infrastructure/google-maps/google-routes-provider";
+import type { RouteRepository } from "../../domain/repositories/route-repository";
+import type { RouteProvider } from "../../domain/services/route-provider";
+import type { QueuePublisher } from "../../domain/queues/queue-publisher";
+import type { SQSHandler } from "aws-lambda";
 
-const dynamo = new DynamoDBClient({
-  endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
-});
-const sqs = new SQSClient({});
-const repository = new DynamoRouteRepository(dynamo, process.env.ROUTES_TABLE!);
 const SNAP_THRESHOLD_KM = 0.5;
 
 
@@ -68,13 +62,17 @@ function withinTarget(km: number, targetKm: number, pct = 0.15, absMax = 2) {
  */
 
 /** MAIN LAMBDA HANDLER */
-export const handler: SQSHandler = async (event) => {
-  console.info("[handler] event", JSON.stringify(event, null, 2));
-  const key = await getGoogleKey();
-  const provider = new GoogleRoutesProvider(key);
+export function createWorkerRoutesHandler(
+  repository: RouteRepository,
+  provider: RouteProvider,
+  publisher: QueuePublisher
+): SQSHandler {
   const generator = new RouteGenerator(repository, provider);
 
-  for (const { body } of event.Records) {
+  return async (event) => {
+    console.info("[handler] event", JSON.stringify(event, null, 2));
+
+    for (const { body } of event.Records) {
     console.info("[handler] record", body);
     let correlationId: string | undefined;
     let version = 1;
@@ -287,21 +285,16 @@ export const handler: SQSHandler = async (event) => {
     if (saved.length) {
       console.info(`[handler] publishing ${saved.length} routes`);
       await publishRoutesGenerated(jobId, saved, correlationId, version);
-      if (process.env.METRICS_QUEUE) {
-        await sqs.send(
-          new SendMessageCommand({
-            QueueUrl: process.env.METRICS_QUEUE!,
-            MessageBody: JSON.stringify({
-              version,
-              event: "routes_generated",
-              jobId,
-              correlationId,
-              count: saved.length,
-              timestamp: Date.now(),
-            }),
-          })
-        );
-      }
+      await publisher.send(
+        JSON.stringify({
+          version,
+          event: "routes_generated",
+          jobId,
+          correlationId,
+          count: saved.length,
+          timestamp: Date.now(),
+        })
+      );
     } else {
       console.warn(`[handler] no routes after ${maxAt} attempts`);
     }
@@ -309,6 +302,7 @@ export const handler: SQSHandler = async (event) => {
     console.error("[handler] error processing record", err);
     await publishErrorOccurred(err?.message || "Unknown error", body, correlationId, version);
   }
+    }
+  };
 }
-};
 

@@ -1,6 +1,4 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoUserProfileRepository } from "../../infrastructure/dynamodb/dynamo-user-profile-repository";
 import { GetUserProfileUseCase } from "../../application/use-cases/get-user-profile";
 import { UpdateUserProfileUseCase } from "../../application/use-cases/update-user-profile";
 import { DeleteUserProfileUseCase } from "../../application/use-cases/delete-user-profile";
@@ -10,62 +8,69 @@ import { jsonHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
 import { rateLimit } from "../../../http/rate-limit";
+import type { UserProfileRepository } from "../../domain/repositories/user-profile-repository";
 
-const dynamo = new DynamoDBClient({
-  endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
-});
-const repository = new DynamoUserProfileRepository(
-  dynamo,
-  process.env.USER_STATE_TABLE!
-);
-const getUserProfile = new GetUserProfileUseCase(repository);
-const updateUserProfile = new UpdateUserProfileUseCase(repository);
-const deleteUserProfile = new DeleteUserProfileUseCase(repository);
+export function createProfileRoutesHandler(repo: UserProfileRepository) {
+  const getUserProfile = new GetUserProfileUseCase(repo);
+  const updateUserProfile = new UpdateUserProfileUseCase(repo);
+  const deleteUserProfile = new DeleteUserProfileUseCase(repo);
 
-export const handler = base(rateLimit(async (
-  event: APIGatewayProxyEvent
-): Promise<APIGatewayProxyResult> => {
-  const claims = (event.requestContext as any).authorizer?.claims;
-  const email = claims?.email;
-  if (!email) {
-    return errorResponse(401, "Unauthorized");
-  }
-  const { httpMethod } = event;
-
-  if (httpMethod === "GET") {
-    const profile = await getUserProfile.execute(Email.fromString(email));
-    return {
-      statusCode: 200,
-      headers: jsonHeaders,
-      body: JSON.stringify(profile.toPrimitives()),
-    };
-  }
-
-  if (httpMethod === "PUT") {
-    let payload: any = {};
-    if (event.body) {
-      try {
-        payload = JSON.parse(event.body);
-      } catch {
-        return errorResponse(400, "Invalid JSON body");
+  return base(
+    rateLimit(async (
+      event: APIGatewayProxyEvent
+    ): Promise<APIGatewayProxyResult> => {
+      const claims = (event.requestContext as any).authorizer?.claims;
+      const email = claims?.email;
+      if (!email) {
+        return errorResponse(401, "Unauthorized");
       }
-    }
-    const profile = UserProfile.fromPrimitives({
-      email,
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      displayName: payload.displayName,
-      age: payload.age != null ? Number(payload.age) : undefined,
-      unit: payload.unit,
-    });
-    await updateUserProfile.execute(profile);
-    return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ updated: true }) };
-  }
+      const { httpMethod } = event;
 
-  if (httpMethod === "DELETE") {
-    await deleteUserProfile.execute(Email.fromString(email));
-    return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ deleted: true }) };
-  }
+      if (httpMethod === "GET") {
+        const profile = await getUserProfile.execute(Email.fromString(email));
+        return {
+          statusCode: 200,
+          headers: jsonHeaders,
+          body: JSON.stringify(profile.toPrimitives()),
+        };
+      }
 
-  return errorResponse(501, "Not Implemented");
-}));
+      if (httpMethod === "PUT") {
+        let payload: any = {};
+        if (event.body) {
+          try {
+            payload = JSON.parse(event.body);
+          } catch {
+            return errorResponse(400, "Invalid JSON body");
+          }
+        }
+        const profile = UserProfile.fromPrimitives({
+          email,
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          displayName: payload.displayName,
+          age: payload.age != null ? Number(payload.age) : undefined,
+          unit: payload.unit,
+        });
+        await updateUserProfile.execute(profile);
+        return {
+          statusCode: 200,
+          headers: jsonHeaders,
+          body: JSON.stringify({ updated: true }),
+        };
+      }
+
+      if (httpMethod === "DELETE") {
+        await deleteUserProfile.execute(Email.fromString(email));
+        return {
+          statusCode: 200,
+          headers: jsonHeaders,
+          body: JSON.stringify({ deleted: true }),
+        };
+      }
+
+      return errorResponse(501, "Not Implemented");
+    })
+  );
+}
+
