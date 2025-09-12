@@ -82,16 +82,18 @@ import {
   PutItemCommand,
   ScanCommand,
 } from "@aws-sdk/client-dynamodb";
+import { primeJwksForTesting } from "../../src/shared/auth/verify-jwt";
 import { createProfileRoutesHandler } from "../../src/users/interfaces/http/profile-routes";
 import { DynamoUserProfileRepository } from "../../src/users/infrastructure/dynamodb/dynamo-user-profile-repository";
+import { createSign, generateKeyPairSync } from "crypto";
 
 let handler: any;
+let authHeader: string;
 
 describe("profile API e2e", () => {
   const tableName = "UserState";
   const email = "test@example.com";
   const baseEvent: any = {
-    requestContext: { authorizer: { claims: { email } } },
     headers: { Accept: "application/json" },
   };
   let client: DynamoDBClient;
@@ -150,7 +152,7 @@ describe("profile API e2e", () => {
       })
     );
 
-    const res = await handler({ ...baseEvent, httpMethod: "GET" });
+    const res = await handler({ ...baseEvent, httpMethod: "GET", headers: { ...baseEvent.headers, Authorization: authHeader } });
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual({ email, firstName: "John" });
   });
@@ -172,6 +174,7 @@ describe("profile API e2e", () => {
     const res = await handler({
       ...baseEvent,
       httpMethod: "PUT",
+      headers: { ...baseEvent.headers, Authorization: authHeader },
       body: JSON.stringify(payload),
     });
     expect(res.statusCode).toBe(200);
@@ -185,4 +188,30 @@ describe("profile API e2e", () => {
     expect(stored.Item?.firstName?.S).toBe("Jane");
     expect(stored.Item?.lastName?.S).toBe("Doe");
   });
+    // Setup JWT verification (no network)
+    process.env.COGNITO_USER_POOL_ID = "us-east-1_testpool";
+    process.env.COGNITO_CLIENT_ID = "testclient";
+    const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const jwk: any = publicKey.export({ format: "jwk" });
+    jwk.kid = "e2e-profile-key";
+    jwk.use = "sig";
+    jwk.alg = "RS256";
+    primeJwksForTesting({ keys: [jwk] } as any);
+    const sign = (payload: any) => {
+      const header = { alg: "RS256", kid: jwk.kid };
+      const now = Math.floor(Date.now() / 1000);
+      const body = {
+        iss: `https://cognito-idp.us-east-1.amazonaws.com/${process.env.COGNITO_USER_POOL_ID}`,
+        aud: process.env.COGNITO_CLIENT_ID,
+        token_use: "id",
+        exp: now + 3600,
+        ...payload,
+      };
+      const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString("base64url");
+      const data = `${enc(header)}.${enc(body)}`;
+      const s = createSign("RSA-SHA256");
+      s.update(data);
+      return `${data}.${s.sign(privateKey).toString("base64url")}`;
+    };
+    authHeader = `Bearer ${sign({ email })}`;
 });

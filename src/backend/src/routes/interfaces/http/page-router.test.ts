@@ -9,6 +9,8 @@ let mockSend: jest.Mock;
 const mockPublishStarted = jest.fn();
 const mockPublishFinished = jest.fn();
 
+const mockVerifyJwt = jest.fn();
+
 jest.mock("@aws-sdk/client-dynamodb", () => ({
   DynamoDBClient: jest.fn().mockImplementation(() => ({})),
 }));
@@ -46,6 +48,10 @@ jest.mock("../appsync-client", () => ({
   publishRouteFinished: (...args: any[]) => mockPublishFinished(...args),
 }));
 
+jest.mock("../../../shared/auth/verify-jwt", () => ({
+  verifyJwt: (...args: any[]) => mockVerifyJwt(...args),
+}));
+
 import { handler } from "./page-router";
 import { Route } from "../../domain/entities/route";
 import { UUID } from "../../../shared/domain/value-objects/uuid";
@@ -54,10 +60,8 @@ import { Duration } from "../../domain/value-objects/duration";
 import { Path } from "../../domain/value-objects/path";
 import { LatLng } from "../../domain/value-objects/lat-lng";
 const baseCtx = {
-  requestContext: {
-    authorizer: { claims: { email: "test@example.com" } },
-  },
-  headers: { Accept: "application/json" },
+  requestContext: {},
+  headers: { Accept: "application/json", Authorization: "Bearer token" },
 } as any;
 
 beforeEach(() => {
@@ -71,7 +75,31 @@ beforeEach(() => {
   mockSend.mockReset();
   mockPublishStarted.mockReset();
   mockPublishFinished.mockReset();
+  mockVerifyJwt.mockReset();
+  mockVerifyJwt.mockResolvedValue({ email: "test@example.com" });
   process.env.METRICS_QUEUE = "http://localhost";
+});
+
+describe("authorization", () => {
+  const event = {
+    ...baseCtx,
+    resource: "/v1/routes",
+    httpMethod: "GET",
+  } as any;
+
+  it("returns 401 when Authorization header missing", async () => {
+    const res = await handler({
+      ...event,
+      headers: { Accept: "application/json" },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns 401 when token verification fails", async () => {
+    mockVerifyJwt.mockRejectedValueOnce(new Error("invalid"));
+    const res = await handler(event);
+    expect(res.statusCode).toBe(401);
+  });
 });
 
 describe("page router get route", () => {

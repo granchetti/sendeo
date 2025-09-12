@@ -38,11 +38,40 @@ jest.mock("../appsync-client", () => ({
   publishRouteFinished: jest.fn(),
 }));
 
+import { primeJwksForTesting } from "../../../shared/auth/verify-jwt";
+import { createSign, generateKeyPairSync } from "crypto";
 import { handler } from "./page-router";
 
+// Minimal JWT setup for tests
+const userPoolId = (process.env.COGNITO_USER_POOL_ID = "us-east-1_testpool");
+const clientId = (process.env.COGNITO_CLIENT_ID = "testclient");
+const email = "test@example.com";
+const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const jwk: any = publicKey.export({ format: "jwk" });
+jwk.kid = "routes-contract-key";
+jwk.use = "sig";
+jwk.alg = "RS256";
+primeJwksForTesting({ keys: [jwk] } as any);
+const sign = (payload: any) => {
+  const header = { alg: "RS256", kid: jwk.kid };
+  const now = Math.floor(Date.now() / 1000);
+  const body = {
+    iss: `https://cognito-idp.us-east-1.amazonaws.com/${userPoolId}`,
+    aud: clientId,
+    token_use: "id",
+    exp: now + 3600,
+    ...payload,
+  };
+  const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  const data = `${enc(header)}.${enc(body)}`;
+  const s = createSign("RSA-SHA256");
+  s.update(data);
+  return `${data}.${s.sign(privateKey).toString("base64url")}`;
+};
+const token = sign({ email });
+
 const baseCtx = {
-  requestContext: { authorizer: { claims: { email: "test@example.com" } } },
-  headers: { Accept: "application/json" },
+  headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
 } as any;
 
 beforeEach(() => {
@@ -88,7 +117,11 @@ describe("routes contract", () => {
     });
 
     it("returns 401 when unauthorized", async () => {
-      const res = await handler({ ...baseEvent, requestContext: {} } as any);
+      const res = await handler({
+        ...baseEvent,
+        headers: { Accept: "application/json" }, // no Authorization header
+        requestContext: {},
+      } as any);
       expect(res.statusCode).toBe(401);
       expect(JSON.parse(res.body)).toMatchObject({
         code: 401,
@@ -142,4 +175,3 @@ describe("routes contract", () => {
     });
   });
 });
-
