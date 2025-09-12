@@ -1,4 +1,9 @@
-import { rateLimit, resetRateLimit } from "../../src/http/rate-limit";
+import {
+  rateLimit,
+  resetRateLimit,
+  getAttemptsCount,
+  CLEANUP_INTERVAL,
+} from "../../src/http/rate-limit";
 import { createHash } from "node:crypto";
 
 const baseEvent: any = {
@@ -50,5 +55,25 @@ describe("rate limit middleware", () => {
     const responses = await Promise.all(requests);
     const overLimit = responses.filter((r) => r.statusCode === 429).length;
     expect(overLimit).toBe(5);
+  });
+
+  it("cleans up expired attempts", async () => {
+    const handler = rateLimit(async () => ({ statusCode: 200, headers: {}, body: "" }), {
+      limit: CLEANUP_INTERVAL + 10,
+      windowMs: 10,
+    });
+
+    for (let i = 0; i < 5; i++) {
+      await handler({ requestContext: { identity: { sourceIp: `2.2.2.${i}` } } } as any);
+    }
+    expect(getAttemptsCount()).toBe(5);
+
+    await new Promise((r) => setTimeout(r, 20));
+
+    for (let i = 0; i < CLEANUP_INTERVAL - 5; i++) {
+      await handler({ requestContext: { identity: { sourceIp: "9.9.9.9" } } } as any);
+    }
+
+    expect(getAttemptsCount()).toBe(1);
   });
 });

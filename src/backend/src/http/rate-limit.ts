@@ -14,6 +14,11 @@ export interface RateLimitOptions {
 type Handler = (event: APIGatewayProxyEvent) => Promise<APIGatewayProxyResult>;
 
 const attempts = new Map<string, { count: number; expiresAt: number }>();
+export const CLEANUP_INTERVAL = parseInt(
+  process.env.RATE_LIMIT_CLEANUP_EVERY || "100",
+  10
+);
+let requestsSinceCleanup = 0;
 
 // Lazily fetch and cache the salt used for hashing rate limit identifiers.
 const sm = new SecretsManagerClient({});
@@ -56,6 +61,17 @@ export const rateLimit = (
       .digest("hex");
 
     const now = Date.now();
+
+    // Periodically remove expired attempts to avoid memory leaks.
+    requestsSinceCleanup++;
+    if (requestsSinceCleanup % CLEANUP_INTERVAL === 0) {
+      for (const [k, v] of attempts) {
+        if (v.expiresAt < now) {
+          attempts.delete(k);
+        }
+      }
+    }
+
     const record = attempts.get(key);
     if (!record || now > record.expiresAt) {
       attempts.set(key, { count: 1, expiresAt: now + windowMs });
@@ -82,3 +98,6 @@ export const resetRateLimit = () => {
   attempts.clear();
   cachedSalt = null;
 };
+
+// Exposed for testing.
+export const getAttemptsCount = () => attempts.size;
