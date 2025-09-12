@@ -27,7 +27,6 @@ const provider: RouteProvider = {
     { distanceMeters: 1000, durationSeconds: 600, encoded: "abc" },
   ],
   snapToRoad: async (pt) => pt,
-  getCityName: async () => "city",
 };
 
 const queue: QueuePublisher = { send: jest.fn() };

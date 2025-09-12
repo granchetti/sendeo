@@ -1,12 +1,9 @@
-import { MapProvider } from "./map-provider";
-
 export interface RouteLeg {
   distanceMeters: number;
   durationSeconds: number;
   encoded: string;
 }
-
-export interface RouteProvider extends MapProvider {
+export interface RouteProvider {
   geocode(address: string): Promise<{ lat: number; lng: number }>;
   computeRoutes(
     origin: { lat: number; lng: number },

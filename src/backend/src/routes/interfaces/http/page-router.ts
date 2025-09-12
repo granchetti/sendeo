@@ -15,8 +15,6 @@ import { jsonHeaders } from "../../../http/cors";
 import { errorResponse, errorResponseFromError } from "../../../http/error-response";
 import { base } from "../../../http/base";
 import { rateLimit } from "../../../http/rate-limit";
-import { getGoogleKey } from "../shared/utils";
-import { GoogleRoutesProvider } from "../../infrastructure/google-maps/google-routes-provider";
 import { verifyJwt } from "../../../shared/auth/verify-jwt";
 import {
   EventDispatcher,
@@ -181,12 +179,7 @@ export const handler = base(rateLimit(async (
     }
     if (!route.description && route.path) {
       try {
-        const key = await getGoogleKey();
-        const mapProvider = new GoogleRoutesProvider(key);
-        const updated = await describeRouteUseCase.execute(
-          route.routeId,
-          mapProvider
-        );
+        const updated = await describeRouteUseCase.execute(route.routeId);
         if (updated) {
           route.description = updated.description;
         }

@@ -1,7 +1,6 @@
 import { RouteRepository } from "../../domain/repositories/route-repository";
 import { Route } from "../../domain/entities/route";
 import { UUID } from "../../../shared/domain/value-objects/uuid";
-import { MapProvider } from "../../domain/services/map-provider";
 import { RouteDescriptionService } from "../../domain/services/route-description-service";
 
 export class DescribeRouteUseCase {
@@ -10,15 +9,14 @@ export class DescribeRouteUseCase {
     private routeDescriptionService: RouteDescriptionService
   ) {}
 
-  async execute(id: UUID, mapProvider: MapProvider): Promise<Route | null> {
+  async execute(id: UUID): Promise<Route | null> {
     const route = await this.repository.findById(id);
     if (!route) return null;
 
     if (!route.description && route.path) {
       try {
         const desc = await this.routeDescriptionService.describe(
-          route.path.Encoded,
-          mapProvider
+          route.path.Encoded
         );
         if (desc) {
           route.description = desc;

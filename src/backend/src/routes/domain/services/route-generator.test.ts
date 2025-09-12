@@ -18,7 +18,6 @@ describe("RouteGenerator", () => {
       geocode: jest.fn().mockResolvedValue({ lat: 1.23, lng: 4.56 }),
       computeRoutes: jest.fn(),
       snapToRoad: jest.fn(),
-      getCityName: jest.fn(),
     };
     const generator = new RouteGenerator(repo, provider);
     const result = await generator.geocode("addr");
@@ -39,7 +38,6 @@ describe("RouteGenerator", () => {
       geocode: jest.fn(),
       computeRoutes: jest.fn(),
       snapToRoad: jest.fn(),
-      getCityName: jest.fn(),
     };
     const generator = new RouteGenerator(repo, provider);
     const jobId = UUID.generate().toString();

@@ -1,6 +1,5 @@
 import polyline from '@mapbox/polyline';
 import { BedrockRouteDescriptionService } from './bedrock-route-description-service';
-import { MapProvider } from '../domain/services/map-provider';
 
 const sendMock = jest.fn();
 
@@ -28,15 +27,11 @@ describe('BedrockRouteDescriptionService', () => {
       [0, 0],
       [1, 1],
     ]);
-    const provider: MapProvider = {
-      getCityName: jest.fn().mockResolvedValue('TestCity'),
-    };
 
-    const result = await service.describe(path, provider);
+    const result = await service.describe(path);
 
     expect(sendMock).toHaveBeenCalled();
     expect(result).toBe('desc from bedrock');
-    expect(provider.getCityName).toHaveBeenCalled();
   });
 });
 
