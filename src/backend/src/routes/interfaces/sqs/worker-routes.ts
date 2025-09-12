@@ -94,8 +94,8 @@ export function createWorkerRoutesHandler(
         correlationId: corr,
       } = JSON.parse(body);
 
-      version = ver ?? 1;
-      if (ver !== undefined && version !== 1) {
+      version = ver;
+      if (version !== 1) {
         console.warn("[handler] unsupported version", version);
         continue;
       }
