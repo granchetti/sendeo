@@ -28,7 +28,20 @@ const routeRequestQueue = new SQSRouteRequestQueue(
 );
 eventDispatcher.subscribe("RouteRequested", async (event: RouteRequestedEvent) => {
   await routeRequestQueue.send(
-    JSON.stringify({ eventName: event.eventName, routeId: event.routeId.Value }),
+    JSON.stringify({
+      eventName: event.eventName,
+      routeId: event.routeId.Value,
+      version: event.version,
+      jobId: event.jobId?.Value,
+      origin: event.origin,
+      destination: event.destination,
+      distanceKm: event.distanceKm,
+      roundTrip: event.roundTrip,
+      circle: event.circle,
+      routesCount: event.routesCount,
+      preference: event.preference,
+      correlationId: event.correlationId?.Value,
+    }),
   );
 });
 

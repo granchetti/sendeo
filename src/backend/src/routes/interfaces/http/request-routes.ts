@@ -68,6 +68,14 @@ export function createRequestRoutesHandler(useCase: RequestRoutesUseCase) {
         routeId,
         jobId: UUID.fromString(data.jobId),
         correlationId: UUID.fromString(data.correlationId),
+        version: data.version,
+        origin: data.origin,
+        destination: data.destination,
+        distanceKm: data.distanceKm,
+        routesCount: data.routesCount,
+        preference: data.preference,
+        roundTrip: data.roundTrip,
+        circle: data.circle,
       });
 
       return {
