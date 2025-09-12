@@ -51,8 +51,6 @@ it("saves routes and publishes metrics", async () => {
           origin: "a",
           destination: "b",
           routesCount: 1,
-          correlationId: UUID.generate().Value,
-          distanceKm: 1,
         }),
       },
     ],

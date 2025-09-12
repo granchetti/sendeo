@@ -18,16 +18,8 @@ describe("RequestRoutesUseCase", () => {
     dispatcher.subscribe("RouteRequested", handler);
     const useCase = new RequestRoutesUseCase(repo, dispatcher);
     const routeId = UUID.generate();
-    const jobId = UUID.generate();
-    const corr = UUID.generate();
 
-    const result = await useCase.execute({
-      routeId,
-      jobId,
-      correlationId: corr,
-      origin: "A",
-      version: 1,
-    });
+    const result = await useCase.execute({ routeId });
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(save).toHaveBeenCalledWith(expect.any(Route));
