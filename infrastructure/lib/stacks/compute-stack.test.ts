@@ -62,6 +62,23 @@ describe("ComputeStack", () => {
     template.resourceCountIs("AWS::Lambda::EventSourceMapping", 2);
   });
 
+  test("creates default gateway responses with CORS headers", () => {
+    template.hasResourceProperties("AWS::ApiGateway::GatewayResponse", {
+      ResponseType: "DEFAULT_4XX",
+      ResponseParameters: {
+        "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+        "gatewayresponse.header.Access-Control-Allow-Headers": "'*'",
+      },
+    });
+    template.hasResourceProperties("AWS::ApiGateway::GatewayResponse", {
+      ResponseType: "DEFAULT_5XX",
+      ResponseParameters: {
+        "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+        "gatewayresponse.header.Access-Control-Allow-Headers": "'*'",
+      },
+    });
+  });
+
   test("grants PageRouter access to the GSI2 index", () => {
     template.hasResourceProperties("AWS::IAM::Policy", {
       PolicyDocument: {
