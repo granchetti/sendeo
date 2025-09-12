@@ -68,6 +68,7 @@ const compute = new ComputeStack(app, `SendeoComputeStack-${target}`, {
   routeJobsQueue: queues.routeJobsQueue,
   metricsQueue: queues.metricsQueue,
   userPool: auth.userPool,
+  userPoolClientId: auth.userPoolClient.userPoolClientId,
   googleApiKeySecretName: cfg.googleApiKeySecretName,
   appSyncUrl: appSync.api.graphqlUrl,
   appSyncApiKey: appSync.api.apiKey || undefined,

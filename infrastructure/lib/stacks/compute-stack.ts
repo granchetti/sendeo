@@ -17,6 +17,7 @@ export interface ComputeStackProps extends cdk.StackProps, WithStage {
   readonly routeJobsQueue: sqs.IQueue;
   readonly metricsQueue: sqs.IQueue;
   readonly userPool: IUserPool;
+  readonly userPoolClientId: string;
   readonly googleApiKeySecretName: string;
   readonly appSyncUrl?: string;
   readonly appSyncApiKey?: string;
@@ -118,6 +119,8 @@ export class ComputeStack extends cdk.Stack {
       handler: "aws-handlers.favouriteRoutesHandler",
       environment: {
         USER_STATE_TABLE: props.userStateTable.tableName,
+        COGNITO_USER_POOL_ID: props.userPool.userPoolId,
+        COGNITO_CLIENT_ID: props.userPoolClientId,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
         ...(props.appSyncApiKey
           ? { APPSYNC_API_KEY: props.appSyncApiKey }
@@ -152,6 +155,8 @@ export class ComputeStack extends cdk.Stack {
       handler: "aws-handlers.profileRoutesHandler",
       environment: {
         USER_STATE_TABLE: props.userStateTable.tableName,
+        COGNITO_USER_POOL_ID: props.userPool.userPoolId,
+        COGNITO_CLIENT_ID: props.userPoolClientId,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
         ...(props.appSyncApiKey
           ? { APPSYNC_API_KEY: props.appSyncApiKey }
@@ -188,6 +193,8 @@ export class ComputeStack extends cdk.Stack {
         ROUTES_TABLE: props.routesTable.tableName,
         USER_STATE_TABLE: props.userStateTable.tableName,
         METRICS_QUEUE: props.metricsQueue.queueUrl,
+        COGNITO_USER_POOL_ID: props.userPool.userPoolId,
+        COGNITO_CLIENT_ID: props.userPoolClientId,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
         ...(props.appSyncApiKey
           ? { APPSYNC_API_KEY: props.appSyncApiKey }
