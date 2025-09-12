@@ -9,7 +9,6 @@ import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
 import { rateLimit } from "../../../http/rate-limit";
 import type { UserProfileRepository } from "../../domain/repositories/user-profile-repository";
-import { verifyJwt } from "../../../shared/auth/verify-jwt";
 
 export function createProfileRoutesHandler(repo: UserProfileRepository) {
   const getUserProfile = new GetUserProfileUseCase(repo);
@@ -20,26 +19,7 @@ export function createProfileRoutesHandler(repo: UserProfileRepository) {
     rateLimit(async (
       event: APIGatewayProxyEvent
     ): Promise<APIGatewayProxyResult> => {
-      const authHeader =
-        event.headers?.Authorization || event.headers?.authorization;
-      if (!authHeader) {
-        return errorResponse(401, "Unauthorized");
-      }
-      let claims: any;
-      try {
-        const token = authHeader.replace(/^Bearer\s+/i, "");
-        claims = await verifyJwt(token);
-        if (event.requestContext && typeof event.requestContext === "object") {
-          const ctx: any = event.requestContext as any;
-          ctx.authorizer = {
-            ...(ctx.authorizer || {}),
-            claims,
-          };
-        }
-      } catch (err) {
-        console.error("JWT verification failed:", err);
-        return errorResponse(401, "Unauthorized");
-      }
+      const claims = (event.requestContext as any).authorizer?.claims;
       const email = claims?.email;
       if (!email) {
         return errorResponse(401, "Unauthorized");
@@ -93,3 +73,4 @@ export function createProfileRoutesHandler(repo: UserProfileRepository) {
     })
   );
 }
+

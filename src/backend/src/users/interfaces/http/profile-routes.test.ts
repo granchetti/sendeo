@@ -2,8 +2,6 @@ const mockGetProfile = jest.fn();
 const mockPutProfile = jest.fn();
 const mockDeleteProfile = jest.fn();
 
-const mockVerifyJwt = jest.fn();
-
 import { createProfileRoutesHandler } from "./profile-routes";
 import type { UserProfileRepository } from "../../domain/repositories/user-profile-repository";
 
@@ -20,33 +18,14 @@ const handler = createProfileRoutesHandler(repository);
 import { UserProfile } from "../../domain/entities/user-profile";
 import { Email } from "../../../shared/domain/value-objects/email";
 const baseCtx = {
-  requestContext: {},
-  headers: { Accept: "application/json", Authorization: "Bearer token" },
+  requestContext: { authorizer: { claims: { email: "test@example.com" } } },
+  headers: { Accept: "application/json" },
 } as any;
-
-jest.mock("../../../shared/auth/verify-jwt", () => ({
-  verifyJwt: (...args: any[]) => mockVerifyJwt(...args),
-}));
 
 beforeEach(() => {
   mockGetProfile.mockReset();
   mockPutProfile.mockReset();
   mockDeleteProfile.mockReset();
-  mockVerifyJwt.mockReset();
-  mockVerifyJwt.mockResolvedValue({ email: "test@example.com" });
-});
-
-describe("authorization", () => {
-  it("returns 401 when Authorization header missing", async () => {
-    const res = await handler({ requestContext: {}, headers: {}, httpMethod: "GET" } as any);
-    expect(res.statusCode).toBe(401);
-  });
-
-  it("returns 401 when token verification fails", async () => {
-    mockVerifyJwt.mockRejectedValueOnce(new Error("expired"));
-    const res = await handler({ ...baseCtx, httpMethod: "GET" } as any);
-    expect(res.statusCode).toBe(401);
-  });
 });
 
 describe("profile routes handler", () => {
@@ -64,10 +43,7 @@ describe("profile routes handler", () => {
     mockGetProfile.mockResolvedValueOnce(profile);
     const res = await handler({
       ...baseCtx,
-      headers: {
-        ...baseCtx.headers,
-        Accept: "text/plain, application/json",
-      },
+      headers: { Accept: "text/plain, application/json" },
       httpMethod: "GET",
     } as any);
     expect(res.statusCode).toBe(200);

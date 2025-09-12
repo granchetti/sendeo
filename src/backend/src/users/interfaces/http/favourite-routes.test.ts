@@ -4,15 +4,9 @@ const mockGet = jest.fn();
 const mockPublishSaved = jest.fn();
 const mockPublishDeleted = jest.fn();
 
-const mockVerifyJwt = jest.fn();
-
 jest.mock("../../../routes/interfaces/appsync-client", () => ({
   publishFavouriteSaved: (...args: any[]) => mockPublishSaved(...args),
   publishFavouriteDeleted: (...args: any[]) => mockPublishDeleted(...args),
-}));
-
-jest.mock("../../../shared/auth/verify-jwt", () => ({
-  verifyJwt: (...args: any[]) => mockVerifyJwt(...args),
 }));
 
 import { createFavouriteRoutesHandler } from "./favourite-routes";
@@ -29,8 +23,12 @@ const repository: UserProfileRepository = {
 
 const handler = createFavouriteRoutesHandler(repository);
 const baseCtx = {
-  requestContext: {},
-  headers: { Accept: "application/json", Authorization: "Bearer token" },
+  requestContext: {
+    authorizer: {
+      claims: { email: "test@example.com" },
+    },
+  },
+  headers: { Accept: "application/json" },
 } as any;
 
 beforeEach(() => {
@@ -39,23 +37,6 @@ beforeEach(() => {
   mockGet.mockReset();
   mockPublishSaved.mockReset();
   mockPublishDeleted.mockReset();
-  mockVerifyJwt.mockReset();
-  mockVerifyJwt.mockResolvedValue({ email: "test@example.com" });
-});
-
-describe("authorization", () => {
-  const event = { ...baseCtx, httpMethod: "GET" } as any;
-
-  it("returns 401 when Authorization header missing", async () => {
-    const res = await handler({ ...event, headers: { Accept: "application/json" } });
-    expect(res.statusCode).toBe(401);
-  });
-
-  it("returns 401 when token verification fails", async () => {
-    mockVerifyJwt.mockRejectedValueOnce(new Error("tampered"));
-    const res = await handler(event);
-    expect(res.statusCode).toBe(401);
-  });
 });
 
 describe("favourite routes handler", () => {
