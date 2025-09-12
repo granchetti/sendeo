@@ -57,15 +57,15 @@ export class ComputeStack extends cdk.Stack {
     api.addGatewayResponse("Default4xx", {
       type: apigw.ResponseType.DEFAULT_4XX,
       responseHeaders: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers": "'*'",
       },
     });
     api.addGatewayResponse("Default5xx", {
       type: apigw.ResponseType.DEFAULT_5XX,
       responseHeaders: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers": "'*'",
       },
     });
 
