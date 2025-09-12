@@ -34,6 +34,7 @@ describe("ComputeStack", () => {
       routeJobsQueue,
       metricsQueue,
       userPool,
+      userPoolClientId: "dummy-client-id",
       googleApiKeySecretName,
       bedrockAgentId: "a",
       bedrockAgentAliasId: "b",
