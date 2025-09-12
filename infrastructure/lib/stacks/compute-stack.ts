@@ -90,6 +90,13 @@ export class ComputeStack extends cdk.Stack {
     });
     props.routeJobsQueue.grantSendMessages(requestRoutes.fn);
 
+    requestRoutes.fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:PutItem"],
+        resources: [props.routesTable.tableArn],
+      })
+    );
+
     // 2) WorkerRoutes → routeJobsQueue consumer
     const workerRoutes = new SqsConsumer(this, "WorkerRoutes", {
       entry: path.join(
