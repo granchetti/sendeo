@@ -62,9 +62,9 @@ export class ComputeStack extends cdk.Stack {
     const requestRoutes = new HttpLambda(this, "RequestRoutes", {
       entry: path.join(
         __dirname,
-        "../../../src/backend/src/routes/interfaces/http"
+        "../../../src/backend/src/routes/infrastructure"
       ),
-      handler: "request-routes.handler",
+      handler: "aws-handlers.requestRoutesHandler",
       environment: { QUEUE_URL: props.routeJobsQueue.queueUrl },
       api,
       routes: [{ path: "v1/routes", methods: ["POST"], authorizer }],
@@ -110,9 +110,9 @@ export class ComputeStack extends cdk.Stack {
     const favoriteRoutes = new HttpLambda(this, "FavoriteRoutes", {
       entry: path.join(
         __dirname,
-        "../../../src/backend/src/users/interfaces/http"
+        "../../../src/backend/src/users/infrastructure"
       ),
-      handler: "favourite-routes.handler",
+      handler: "aws-handlers.favouriteRoutesHandler",
       environment: {
         USER_STATE_TABLE: props.userStateTable.tableName,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
@@ -144,9 +144,9 @@ export class ComputeStack extends cdk.Stack {
     const profileRoutes = new HttpLambda(this, "ProfileRoutes", {
       entry: path.join(
         __dirname,
-        "../../../src/backend/src/users/interfaces/http"
+        "../../../src/backend/src/users/infrastructure"
       ),
-      handler: "profile-routes.handler",
+      handler: "aws-handlers.profileRoutesHandler",
       environment: {
         USER_STATE_TABLE: props.userStateTable.tableName,
         ...(props.appSyncUrl ? { APPSYNC_URL: props.appSyncUrl } : {}),
