@@ -7,13 +7,6 @@ import * as turf from "@turf/turf";
 
 const sm = new SecretsManagerClient({});
 
-const MAX_LOG_LENGTH = 200;
-function redact(data: string) {
-  return data.length > MAX_LOG_LENGTH
-    ? `${data.slice(0, MAX_LOG_LENGTH)}...`
-    : data;
-}
-
 export function fetchJson<T = any>(url: string): Promise<T> {
   console.info(`[fetchJson] GET ${url}`);
   return new Promise((resolve, reject) => {
@@ -21,19 +14,17 @@ export function fetchJson<T = any>(url: string): Promise<T> {
       let data = "";
       res.on("data", (c) => (data += c));
       res.on("end", () => {
-        console.info(
-          `[fetchJson] resp status: ${res.statusCode} body: ${redact(data)}`
-        );
+        console.info(`[fetchJson] resp body: ${data}`);
         try {
           resolve(data ? JSON.parse(data) : null);
         } catch (err) {
-          console.error("[fetchJson] JSON.parse error", redact(data));
+          console.error("[fetchJson] JSON.parse error", data);
           reject(err);
         }
       });
     });
     req.on("error", (err) => {
-      console.error("[fetchJson] HTTP error", err.message);
+      console.error("[fetchJson] HTTP error", err);
       reject(err);
     });
     req.end();
