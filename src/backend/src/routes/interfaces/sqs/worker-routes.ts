@@ -1,5 +1,11 @@
 import { SQSHandler } from "aws-lambda";
 import { createHash } from "node:crypto";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { SQSClient } from "@aws-sdk/client-sqs";
+import { DynamoRouteRepository } from "../../infrastructure/dynamodb/dynamo-route-repository";
+import { GoogleRoutesProvider } from "../../infrastructure/google-maps/google-routes-provider";
+import { SQSQueuePublisher } from "../../infrastructure/sqs-queue-publisher";
+import { getGoogleKey } from "../shared/utils";
 import { Path } from "../../domain/value-objects/path";
 import type { Route } from "../../domain/entities/route";
 import { publishRoutesGenerated, publishErrorOccurred } from "../appsync-client";
@@ -7,7 +13,6 @@ import { RouteGenerator } from "../../domain/services/route-generator";
 import type { RouteRepository } from "../../domain/repositories/route-repository";
 import type { RouteProvider } from "../../domain/services/route-provider";
 import type { QueuePublisher } from "../../domain/queues/queue-publisher";
-import type { SQSHandler } from "aws-lambda";
 
 const SNAP_THRESHOLD_KM = 0.5;
 
@@ -305,4 +310,28 @@ export function createWorkerRoutesHandler(
     }
   };
 }
+
+const dynamo = new DynamoDBClient({
+  endpoint: process.env.AWS_ENDPOINT_URL_DYNAMODB,
+});
+const routeRepository = new DynamoRouteRepository(
+  dynamo,
+  process.env.ROUTES_TABLE!,
+);
+const sqs = new SQSClient({});
+const metricsPublisher = new SQSQueuePublisher(
+  sqs,
+  process.env.METRICS_QUEUE || "",
+);
+
+export const handler: SQSHandler = async (event, context) => {
+  const key = await getGoogleKey();
+  const provider = new GoogleRoutesProvider(key);
+  const fn = createWorkerRoutesHandler(
+    routeRepository,
+    provider,
+    metricsPublisher,
+  );
+  return fn(event, context);
+};
 
