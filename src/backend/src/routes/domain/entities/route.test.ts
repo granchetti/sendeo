@@ -4,15 +4,16 @@ import { DistanceKm } from "../value-objects/distance";
 import { Duration } from "../value-objects/duration";
 import { Path } from "../value-objects/path";
 import { LatLng } from "../value-objects/lat-lng";
+import { RouteRequestedEvent } from "../events/route-requested";
 import { RouteGeneratedEvent } from "../events/route-generated";
 import { RouteStatus } from "../value-objects/route-status";
 
 describe("Route", () => {
-  it("should create a Route in requested status", () => {
+  it("should create a Route and record RouteRequestedEvent", () => {
     const routeId = UUID.generate();
     const route = Route.request({ routeId });
     const events = route.pullEvents();
-    expect(events.length).toBe(0);
+    expect(events[0]).toBeInstanceOf(RouteRequestedEvent);
     expect(route.routeId.equals(routeId)).toBe(true);
     expect(route.status).toBe(RouteStatus.Requested);
   });

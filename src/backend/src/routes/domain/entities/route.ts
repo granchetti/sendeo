@@ -19,17 +19,6 @@ export interface RouteProps {
   status: RouteStatus;
 }
 
-interface RouteRequestProps {
-  routeId: UUID;
-  jobId?: UUID;
-  correlationId?: UUID;
-  origin?: string;
-  destination?: string;
-  distanceKm?: number;
-  routesCount?: number;
-  version?: number;
-}
-
 export class Route {
   private props: RouteProps;
   private events: DomainEvent[] = [];
@@ -41,23 +30,9 @@ export class Route {
     this.props = { ...props };
   }
 
-  static request(props: RouteRequestProps): Route {
-    const { routeId, jobId, correlationId, origin, destination, distanceKm, routesCount, version } = props;
-    const route = new Route({ routeId, jobId, correlationId, status: RouteStatus.Requested });
-    if (jobId && origin && version != null) {
-      route.record(
-        new RouteRequestedEvent({
-          routeId,
-          jobId,
-          origin,
-          destination,
-          distanceKm,
-          routesCount,
-          correlationId,
-          version,
-        })
-      );
-    }
+  static request(props: Omit<RouteProps, "status">): Route {
+    const route = new Route({ ...props, status: RouteStatus.Requested });
+    route.record(new RouteRequestedEvent({ routeId: route.routeId }));
     return route;
   }
 

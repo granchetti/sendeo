@@ -43,14 +43,7 @@ describe("registerTelemetrySubscribers", () => {
     expect(finishedEventName).toBe("RouteFinished");
 
     const routeId = UUID.generate();
-    requestedHandler(
-      new RouteRequestedEvent({
-        routeId,
-        jobId: UUID.generate(),
-        origin: "A",
-        version: 1,
-      })
-    );
+    requestedHandler(new RouteRequestedEvent({ routeId }));
     expect(consoleSpy).toHaveBeenNthCalledWith(
       1,
       "Telemetry: route requested",
