@@ -51,8 +51,6 @@ const LoginForm: React.FC<Props> = ({ onSuccess }) => {
       const session = await signIn(email, password);
       const id = session.getIdToken().getJwtToken();
       const refresh = session.getRefreshToken().getToken();
-      localStorage.setItem('idToken', id);
-      localStorage.setItem('refreshToken', refresh);
       setSession(id, refresh);
       try {
         await api.put(
