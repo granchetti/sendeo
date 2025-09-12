@@ -3,7 +3,7 @@ import { Duration } from "../value-objects/duration";
 import { Path } from "../value-objects/path";
 import { UUID } from "../../../shared/domain/value-objects/uuid";
 import { DomainEvent } from "../../../shared/domain/events/domain-event";
-import { RouteRequestedEvent } from "../events/route-requested";
+import { RouteRequestedEvent, RouteRequestedProps } from "../events/route-requested";
 import { RouteGeneratedEvent } from "../events/route-generated";
 import { RouteStatus } from "../value-objects/route-status";
 import { ValidationError } from "../../../shared/errors";
@@ -30,9 +30,17 @@ export class Route {
     this.props = { ...props };
   }
 
-  static request(props: Omit<RouteProps, "status">): Route {
+  static request(
+    props: Omit<RouteProps, "status">,
+    eventData?: Omit<RouteRequestedProps, "routeId">
+  ): Route {
     const route = new Route({ ...props, status: RouteStatus.Requested });
-    route.record(new RouteRequestedEvent({ routeId: route.routeId }));
+    route.record(
+      new RouteRequestedEvent({
+        routeId: route.routeId,
+        ...(eventData || {}),
+      })
+    );
     return route;
   }
 
