@@ -4,9 +4,9 @@ import { jsonHeaders } from "../../../http/cors";
 import { errorResponse } from "../../../http/error-response";
 import { base } from "../../../http/base";
 import { rateLimit } from "../../../http/rate-limit";
-import type { RouteRequestQueue } from "../../domain/queues/route-request-queue";
+import { RequestRoutesUseCase } from "../../application/use-cases/request-routes";
 
-export function createRequestRoutesHandler(queue: RouteRequestQueue) {
+export function createRequestRoutesHandler(useCase: RequestRoutesUseCase) {
   return base(
     rateLimit(async (
       event: APIGatewayProxyEvent
@@ -63,7 +63,12 @@ export function createRequestRoutesHandler(queue: RouteRequestQueue) {
 
       data.version = 1;
 
-      await queue.send(JSON.stringify(data));
+      const routeId = UUID.generate();
+      await useCase.execute({
+        routeId,
+        jobId: UUID.fromString(data.jobId),
+        correlationId: UUID.fromString(data.correlationId),
+      });
 
       return {
         statusCode: 202,

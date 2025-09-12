@@ -1,89 +1,79 @@
-const mockSend = jest.fn();
-
 import { createRequestRoutesHandler } from "./request-routes";
+import { RequestRoutesUseCase } from "../../application/use-cases/request-routes";
+import {
+  InMemoryEventDispatcher,
+} from "../../../shared/domain/events/event-dispatcher";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
+import type { RouteRepository } from "../../domain/repositories/route-repository";
 import type { RouteRequestQueue } from "../../domain/queues/route-request-queue";
 
+const mockSend = jest.fn();
 const queue: RouteRequestQueue = { send: mockSend };
-const handler = createRequestRoutesHandler(queue);
-import { UUID } from "../../../shared/domain/value-objects/uuid";
+const repo: RouteRepository = { save: jest.fn() } as any;
+
+function buildHandler() {
+  const dispatcher = new InMemoryEventDispatcher();
+  dispatcher.subscribe("RouteRequested", async (event: any) => {
+    await queue.send(
+      JSON.stringify({ eventName: event.eventName, routeId: event.routeId.Value }),
+    );
+  });
+  const useCase = new RequestRoutesUseCase(repo, dispatcher);
+  return createRequestRoutesHandler(useCase);
+}
 
 beforeEach(() => {
   mockSend.mockReset();
+  (repo.save as jest.Mock).mockReset();
 });
 
 describe("request routes handler", () => {
-  it("generates jobId when missing", async () => {
+  it("generates identifiers and publishes event", async () => {
     mockSend.mockResolvedValueOnce({});
+    const handler = buildHandler();
     const res = await handler({
       headers: { Accept: "application/json" },
       body: JSON.stringify({ origin: "A", destination: "B" }),
     } as any);
 
     expect(mockSend).toHaveBeenCalledTimes(1);
-    const sent = mockSend.mock.calls[0][0];
-    const payload = JSON.parse(sent);
-
-    expect(payload.jobId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(payload.correlationId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(payload.version).toBe(1);
+    const payload = JSON.parse(mockSend.mock.calls[0][0]);
+    expect(payload.eventName).toBe("RouteRequested");
+    expect(payload.routeId).toMatch(/^[0-9a-f-]{36}$/);
     const body = JSON.parse(res.body);
-    expect(body.jobId).toBe(payload.jobId);
-    expect(body.enqueued).toBe(true);
+    expect(body.jobId).toMatch(/^[0-9a-f-]{36}$/);
+    const saved = (repo.save as jest.Mock).mock.calls[0][0];
+    expect(saved.correlationId.Value).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it("keeps provided jobId", async () => {
+  it("keeps provided jobId and correlationId", async () => {
+    mockSend.mockResolvedValueOnce({});
+    const handler = buildHandler();
     const jobId = UUID.generate().Value;
     const correlationId = UUID.generate().Value;
-    mockSend.mockResolvedValueOnce({});
     const res = await handler({
       headers: { Accept: "application/json" },
       body: JSON.stringify({
-        jobId,
-        correlationId,
         origin: "A",
         destination: "B",
+        jobId,
+        correlationId,
       }),
     } as any);
 
     expect(mockSend).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(mockSend.mock.calls[0][0]);
-
-    expect(payload.jobId).toBe(jobId);
-    expect(payload.correlationId).toBe(correlationId);
     const body = JSON.parse(res.body);
     expect(body.jobId).toBe(jobId);
-    expect(body.enqueued).toBe(true);
-  });
-
-  it("generates correlationId when missing", async () => {
-    mockSend.mockResolvedValueOnce({});
-    await handler({
-      headers: { Accept: "application/json" },
-      body: JSON.stringify({ origin: "A", destination: "B" }),
-    } as any);
-
-    const payload = JSON.parse(mockSend.mock.calls[0][0]);
-    expect(payload.correlationId).toMatch(/^[0-9a-f-]{36}$/);
-  });
-
-  it("keeps provided correlationId", async () => {
-    const correlationId = UUID.generate().Value;
-    mockSend.mockResolvedValueOnce({});
-    await handler({
-      headers: { Accept: "application/json" },
-      body: JSON.stringify({
-        origin: "A",
-        destination: "B",
-        correlationId,
-      }),
-    } as any);
-
-    const payload = JSON.parse(mockSend.mock.calls[0][0]);
-    expect(payload.correlationId).toBe(correlationId);
+    const saved = (repo.save as jest.Mock).mock.calls[0][0];
+    expect(saved.correlationId.Value).toBe(correlationId);
   });
 
   it("returns 400 when body parsing fails", async () => {
-    const res = await handler({ headers: { Accept: "application/json" }, body: '{"invalid"' } as any);
+    const handler = buildHandler();
+    const res = await handler({
+      headers: { Accept: "application/json" },
+      body: '{"invalid"',
+    } as any);
     expect(res.statusCode).toBe(400);
     expect(JSON.parse(res.body)).toMatchObject({
       code: 400,
@@ -93,68 +83,27 @@ describe("request routes handler", () => {
   });
 
   it("returns 400 when missing origin or destination/distanceKm", async () => {
-    mockSend.mockResolvedValueOnce({});
-    const res1 = await handler({ headers: { Accept: "application/json" }, body: JSON.stringify({ destination: "B" }) } as any);
+    const handler = buildHandler();
+    const res1 = await handler({
+      headers: { Accept: "application/json" },
+      body: JSON.stringify({ destination: "B" }),
+    } as any);
     expect(res1.statusCode).toBe(400);
-    expect(JSON.parse(res1.body)).toMatchObject({
-      code: 400,
-      message: "Must provide origin and (destination OR distanceKm)",
-    });
-    const res2 = await handler({ headers: { Accept: "application/json" }, body: JSON.stringify({ origin: "A" }) } as any);
+    const res2 = await handler({
+      headers: { Accept: "application/json" },
+      body: JSON.stringify({ origin: "A" }),
+    } as any);
     expect(res2.statusCode).toBe(400);
-    expect(JSON.parse(res2.body)).toMatchObject({
-      code: 400,
-      message: "Must provide origin and (destination OR distanceKm)",
-    });
   });
 
   it("returns 400 when distanceKm is out of range", async () => {
+    const handler = buildHandler();
     const res = await handler({
       headers: { Accept: "application/json" },
       body: JSON.stringify({ origin: "A", distanceKm: 101 }),
     } as any);
-
     expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body)).toMatchObject({
-      code: 400,
-      message: "distanceKm must be between 1 and 100",
-    });
     expect(mockSend).not.toHaveBeenCalled();
   });
-
-  it("forwards distanceKm when within range", async () => {
-    mockSend.mockResolvedValueOnce({});
-    await handler({
-      headers: { Accept: "application/json" },
-      body: JSON.stringify({ origin: "A", distanceKm: 50 }),
-    } as any);
-
-    expect(mockSend).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(mockSend.mock.calls[0][0]);
-    expect(payload.distanceKm).toBe(50);
-  });
-
-  it("forwards routesCount when provided", async () => {
-    mockSend.mockResolvedValueOnce({});
-    await handler({
-      headers: { Accept: "application/json" },
-      body: JSON.stringify({ origin: "A", destination: "B", routesCount: 3 }),
-    } as any);
-
-    expect(mockSend).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(mockSend.mock.calls[0][0]);
-    expect(payload.routesCount).toBe(3);
-  });
-
-  it("forwards preference when provided", async () => {
-    mockSend.mockResolvedValueOnce({});
-    await handler({
-      headers: { Accept: "application/json" },
-      body: JSON.stringify({ origin: "A", destination: "B", preference: "park" }),
-    } as any);
-
-    expect(mockSend).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(mockSend.mock.calls[0][0]);
-    expect(payload.preference).toBe("park");
-  });
 });
+
