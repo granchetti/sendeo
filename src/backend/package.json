@@ -37,7 +37,6 @@
     "@aws-sdk/signature-v4": "^3.370.0",
     "@mapbox/polyline": "^1.2.1",
     "@turf/turf": "^7.2.0",
-    "uuid": "^11.1.0",
-    "aws-jwt-verify": "^5.0.0"
+    "uuid": "^11.1.0"
   }
 }
