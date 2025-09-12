@@ -66,15 +66,15 @@ describe("ComputeStack", () => {
     template.hasResourceProperties("AWS::ApiGateway::GatewayResponse", {
       ResponseType: "DEFAULT_4XX",
       ResponseParameters: {
-        "gatewayresponse.header.Access-Control-Allow-Origin": "*",
-        "gatewayresponse.header.Access-Control-Allow-Headers": "*",
+        "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+        "gatewayresponse.header.Access-Control-Allow-Headers": "'*'",
       },
     });
     template.hasResourceProperties("AWS::ApiGateway::GatewayResponse", {
       ResponseType: "DEFAULT_5XX",
       ResponseParameters: {
-        "gatewayresponse.header.Access-Control-Allow-Origin": "*",
-        "gatewayresponse.header.Access-Control-Allow-Headers": "*",
+        "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+        "gatewayresponse.header.Access-Control-Allow-Headers": "'*'",
       },
     });
   });
