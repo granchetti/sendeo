@@ -38,6 +38,12 @@ export class ComputeStack extends cdk.Stack {
       props.googleApiKeySecretName
     );
 
+    const rateLimitSalt = Secret.fromSecretNameV2(
+      this,
+      "RateLimitSalt",
+      "rate-limit-salt"
+    );
+
     // API Gateway + Cognito Authorizer
     const api = new apigw.RestApi(this, "Api", {
       restApiName: `SendeoApi-${suffix}`,
@@ -89,6 +95,7 @@ export class ComputeStack extends cdk.Stack {
       routes: [{ path: "v1/routes", methods: ["POST"], authorizer }],
     });
     props.routeJobsQueue.grantSendMessages(requestRoutes.fn);
+    rateLimitSalt.grantRead(requestRoutes.fn);
 
     // 2) WorkerRoutes → routeJobsQueue consumer
     const workerRoutes = new SqsConsumer(this, "WorkerRoutes", {
@@ -148,6 +155,7 @@ export class ComputeStack extends cdk.Stack {
         { path: "v1/favourites/{routeId}", methods: ["DELETE"], authorizer },
       ],
     });
+    rateLimitSalt.grantRead(favoriteRoutes.fn);
     favoriteRoutes.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:Query"],
@@ -181,6 +189,7 @@ export class ComputeStack extends cdk.Stack {
       api,
       routes: [{ path: "v1/profile", methods: ["GET", "PUT", "DELETE"], authorizer }],
     });
+    rateLimitSalt.grantRead(profileRoutes.fn);
     profileRoutes.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
@@ -226,6 +235,7 @@ export class ComputeStack extends cdk.Stack {
       ],
     });
     googleSecret.grantRead(pageRouter.fn);
+    rateLimitSalt.grantRead(pageRouter.fn);
     pageRouter.fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
@@ -284,7 +294,7 @@ export class ComputeStack extends cdk.Stack {
     );
 
     // 7) SwaggerDocs → GET /swagger & GET /swagger.json
-    new HttpLambda(this, "SwaggerDocs", {
+    const swaggerDocs = new HttpLambda(this, "SwaggerDocs", {
       entry: path.join(
         __dirname,
         "../../../src/backend/src/docs/interfaces/http"
@@ -296,5 +306,6 @@ export class ComputeStack extends cdk.Stack {
         { path: "swagger.json", methods: ["GET"] },
       ],
     });
+    rateLimitSalt.grantRead(swaggerDocs.fn);
   }
 }
