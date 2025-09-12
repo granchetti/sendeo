@@ -1,8 +1,18 @@
 import { RouteRepository } from "../../domain/repositories/route-repository";
-import { Route, RouteProps } from "../../domain/entities/route";
+import { Route } from "../../domain/entities/route";
 import { EventDispatcher } from "../../../shared/domain/events/event-dispatcher";
+import { UUID } from "../../../shared/domain/value-objects/uuid";
 
-export interface RequestRoutesInput extends Omit<RouteProps, "status"> {}
+export interface RequestRoutesInput {
+  routeId: UUID;
+  jobId: UUID;
+  correlationId: UUID;
+  origin: string;
+  destination?: string;
+  distanceKm?: number;
+  routesCount?: number;
+  version: number;
+}
 
 export class RequestRoutesUseCase {
   constructor(

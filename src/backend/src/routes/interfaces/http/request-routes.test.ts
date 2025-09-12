@@ -15,7 +15,17 @@ function buildHandler() {
   const dispatcher = new InMemoryEventDispatcher();
   dispatcher.subscribe("RouteRequested", async (event: any) => {
     await queue.send(
-      JSON.stringify({ eventName: event.eventName, routeId: event.routeId.Value }),
+      JSON.stringify({
+        eventName: event.eventName,
+        routeId: event.routeId.Value,
+        version: event.version,
+        jobId: event.jobId.Value,
+        origin: event.origin,
+        destination: event.destination,
+        distanceKm: event.distanceKm,
+        routesCount: event.routesCount,
+        correlationId: event.correlationId?.Value,
+      }),
     );
   });
   const useCase = new RequestRoutesUseCase(repo, dispatcher);
@@ -40,6 +50,8 @@ describe("request routes handler", () => {
     const payload = JSON.parse(mockSend.mock.calls[0][0]);
     expect(payload.eventName).toBe("RouteRequested");
     expect(payload.routeId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(payload.origin).toBe("A");
+    expect(payload.version).toBe(1);
     const body = JSON.parse(res.body);
     expect(body.jobId).toMatch(/^[0-9a-f-]{36}$/);
     const saved = (repo.save as jest.Mock).mock.calls[0][0];
