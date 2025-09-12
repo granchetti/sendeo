@@ -1,5 +1,11 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
+import {
+  setSession as storeSetSession,
+  clearSession as storeClearSession,
+  getIdToken,
+  getRefreshToken,
+} from './sessionStore';
 
 export let externalSetSession: ((id: string, refresh: string) => void) | null =
   null;
@@ -7,43 +13,25 @@ export let externalSignOut: (() => void) | null = null;
 
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [idToken, setIdToken] = useState<string | null>(
-    () => localStorage.getItem('idToken')
-  );
-  const [refreshToken, setRefreshToken] = useState<string | null>(
-    () => localStorage.getItem('refreshToken')
+  const [idToken, setIdToken] = useState<string | null>(() => getIdToken());
+  const [refreshToken, setRefreshToken] = useState<string | null>(() =>
+    getRefreshToken(),
   );
 
   const setSession = (id: string, refresh: string) => {
     setIdToken(id);
     setRefreshToken(refresh);
+    storeSetSession(id, refresh);
   };
 
   const signOut = () => {
     setIdToken(null);
     setRefreshToken(null);
-    localStorage.removeItem('idToken');
-    localStorage.removeItem('refreshToken');
+    storeClearSession();
   };
 
   externalSetSession = setSession;
   externalSignOut = signOut;
-
-  useEffect(() => {
-    if (idToken) {
-      localStorage.setItem('idToken', idToken);
-    } else {
-      localStorage.removeItem('idToken');
-    }
-  }, [idToken]);
-
-  useEffect(() => {
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken);
-    } else {
-      localStorage.removeItem('refreshToken');
-    }
-  }, [refreshToken]);
 
   return (
     <AuthContext.Provider

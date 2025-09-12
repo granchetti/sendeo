@@ -1,6 +1,12 @@
 import axios from 'axios';
 import { getCurrentUser, refreshSession } from '../auth/cognito';
 import { externalSetSession, externalSignOut } from '../auth/AuthProvider';
+import {
+  getIdToken,
+  getRefreshToken,
+  setSession as storeSetSession,
+  clearSession as storeClearSession,
+} from '../auth/sessionStore';
 
 const baseURL = import.meta.env.VITE_API_URL;
 
@@ -27,8 +33,8 @@ function isTokenExpired(token: string): boolean {
 }
 
 api.interceptors.request.use(async (config) => {
-  let idToken = localStorage.getItem('idToken');
-  const refreshToken = localStorage.getItem('refreshToken');
+  let idToken = getIdToken();
+  const refreshToken = getRefreshToken();
 
   if (idToken && refreshToken && isTokenExpired(idToken)) {
     const user = getCurrentUser();
@@ -37,12 +43,10 @@ api.interceptors.request.use(async (config) => {
         const session = await refreshSession(user, refreshToken);
         idToken = session.getIdToken().getJwtToken();
         const newRefresh = session.getRefreshToken().getToken();
-        localStorage.setItem('idToken', idToken);
-        localStorage.setItem('refreshToken', newRefresh);
+        storeSetSession(idToken, newRefresh);
         externalSetSession?.(idToken, newRefresh);
       } catch {
-        localStorage.removeItem('idToken');
-        localStorage.removeItem('refreshToken');
+        storeClearSession();
         externalSignOut?.();
       }
     }

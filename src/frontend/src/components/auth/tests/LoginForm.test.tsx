@@ -37,7 +37,6 @@ describe('LoginForm', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
   });
 
   it('handles successful login', async () => {
