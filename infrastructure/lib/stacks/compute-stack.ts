@@ -65,7 +65,10 @@ export class ComputeStack extends cdk.Stack {
         "../../../src/backend/src/routes/infrastructure"
       ),
       handler: "aws-handlers.requestRoutesHandler",
-      environment: { QUEUE_URL: props.routeJobsQueue.queueUrl },
+      environment: {
+        QUEUE_URL: props.routeJobsQueue.queueUrl,
+        ROUTES_TABLE: props.routesTable.tableName,
+      },
       api,
       routes: [{ path: "v1/routes", methods: ["POST"], authorizer }],
     });
