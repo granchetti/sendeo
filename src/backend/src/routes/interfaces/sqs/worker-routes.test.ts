@@ -63,3 +63,24 @@ it("saves routes and publishes metrics", async () => {
   expect(queue.send).toHaveBeenCalled();
 });
 
+it("defaults to version 1 when missing", async () => {
+  const event = {
+    Records: [
+      {
+        body: JSON.stringify({
+          jobId: UUID.generate().Value,
+          origin: "a",
+          destination: "b",
+          routesCount: 1,
+        }),
+      },
+    ],
+  } as any;
+
+  await handler(event);
+
+  expect(save).toHaveBeenCalled();
+  expect(publish).toHaveBeenCalled();
+  expect(queue.send).toHaveBeenCalled();
+});
+
