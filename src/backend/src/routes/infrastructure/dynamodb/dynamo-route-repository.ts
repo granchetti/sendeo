@@ -107,6 +107,8 @@ export class DynamoRouteRepository implements RouteRepository {
         TableName: this.tableName,
         IndexName: "GSI2",
         KeyConditionExpression: "jobId = :job",
+        // Only return generated routes (those with a stored path)
+        FilterExpression: "attribute_exists(path)",
         ExpressionAttributeValues: {
           ":job": { S: jobId.Value },
         },

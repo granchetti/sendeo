@@ -25,8 +25,6 @@ import {
   ensureCoords,
 } from '../utils/geocoding';
 import { api } from '../services/api';
-import { API, graphqlOperation } from '../services/appsync';
-import { onRoutesGenerated, onErrorOccurred } from '../graphql/subscriptions';
 import { useNavigate } from 'react-router-dom';
 
 const MotionBox = motion(Box);
@@ -132,7 +130,8 @@ export default function RoutesPage() {
       const cached = JSON.parse(raw);
       const fresh = Date.now() - (cached.createdAt ?? 0) < CACHE_TTL_MS;
       if (fresh && Array.isArray(cached.routes) && cached.routes.length) {
-        setRoutes(cached.routes);
+        const filteredRoutes = cached.routes.filter((r: any) => r?.path);
+        setRoutes(filteredRoutes);
         setJobId(cached.jobId ?? null);
 
         if (cached.origin) setOrigin(cached.origin);
@@ -153,67 +152,34 @@ export default function RoutesPage() {
 
   useEffect(() => {
     if (!jobId) return;
-    const observable = API.graphql(
-      graphqlOperation(onRoutesGenerated, { jobId }),
-    ) as any;
-    const subscription = observable.subscribe({
-      next: ({ value }: any) => {
-        const data = value?.data?.onRoutesGenerated;
-        if (data?.length) {
-          setRoutes(data);
-          setLoading(false);
-          sessionStorage.setItem(
-            CACHE_KEY,
-            JSON.stringify({
-              createdAt: Date.now(),
-              jobId,
-              routes: data,
-              origin,
-              destination,
-              originText,
-              destinationText,
-              mode,
-              distanceKm,
-              roundTrip,
-              circle,
-              routesCount,
-            }),
-          );
-        }
-      },
-      error: console.error,
-    });
-    return () => subscription.unsubscribe();
-  }, [
-    jobId,
-    origin,
-    destination,
-    originText,
-    destinationText,
-    mode,
-    distanceKm,
-    roundTrip,
-    circle,
-    routesCount,
-  ]);
-
-  useEffect(() => {
-    if (!jobId) return;
-    const observable = API.graphql(
-      graphqlOperation(onErrorOccurred, { correlationId: jobId }),
-    ) as any;
-    const subscription = observable.subscribe({
-      next: ({ value }: any) => {
-        const msg = value?.data?.onErrorOccurred?.message;
-        if (msg) {
-          toast({ title: 'Error', description: msg, status: 'error' });
-          setLoading(false);
-        }
-      },
-      error: console.error,
-    });
-    return () => subscription.unsubscribe();
-  }, [jobId, toast]);
+    const iv = setInterval(async () => {
+      const { data } = await api.get(`/v1/jobs/${jobId}/routes`);
+      if (data.length) {
+        const filtered = data.filter((r: any) => r?.path);
+        setRoutes(filtered);
+        setLoading(false);
+        sessionStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({
+            createdAt: Date.now(),
+            jobId,
+            routes: filtered,
+            origin,
+            destination,
+            originText,
+            destinationText,
+            mode,
+            distanceKm,
+            roundTrip,
+            circle,
+            routesCount,
+          }),
+        );
+        clearInterval(iv);
+      }
+    }, 2000);
+    return () => clearInterval(iv);
+  }, [jobId]);
 
   const toCoord = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
 
@@ -291,10 +257,12 @@ export default function RoutesPage() {
     rawPath: google.maps.LatLngLiteral[],
   ) => {
     setSelectedRoute(routeId);
-    if (mapRef.current) {
+    if (mapRef.current && rawPath && rawPath.length > 0) {
       const mid = rawPath[Math.floor(rawPath.length / 2)];
-      mapRef.current.panTo(mid);
-      mapRef.current.setZoom(15);
+      if (mid) {
+        mapRef.current.panTo(mid);
+        mapRef.current.setZoom(15);
+      }
     }
   };
 

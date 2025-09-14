@@ -36,7 +36,7 @@ interface RouteListProps {
 }
 
 const decodePolyline = (encoded?: string): google.maps.LatLngLiteral[] => {
-  if (!encoded) return [];
+  if (!encoded || !google.maps.geometry?.encoding) return [];
   const raw = google.maps.geometry.encoding.decodePath(encoded);
   return raw.map((p) => ({ lat: p.lat(), lng: p.lng() }));
 };
@@ -73,7 +73,8 @@ const RouteList: React.FC<RouteListProps> = ({
   startingRouteId,
   maxFavourites = 10,
 }) => {
-  if (routes.length === 0) return null;
+  const visibleRoutes = routes.filter((r) => !!r.path);
+  if (visibleRoutes.length === 0) return null;
 
   return (
     <Box bg="white" p={4} rounded="lg" boxShadow="md" w="full" maxW="xxl" mx="auto">
@@ -82,7 +83,7 @@ const RouteList: React.FC<RouteListProps> = ({
       </Heading>
 
       <Stack spacing={3}>
-        {routes.map((r, idx) => {
+        {visibleRoutes.map((r, idx) => {
           const isSelected = selectedRoute === r.routeId;
           const color = COLORS[idx % COLORS.length];
           const labelLine =
@@ -100,11 +101,13 @@ const RouteList: React.FC<RouteListProps> = ({
               role="button"
               tabIndex={0}
               data-testid={`route-item-${idx}`}
-              onClick={() => onSelectRoute(r.routeId, path)}
+              onClick={() => {
+                if (path.length) onSelectRoute(r.routeId, path);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  onSelectRoute(r.routeId, path);
+                  if (path.length) onSelectRoute(r.routeId, path);
                 }
               }}
               minH={{ base: 'auto', md: '80px' }}
@@ -119,7 +122,7 @@ const RouteList: React.FC<RouteListProps> = ({
               rounded="md"
               px={6}
               py={4}
-              cursor="pointer"
+              cursor={r.path ? 'pointer' : 'default'}
               _hover={{ bg: isSelected ? 'orange.100' : 'gray.50' }}
               borderColor={isSelected ? 'orange.300' : 'gray.200'}
               _focusVisible={{ boxShadow: '0 0 0 3px rgba(66,153,225,.6)', borderColor: 'blue.300' }}

@@ -1,9 +1,5 @@
 import { Box } from '@chakra-ui/react';
-import {
-  GoogleMap,
-  Marker,
-  Polyline,
-} from '@react-google-maps/api';
+import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
 import React from 'react';
 import * as turf from '@turf/turf';
 
@@ -54,27 +50,39 @@ const RouteMap: React.FC<RouteMapProps> = ({
         {mode === 'points' && destination && (
           <Marker position={destination} label="B" />
         )}
-        {routes.map((r, i) => {
-          const rawPath = google.maps.geometry.encoding.decodePath(r.path!);
-          const coords = rawPath.map((p) => [p.lng(), p.lat()]) as [number, number][];
-          const line = turf.lineString(coords);
-          const offsetDist = (i - (routes.length - 1) / 2) * OFFSET_STEP_KM;
-          const offsetLine = turf.lineOffset(line, offsetDist, { units: 'kilometers' });
-          const path = offsetLine.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
-          return (
-            <Polyline
-              key={r.routeId}
-              path={path}
-              options={{
-                strokeColor: COLORS[i % COLORS.length],
-                strokeOpacity: 1,
-                strokeWeight: selectedRoute === r.routeId ? 6 : 4,
-                zIndex: selectedRoute === r.routeId ? 10 : i + 1,
-              }}
-              onClick={() => onSelectRoute(r.routeId, path)}
-            />
-          );
-        })}
+        {routes
+          .filter((r) => !!r.path)
+          .map((r, i, arr) => {
+            if (!r.path || !google.maps.geometry?.encoding) return null;
+            const rawPath = google.maps.geometry.encoding.decodePath(r.path);
+            if (!rawPath.length) return null;
+            const coords = rawPath.map((p) => [p.lng(), p.lat()]) as [
+              number,
+              number,
+            ][];
+            const line = turf.lineString(coords);
+            const offsetDist = (i - (arr.length - 1) / 2) * OFFSET_STEP_KM;
+            const offsetLine = turf.lineOffset(line, offsetDist, {
+              units: 'kilometers',
+            });
+            const path = offsetLine.geometry.coordinates.map(([lng, lat]) => ({
+              lat,
+              lng,
+            }));
+            return (
+              <Polyline
+                key={r.routeId}
+                path={path}
+                options={{
+                  strokeColor: COLORS[i % COLORS.length],
+                  strokeOpacity: 1,
+                  strokeWeight: selectedRoute === r.routeId ? 6 : 4,
+                  zIndex: selectedRoute === r.routeId ? 10 : i + 1,
+                }}
+                onClick={() => onSelectRoute(r.routeId, path)}
+              />
+            );
+          })}
       </GoogleMap>
     </Box>
   );

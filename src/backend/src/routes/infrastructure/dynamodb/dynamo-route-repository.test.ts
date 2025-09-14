@@ -126,7 +126,7 @@ describe("DynamoRouteRepository", () => {
     ]);
   });
 
-  it("findByJobId queries using GSI2", async () => {
+  it("findByJobId queries using GSI2 and filters to generated routes", async () => {
     const routeId = UUID.generate();
     const jobId = UUID.generate();
     const correlationId = UUID.generate();
@@ -149,6 +149,7 @@ describe("DynamoRouteRepository", () => {
       TableName: tableName,
       IndexName: "GSI2",
       KeyConditionExpression: "jobId = :job",
+      FilterExpression: "attribute_exists(path)",
       ExpressionAttributeValues: { ":job": { S: jobId.Value } },
     });
     expect(res).toHaveLength(1);

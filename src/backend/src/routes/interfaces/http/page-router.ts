@@ -215,11 +215,13 @@ export const handler = base(rateLimit(async (
     }
     try {
       const list = await routeRepository.findByJobId(UUID.fromString(jobId));
+      // Only return fully generated routes to clients
+      const filtered = list.filter((r) => r.path);
       return {
         statusCode: 200,
         headers: jsonHeaders,
         body: JSON.stringify(
-          list.map((r) => ({
+          filtered.map((r) => ({
             routeId: r.routeId.Value,
             distanceKm: r.distanceKm?.Value,
             duration: r.duration?.Value,

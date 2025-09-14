@@ -254,10 +254,16 @@ describe("page router list routes by jobId", () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it("returns list of routes for job", async () => {
+  it("returns only generated routes for job", async () => {
     const jobId = UUID.generate();
-    const r = Route.request({ routeId: UUID.generate(), jobId });
-    mockFindByJobId.mockResolvedValueOnce([r]);
+    const rRequested = Route.request({ routeId: UUID.generate(), jobId });
+    const rGenerated = Route.request({ routeId: UUID.generate(), jobId });
+    rGenerated.generate(
+      new DistanceKm(2),
+      new Duration(100),
+      Path.fromCoordinates([LatLng.fromNumbers(0, 0), LatLng.fromNumbers(1, 1)])
+    );
+    mockFindByJobId.mockResolvedValueOnce([rRequested, rGenerated]);
     const res = await handler({
       ...baseEvent,
       pathParameters: { jobId: jobId.Value },
@@ -266,10 +272,10 @@ describe("page router list routes by jobId", () => {
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual([
       {
-        routeId: r.routeId.Value,
-        distanceKm: undefined,
-        duration: undefined,
-        path: undefined,
+        routeId: rGenerated.routeId.Value,
+        distanceKm: 2,
+        duration: 100,
+        path: rGenerated.path!.Encoded,
         description: undefined,
       },
     ]);
