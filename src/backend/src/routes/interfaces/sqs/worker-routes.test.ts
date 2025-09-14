@@ -4,6 +4,7 @@ import type { RouteProvider } from "../../domain/services/route-provider";
 import type { QueuePublisher } from "../../domain/queues/queue-publisher";
 import { RouteGenerator } from "../../domain/services/route-generator";
 import { UUID } from "../../../shared/domain/value-objects/uuid";
+import { Context, Callback } from "aws-lambda";
 
 const save = jest.fn();
 const publish = jest.fn();
@@ -65,7 +66,7 @@ beforeEach(() => {
     ],
   } as any;
 
-  await handler(event);
+  await handler(event, {} as Context, (() => {}) as Callback);
 
     expect(save).toHaveBeenCalled();
     expect(publish).toHaveBeenCalled();
@@ -81,7 +82,7 @@ beforeEach(() => {
       ],
     } as any;
 
-    await handler(event);
+    await handler(event, {} as Context, (() => {}) as Callback);
 
     expect(save).not.toHaveBeenCalled();
     expect(publish).not.toHaveBeenCalled();
@@ -91,7 +92,7 @@ beforeEach(() => {
 it("publishes error for malformed payload", async () => {
   const event = { Records: [{ body: "not-json" }] } as any;
 
-  await handler(event);
+  await handler(event, {} as Context, (() => {}) as Callback);
 
   expect(publishError).toHaveBeenCalled();
   expect(publish).not.toHaveBeenCalled();
@@ -118,7 +119,7 @@ it("publishes error when route generation fails", async () => {
     ],
   } as any;
 
-  await handler(event);
+  await handler(event, {} as Context, (() => {}) as Callback);
 
   expect(publishError).toHaveBeenCalled();
   expect(publish).not.toHaveBeenCalled();
@@ -151,7 +152,7 @@ it("handles circular round-trip routes", async () => {
     ],
   } as any;
 
-  await handler(event);
+  await handler(event, {} as Context, (() => {}) as Callback);
 
   expect(circ).toHaveBeenCalled();
   expect(save).toHaveBeenCalled();
