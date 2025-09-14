@@ -1,7 +1,7 @@
-import { Amplify } from 'aws-amplify';
+import { Amplify, type ResourcesConfig } from 'aws-amplify';
 import API, { graphqlOperation } from '@aws-amplify/api-graphql';
 
-const awsconfig = {
+const awsconfig: ResourcesConfig = {
   API: {
     GraphQL: {
       endpoint: import.meta.env.VITE_APPSYNC_URL,
