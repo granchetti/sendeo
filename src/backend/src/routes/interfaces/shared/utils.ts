@@ -7,7 +7,8 @@ import * as turf from "@turf/turf";
 
 const sm = new SecretsManagerClient({});
 
-export function fetchJson<T = any>(url: string): Promise<T> {
+
+export function fetchJson<T = any>(url: string, timeoutMs = 5000): Promise<T> {
   let logUrl = url;
   try {
     const u = new URL(url);
@@ -19,23 +20,42 @@ export function fetchJson<T = any>(url: string): Promise<T> {
     // ignore url parsing errors and log original url
   }
   console.info(`[fetchJson] GET ${logUrl}`);
+
   return new Promise((resolve, reject) => {
+    let finished = false;
+    const done = (err?: Error, data?: T) => {
+      if (finished) return;
+      finished = true;
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data as T);
+      }
+    };
+
     const req = httpsRequest(url, (res) => {
       let data = "";
       res.on("data", (c) => (data += c));
       res.on("end", () => {
         console.info(`[fetchJson] resp body: ${data}`);
         try {
-          resolve(data ? JSON.parse(data) : null);
+          done(undefined, data ? JSON.parse(data) : null);
         } catch (err) {
           console.error("[fetchJson] JSON.parse error", data);
-          reject(err);
+          done(err as Error);
         }
       });
     });
+
+    req.setTimeout(timeoutMs, () => {
+      console.error(`[fetchJson] request timeout after ${timeoutMs}ms`);
+      req.destroy();
+      done(new Error("Request timeout"));
+    });
+
     req.on("error", (err) => {
       console.error("[fetchJson] HTTP error", err);
-      reject(err);
+      done(err);
     });
     req.end();
   });
