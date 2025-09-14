@@ -16,7 +16,42 @@ import type { QueuePublisher } from "../../domain/queues/queue-publisher";
 
 const SNAP_THRESHOLD_KM = 0.5;
 
+interface WorkerRoutesMessage {
+  version: number;
+  jobId: string;
+  origin: string;
+  destination?: string;
+  distanceKm?: number;
+  roundTrip?: boolean;
+  circle?: boolean;
+  routesCount?: number;
+  correlationId?: string;
+}
 
+function parseWorkerRoutesMessage(body: string): WorkerRoutesMessage | null {
+  try {
+    const data = JSON.parse(body);
+    if (
+      typeof data === "object" &&
+      data !== null &&
+      typeof data.version === "number" &&
+      typeof data.jobId === "string" &&
+      typeof data.origin === "string" &&
+      (data.destination === undefined || typeof data.destination === "string") &&
+      (data.distanceKm === undefined || typeof data.distanceKm === "number") &&
+      (data.roundTrip === undefined || typeof data.roundTrip === "boolean") &&
+      (data.circle === undefined || typeof data.circle === "boolean") &&
+      (data.routesCount === undefined || typeof data.routesCount === "number") &&
+      (data.correlationId === undefined || typeof data.correlationId === "string")
+    ) {
+      return data as WorkerRoutesMessage;
+    }
+    console.warn("[handler] invalid message shape", body);
+  } catch (err) {
+    console.warn("[handler] failed to parse body", body, err);
+  }
+  return null;
+}
 
 /** Offset a point by km & bearing */
 function offsetCoordinate(lat: number, lng: number, dKm: number, bDeg = 90) {
@@ -77,22 +112,26 @@ export function createWorkerRoutesHandler(
   return async (event) => {
     console.info("[handler] event", JSON.stringify(event, null, 2));
 
-    for (const { body } of event.Records) {
-    console.info("[handler] record", body);
-    let correlationId: string | undefined;
-    let version = 1;
-    try {
-      const {
-        version: ver,
-        jobId,
-        origin,
-        destination,
-        distanceKm,
-        roundTrip = false,
-        circle = false,
-        routesCount = 3,
-        correlationId: corr,
-      } = JSON.parse(body);
+      for (const { body } of event.Records) {
+        console.info("[handler] record", body);
+        let correlationId: string | undefined;
+        let version = 1;
+        try {
+          const parsed = parseWorkerRoutesMessage(body);
+          if (!parsed) {
+            continue;
+          }
+          const {
+            version: ver,
+            jobId,
+            origin,
+            destination,
+            distanceKm,
+            roundTrip = false,
+            circle = false,
+            routesCount = 3,
+            correlationId: corr,
+          } = parsed;
 
       version = ver;
       if (version !== 1) {

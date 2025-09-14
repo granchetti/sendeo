@@ -50,7 +50,7 @@ beforeEach(() => {
   (provider.getCityName as jest.Mock).mockReset().mockResolvedValue("city");
 });
 
-it("saves routes and publishes metrics", async () => {
+  it("saves routes and publishes metrics", async () => {
   const event = {
     Records: [
       {
@@ -67,10 +67,26 @@ it("saves routes and publishes metrics", async () => {
 
   await handler(event);
 
-  expect(save).toHaveBeenCalled();
-  expect(publish).toHaveBeenCalled();
-  expect(queue.send).toHaveBeenCalled();
-});
+    expect(save).toHaveBeenCalled();
+    expect(publish).toHaveBeenCalled();
+    expect(queue.send).toHaveBeenCalled();
+  });
+
+  it("skips malformed messages", async () => {
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({ version: 1 }),
+        },
+      ],
+    } as any;
+
+    await handler(event);
+
+    expect(save).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+    expect(queue.send).not.toHaveBeenCalled();
+  });
 
 it("publishes error for malformed payload", async () => {
   const event = { Records: [{ body: "not-json" }] } as any;
