@@ -8,7 +8,17 @@ import * as turf from "@turf/turf";
 const sm = new SecretsManagerClient({});
 
 export function fetchJson<T = any>(url: string): Promise<T> {
-  console.info(`[fetchJson] GET ${url}`);
+  let logUrl = url;
+  try {
+    const u = new URL(url);
+    if (u.searchParams.has("key")) {
+      u.searchParams.set("key", "REDACTED");
+    }
+    logUrl = u.toString();
+  } catch {
+    // ignore url parsing errors and log original url
+  }
+  console.info(`[fetchJson] GET ${logUrl}`);
   return new Promise((resolve, reject) => {
     const req = httpsRequest(url, (res) => {
       let data = "";
