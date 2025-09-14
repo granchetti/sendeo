@@ -149,7 +149,8 @@ describe("DynamoRouteRepository", () => {
       TableName: tableName,
       IndexName: "GSI2",
       KeyConditionExpression: "jobId = :job",
-      FilterExpression: "attribute_exists(path)",
+      FilterExpression: "attribute_exists(#p)",
+      ExpressionAttributeNames: { "#p": "path" },
       ExpressionAttributeValues: { ":job": { S: jobId.Value } },
     });
     expect(res).toHaveLength(1);
