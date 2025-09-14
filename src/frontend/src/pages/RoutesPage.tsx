@@ -26,7 +26,7 @@ import {
 } from '../utils/geocoding';
 import { api } from '../services/api';
 import { API, graphqlOperation } from '../services/appsync';
-import { onRoutesGenerated } from '../graphql/subscriptions';
+import { onRoutesGenerated, onErrorOccurred } from '../graphql/subscriptions';
 import { useNavigate } from 'react-router-dom';
 
 const MotionBox = motion(Box);
@@ -196,6 +196,24 @@ export default function RoutesPage() {
     circle,
     routesCount,
   ]);
+
+  useEffect(() => {
+    if (!jobId) return;
+    const observable = API.graphql(
+      graphqlOperation(onErrorOccurred, { correlationId: jobId }),
+    ) as any;
+    const subscription = observable.subscribe({
+      next: ({ value }: any) => {
+        const msg = value?.data?.onErrorOccurred?.message;
+        if (msg) {
+          toast({ title: 'Error', description: msg, status: 'error' });
+          setLoading(false);
+        }
+      },
+      error: console.error,
+    });
+    return () => subscription.unsubscribe();
+  }, [jobId, toast]);
 
   const toCoord = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
 

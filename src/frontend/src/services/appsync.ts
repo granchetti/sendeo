@@ -1,7 +1,7 @@
 import { Amplify } from 'aws-amplify';
 import API, { graphqlOperation } from '@aws-amplify/api-graphql';
 
-Amplify.configure({
+const awsconfig = {
   API: {
     GraphQL: {
       endpoint: import.meta.env.VITE_APPSYNC_URL,
@@ -10,6 +10,8 @@ Amplify.configure({
       apiKey: import.meta.env.VITE_APPSYNC_API_KEY,
     },
   },
-});
+};
 
-export { API, graphqlOperation };
+Amplify.configure(awsconfig);
+
+export { API, graphqlOperation, awsconfig };

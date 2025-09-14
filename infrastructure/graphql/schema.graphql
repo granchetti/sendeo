@@ -14,6 +14,13 @@ input RouteInput {
   description: String
 }
 
+type ErrorPayload {
+  message: String!
+  payload: AWSJSON
+  correlationId: ID
+  version: Int!
+}
+
 """All mutations require a payload version."""
 type Mutation {
   publishRoutesGenerated(jobId: ID!, routes: [RouteInput]!, correlationId: ID, version: Int!): [Route] # version: payload schema version
@@ -21,6 +28,7 @@ type Mutation {
   publishFavouriteDeleted(email: String!, routeId: ID!, version: Int!): ID # version: payload schema version
   publishRouteStarted(email: String!, routeId: ID!, version: Int!): ID # version: payload schema version
   publishRouteFinished(email: String!, routeId: ID!, summary: String!, version: Int!): ID # version: payload schema version
+  publishErrorOccurred(message: String!, payload: AWSJSON, correlationId: ID, version: Int!): ErrorPayload # version: payload schema version
 }
 
 type Subscription {
@@ -34,6 +42,8 @@ type Subscription {
     @aws_subscribe(mutations: ["publishRouteStarted"])
   onRouteFinished(email: String!, routeId: ID!, summary: String!): ID
     @aws_subscribe(mutations: ["publishRouteFinished"])
+  onErrorOccurred(correlationId: ID!): ErrorPayload
+    @aws_subscribe(mutations: ["publishErrorOccurred"])
 }
 
 type Query {

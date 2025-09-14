@@ -8,3 +8,14 @@ export const onRoutesGenerated = /* GraphQL */ `
     }
   }
 `;
+
+export const onErrorOccurred = /* GraphQL */ `
+  subscription OnErrorOccurred($correlationId: ID!) {
+    onErrorOccurred(correlationId: $correlationId) {
+      message
+      payload
+      correlationId
+      version
+    }
+  }
+`;
