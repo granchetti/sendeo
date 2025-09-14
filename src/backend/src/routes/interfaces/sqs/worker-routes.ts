@@ -8,7 +8,10 @@ import { SQSQueuePublisher } from "../../infrastructure/sqs-queue-publisher";
 import { getGoogleKey } from "../shared/utils";
 import { Path } from "../../domain/value-objects/path";
 import type { Route } from "../../domain/entities/route";
-import { publishRoutesGenerated, publishErrorOccurred } from "../appsync-client";
+import {
+  publishRoutesGenerated,
+  publishErrorOccurred,
+} from "../appsync-client";
 import { RouteGenerator } from "../../domain/services/route-generator";
 import type { RouteRepository } from "../../domain/repositories/route-repository";
 import type { RouteProvider } from "../../domain/services/route-provider";
@@ -37,12 +40,15 @@ function parseWorkerRoutesMessage(body: string): WorkerRoutesMessage | null {
       typeof data.version === "number" &&
       typeof data.jobId === "string" &&
       typeof data.origin === "string" &&
-      (data.destination === undefined || typeof data.destination === "string") &&
+      (data.destination === undefined ||
+        typeof data.destination === "string") &&
       (data.distanceKm === undefined || typeof data.distanceKm === "number") &&
       (data.roundTrip === undefined || typeof data.roundTrip === "boolean") &&
       (data.circle === undefined || typeof data.circle === "boolean") &&
-      (data.routesCount === undefined || typeof data.routesCount === "number") &&
-      (data.correlationId === undefined || typeof data.correlationId === "string")
+      (data.routesCount === undefined ||
+        typeof data.routesCount === "number") &&
+      (data.correlationId === undefined ||
+        typeof data.correlationId === "string")
     ) {
       return data as WorkerRoutesMessage;
     }
@@ -112,240 +118,250 @@ export function createWorkerRoutesHandler(
   return async (event) => {
     console.info("[handler] event", JSON.stringify(event, null, 2));
 
-      for (const { body } of event.Records) {
-        console.info("[handler] record", body);
-        let correlationId: string | undefined;
-        let version = 1;
-        try {
-          const parsed = parseWorkerRoutesMessage(body);
-          if (!parsed) {
-            continue;
-          }
-          const {
-            version: ver,
-            jobId,
-            origin,
-            destination,
-            distanceKm,
-            roundTrip = false,
-            circle = false,
-            routesCount = 3,
-            correlationId: corr,
-          } = parsed;
+    for (const { body } of event.Records) {
+      console.info("[handler] record", body);
+      let correlationId: string | undefined;
+      let version = 1;
+      try {
+        const parsed = parseWorkerRoutesMessage(body);
+        if (!parsed) {
+          await publishErrorOccurred("Malformed payload", body, undefined, 1);
+          continue;
+        }
+        const {
+          version: ver,
+          jobId,
+          origin,
+          destination,
+          distanceKm,
+          roundTrip = false,
+          circle = false,
+          routesCount = 3,
+          correlationId: corr,
+        } = parsed;
 
-      version = ver;
-      if (version !== 1) {
-        console.warn("[handler] unsupported version", version);
-        continue;
-      }
+        version = ver;
+        if (version !== 1) {
+          console.warn("[handler] unsupported version", version);
+          continue;
+        }
 
-      correlationId = corr;
+        correlationId = corr;
 
         const oCoords = await generator.geocode(origin);
         const dCoords = destination
           ? await generator.geocode(destination)
           : undefined;
 
-      const saved: Route[] = [];
-      const seen = new Set<string>();
-      let circularCount = 0;
-      const circularGoal = Math.ceil(routesCount * 0.66);
-      let attempts = 0,
-        maxAt = routesCount * 10;
-      console.info(`[handler] max attempts: ${maxAt}`);
+        const saved: Route[] = [];
+        const seen = new Set<string>();
+        let circularCount = 0;
+        const circularGoal = Math.ceil(routesCount * 0.66);
+        let attempts = 0,
+          maxAt = routesCount * 10;
+        console.info(`[handler] max attempts: ${maxAt}`);
 
-    while (saved.length < routesCount && attempts++ < maxAt) {
-      console.info(
-        `[handler] attempt ${attempts}, have ${saved.length}/${routesCount}`
-      );
-
-        if (dCoords) {
-          const alts = await provider.computeRoutes(oCoords, dCoords);
-        const shuffled = alts.sort(() => Math.random() - 0.5);
-        for (const alt of shuffled) {
-          if (saved.length >= routesCount) break;
-          const km = alt.distanceMeters / 1000;
-          const target = distanceKm ?? km;
-          if (!withinTarget(km, target)) {
-            console.warn("[handler] p2p out of range", km);
-            continue;
-          }
-          const hash = alt.encoded
-            ? createHash("md5").update(alt.encoded).digest("hex")
-            : undefined;
-          if (hash && seen.has(hash)) continue;
-          const r = await generator.persistRoute(
-            jobId,
-            km,
-            alt.durationSeconds,
-            alt.encoded
+        while (saved.length < routesCount && attempts++ < maxAt) {
+          console.info(
+            `[handler] attempt ${attempts}, have ${saved.length}/${routesCount}`
           );
-          if (hash) seen.add(hash);
-          saved.push(r);
-        }
-      } else {
-        let leg: {
-          distanceMeters: number;
-          durationSeconds: number;
-          encoded: string;
-        } | null = null;
-        let isCircular = false;
-        if (roundTrip && circle) {
-          const segOptions = [4, 5, 6, 8, 10];
-          const radiusOpts = [1.1, 1, 0.85, 0.7, 0.55, 0.4];
-          outer: for (const segs of segOptions) {
-            const step = 360 / segs;
-            for (const rMul of radiusOpts) {
-              const tries = 2 + Math.floor(Math.random() * 2);
-              for (let t = 0; t < tries; t++) {
-                const bearing =
-                  Math.random() * 360 + (Math.random() * 2 - 1) * step * 0.25;
-                  leg = await generator.computeCircularRoute(
-                    oCoords,
-                    distanceKm!,
-                    segs,
-                    bearing,
-                    rMul
-                  );
-                if (leg) {
-                  let km = leg.distanceMeters / 1000;
-                  let adjust = 0;
-                  while (!withinTarget(km, distanceKm!) && adjust < 2) {
-                    const rm = Math.min(1.3, Math.max(0.4, distanceKm! / km));
-                      leg = await generator.computeCircularRoute(
-                        oCoords,
-                        distanceKm!,
-                        segs,
-                        bearing,
-                        rm
-                      );
-                    if (!leg) break;
-                    km = leg.distanceMeters / 1000;
-                    adjust++;
-                  }
-                  if (
-                    leg &&
-                    withinTarget(leg.distanceMeters / 1000, distanceKm!)
-                  ) {
-                    isCircular = true;
-                    break outer;
+
+          if (dCoords) {
+            const alts = await provider.computeRoutes(oCoords, dCoords);
+            const shuffled = alts.sort(() => Math.random() - 0.5);
+            for (const alt of shuffled) {
+              if (saved.length >= routesCount) break;
+              const km = alt.distanceMeters / 1000;
+              const target = distanceKm ?? km;
+              if (!withinTarget(km, target)) {
+                console.warn("[handler] p2p out of range", km);
+                continue;
+              }
+              const hash = alt.encoded
+                ? createHash("md5").update(alt.encoded).digest("hex")
+                : undefined;
+              if (hash && seen.has(hash)) continue;
+              const r = await generator.persistRoute(
+                jobId,
+                km,
+                alt.durationSeconds,
+                alt.encoded
+              );
+              if (hash) seen.add(hash);
+              saved.push(r);
+            }
+          } else {
+            let leg: {
+              distanceMeters: number;
+              durationSeconds: number;
+              encoded: string;
+            } | null = null;
+            let isCircular = false;
+            if (roundTrip && circle) {
+              const segOptions = [4, 5, 6, 8, 10];
+              const radiusOpts = [1.1, 1, 0.85, 0.7, 0.55, 0.4];
+              outer: for (const segs of segOptions) {
+                const step = 360 / segs;
+                for (const rMul of radiusOpts) {
+                  const tries = 2 + Math.floor(Math.random() * 2);
+                  for (let t = 0; t < tries; t++) {
+                    const bearing =
+                      Math.random() * 360 +
+                      (Math.random() * 2 - 1) * step * 0.25;
+                    leg = await generator.computeCircularRoute(
+                      oCoords,
+                      distanceKm!,
+                      segs,
+                      bearing,
+                      rMul
+                    );
+                    if (leg) {
+                      let km = leg.distanceMeters / 1000;
+                      let adjust = 0;
+                      while (!withinTarget(km, distanceKm!) && adjust < 2) {
+                        const rm = Math.min(
+                          1.3,
+                          Math.max(0.4, distanceKm! / km)
+                        );
+                        leg = await generator.computeCircularRoute(
+                          oCoords,
+                          distanceKm!,
+                          segs,
+                          bearing,
+                          rm
+                        );
+                        if (!leg) break;
+                        km = leg.distanceMeters / 1000;
+                        adjust++;
+                      }
+                      if (
+                        leg &&
+                        withinTarget(leg.distanceMeters / 1000, distanceKm!)
+                      ) {
+                        isCircular = true;
+                        break outer;
+                      }
+                    }
                   }
                 }
               }
-            }
-          }
-          if (!leg) {
-            console.warn(
-              "[handler] circular failed, fallback to simple round-trip"
-            );
-            const bearing = Math.random() * 360;
-            const half = distanceKm! / 2;
-            const rawDest = offsetCoordinate(
-              oCoords.lat,
-              oCoords.lng,
-              half,
-              bearing
-            );
+              if (!leg) {
+                console.warn(
+                  "[handler] circular failed, fallback to simple round-trip"
+                );
+                const bearing = Math.random() * 360;
+                const half = distanceKm! / 2;
+                const rawDest = offsetCoordinate(
+                  oCoords.lat,
+                  oCoords.lng,
+                  half,
+                  bearing
+                );
+                const snapped =
+                  half > SNAP_THRESHOLD_KM
+                    ? await provider.snapToRoad(rawDest)
+                    : rawDest;
+                const [out] = await provider.computeRoutes(oCoords, snapped);
+                const [back] = await provider.computeRoutes(snapped, oCoords);
+                if (out?.encoded && back?.encoded) {
+                  const c1 = new Path(out.encoded).Coordinates;
+                  const c2 = new Path(back.encoded).Coordinates.slice(1);
+                  const poly = Path.fromCoordinates([...c1, ...c2]).Encoded;
+                  leg = {
+                    distanceMeters: out.distanceMeters + back.distanceMeters,
+                    durationSeconds: out.durationSeconds + back.durationSeconds,
+                    encoded: poly,
+                  };
+                }
+              }
+            } else {
+              // existing out-and-back
+              const bearing = Math.random() * 360;
+              console.info("[handler] random bearing", bearing);
+              const half = roundTrip ? distanceKm! / 2 : distanceKm!;
+              const rawDest = offsetCoordinate(
+                oCoords.lat,
+                oCoords.lng,
+                half,
+                bearing
+              );
               const snapped =
                 half > SNAP_THRESHOLD_KM
                   ? await provider.snapToRoad(rawDest)
                   : rawDest;
               const [out] = await provider.computeRoutes(oCoords, snapped);
-              const [back] = await provider.computeRoutes(snapped, oCoords);
-            if (out?.encoded && back?.encoded) {
-              const c1 = new Path(out.encoded).Coordinates;
-              const c2 = new Path(back.encoded).Coordinates.slice(1);
-              const poly = Path.fromCoordinates([...c1, ...c2]).Encoded;
-              leg = {
-                distanceMeters: out.distanceMeters + back.distanceMeters,
-                durationSeconds: out.durationSeconds + back.durationSeconds,
-                encoded: poly,
-              };
+              if (!out) continue;
+
+              if (!roundTrip) {
+                leg = out;
+              } else {
+                const [back] = await provider.computeRoutes(snapped, oCoords);
+                if (!back) continue;
+                const c1 = new Path(out.encoded).Coordinates;
+                const c2 = new Path(back.encoded).Coordinates.slice(1);
+                leg = {
+                  distanceMeters: out.distanceMeters + back.distanceMeters,
+                  durationSeconds: out.durationSeconds + back.durationSeconds,
+                  encoded: Path.fromCoordinates([...c1, ...c2]).Encoded,
+                };
+              }
+            }
+
+            if (leg) {
+              const km = leg.distanceMeters / 1000;
+              if (!withinTarget(km, distanceKm!)) {
+                console.warn("[handler] dist-only out of range", km);
+                continue;
+              }
+              if (circle && !isCircular && circularCount < circularGoal) {
+                console.warn(
+                  "[handler] skipping fallback until enough circular routes"
+                );
+                continue;
+              }
+              const hash2 = leg.encoded
+                ? createHash("md5").update(leg.encoded).digest("hex")
+                : undefined;
+              if (hash2 && seen.has(hash2)) continue;
+              const r = await generator.persistRoute(
+                jobId,
+                km,
+                leg.durationSeconds,
+                leg.encoded,
+                correlationId
+              );
+              if (hash2) seen.add(hash2);
+              saved.push(r);
+              if (isCircular) circularCount++;
             }
           }
+        }
+
+        if (saved.length) {
+          console.info(`[handler] publishing ${saved.length} routes`);
+          await publishRoutesGenerated(jobId, saved, correlationId, version);
+          await publisher.send(
+            JSON.stringify({
+              version,
+              event: "routes_generated",
+              jobId,
+              correlationId,
+              count: saved.length,
+              timestamp: Date.now(),
+            })
+          );
         } else {
-          // existing out-and-back
-          const bearing = Math.random() * 360;
-          console.info("[handler] random bearing", bearing);
-          const half = roundTrip ? distanceKm! / 2 : distanceKm!;
-          const rawDest = offsetCoordinate(
-            oCoords.lat,
-            oCoords.lng,
-            half,
-            bearing
-          );
-          const snapped =
-            half > SNAP_THRESHOLD_KM
-              ? await provider.snapToRoad(rawDest)
-              : rawDest;
-          const [out] = await provider.computeRoutes(oCoords, snapped);
-          if (!out) continue;
-
-          if (!roundTrip) {
-            leg = out;
-          } else {
-            const [back] = await provider.computeRoutes(snapped, oCoords);
-            if (!back) continue;
-            const c1 = new Path(out.encoded).Coordinates;
-            const c2 = new Path(back.encoded).Coordinates.slice(1);
-            leg = {
-              distanceMeters: out.distanceMeters + back.distanceMeters,
-              durationSeconds: out.durationSeconds + back.durationSeconds,
-              encoded: Path.fromCoordinates([...c1, ...c2]).Encoded,
-            };
-          }
+          console.warn(`[handler] no routes after ${maxAt} attempts`);
         }
-
-        if (leg) {
-          const km = leg.distanceMeters / 1000;
-          if (!withinTarget(km, distanceKm!)) {
-            console.warn("[handler] dist-only out of range", km);
-            continue;
-          }
-          if (circle && !isCircular && circularCount < circularGoal) {
-            console.warn(
-              "[handler] skipping fallback until enough circular routes"
-            );
-            continue;
-          }
-          const hash2 = leg.encoded
-            ? createHash("md5").update(leg.encoded).digest("hex")
-            : undefined;
-          if (hash2 && seen.has(hash2)) continue;
-          const r = await generator.persistRoute(
-            jobId,
-            km,
-            leg.durationSeconds,
-            leg.encoded,
-            correlationId
-          );
-          if (hash2) seen.add(hash2);
-          saved.push(r);
-          if (isCircular) circularCount++;
-        }
-      }
-    }
-
-    if (saved.length) {
-      console.info(`[handler] publishing ${saved.length} routes`);
-      await publishRoutesGenerated(jobId, saved, correlationId, version);
-      await publisher.send(
-        JSON.stringify({
-          version,
-          event: "routes_generated",
-          jobId,
+      } catch (err: any) {
+        console.error("[handler] error processing record", err);
+        await publishErrorOccurred(
+          err?.message || "Unknown error",
+          body,
           correlationId,
-          count: saved.length,
-          timestamp: Date.now(),
-        })
-      );
-    } else {
-      console.warn(`[handler] no routes after ${maxAt} attempts`);
-    }
-  } catch (err: any) {
-    console.error("[handler] error processing record", err);
-    await publishErrorOccurred(err?.message || "Unknown error", body, correlationId, version);
-  }
+          version
+        );
+      }
     }
   };
 }
@@ -355,12 +371,12 @@ const dynamo = new DynamoDBClient({
 });
 const routeRepository = new DynamoRouteRepository(
   dynamo,
-  process.env.ROUTES_TABLE!,
+  process.env.ROUTES_TABLE!
 );
 const sqs = new SQSClient({});
 const metricsPublisher = new SQSQueuePublisher(
   sqs,
-  process.env.METRICS_QUEUE || "",
+  process.env.METRICS_QUEUE || ""
 );
 
 export const handler: SQSHandler = async (event, context) => {
@@ -369,8 +385,7 @@ export const handler: SQSHandler = async (event, context) => {
   const fn = createWorkerRoutesHandler(
     routeRepository,
     provider,
-    metricsPublisher,
+    metricsPublisher
   );
-  return fn(event, context);
+  return fn(event, context, (_err?: any, _res?: any) => undefined);
 };
-
