@@ -7,11 +7,20 @@ import * as turf from "@turf/turf";
 
 const sm = new SecretsManagerClient({});
 
-export function fetchJson<T = any>(
-  url: string,
-  timeoutMs = 5000
-): Promise<T> {
-  console.info(`[fetchJson] GET ${url}`);
+
+export function fetchJson<T = any>(url: string, timeoutMs = 5000): Promise<T> {
+  let logUrl = url;
+  try {
+    const u = new URL(url);
+    if (u.searchParams.has("key")) {
+      u.searchParams.set("key", "REDACTED");
+    }
+    logUrl = u.toString();
+  } catch {
+    // ignore url parsing errors and log original url
+  }
+  console.info(`[fetchJson] GET ${logUrl}`);
+
   return new Promise((resolve, reject) => {
     let finished = false;
     const done = (err?: Error, data?: T) => {
